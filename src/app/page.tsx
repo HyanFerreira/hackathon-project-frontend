@@ -1,3 +1,5 @@
+import { UsersWorkspace } from "@/components/ui/users/UsersWorkspace";
+
 export default function Home() {
-  return <main>Hello, world!</main>;
+  return <UsersWorkspace />;
 }
