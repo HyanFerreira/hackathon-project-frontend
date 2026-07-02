@@ -48,4 +48,16 @@ export const authApi = {
       token: data.token,
     };
   },
+
+  async me(): Promise<User> {
+    const { data } = await api.get<UserApi | { data: UserApi }>(
+      authEndpoints.me,
+    );
+
+    return normalizeUser(getUserFromResponse(data));
+  },
+
+  async logout(): Promise<void> {
+    await api.post(authEndpoints.logout);
+  },
 };

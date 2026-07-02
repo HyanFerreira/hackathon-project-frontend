@@ -1,13 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import {
-  AlertCircle,
-  LoaderCircle,
-  Server,
-  UserRound,
-  Users,
-} from "lucide-react";
+import { AlertCircle, LoaderCircle, UserRound, Users } from "lucide-react";
+import { Button } from "@/components/buttons";
 import { getApiErrorMessage } from "@/services/api/errors/getApiErrorMessage";
 import { usersApi } from "@/services/api/modules/users";
 
@@ -23,45 +18,71 @@ export function UsersWorkspace() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4 py-12 text-slate-100">
-      <section className="w-full max-w-2xl rounded-system border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-brand-primary-dark/30 backdrop-blur sm:p-10">
-        <div className="mb-8 flex items-start gap-4">
-          <div className="rounded-system bg-brand-primary-soft/10 p-3 text-brand-accent">
-            <Server aria-hidden="true" className="size-7" />
+    <div className="space-y-6">
+      <section>
+        <h1 className="text-3xl font-bold text-brand-primary">Bem-vindo(a)!</h1>
+        <p className="mt-1 text-base text-text-secondary">
+          Visão geral do sistema
+        </p>
+      </section>
+
+      <section className="rounded-system border border-slate-200 bg-white shadow-[0_10px_30px_rgba(0,0,0,0.08)]">
+        <div className="flex flex-col gap-4 border-slate-200 border-b p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-4">
+            <div className="rounded-system bg-brand-primary-soft p-3 text-brand-primary">
+              <Users aria-hidden="true" className="size-6" />
+            </div>
+            <div>
+              <p className="text-sm font-extrabold tracking-wide text-brand-primary uppercase">
+                Usuários
+              </p>
+              <h2 className="mt-1 text-xl font-bold text-text-primary">
+                Listagem de usuários da API
+              </h2>
+              <p className="mt-1 max-w-2xl text-sm text-text-secondary">
+                Consulte os usuários cadastrados no backend autenticado.
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="mb-1 text-sm font-semibold uppercase tracking-[0.2em] text-brand-accent">
-              Integração inicial
-            </p>
-            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Frontend conectado à API
-            </h1>
-            <p className="mt-3 max-w-xl text-slate-400">
-              Use o botão para consultar a rota pública do Laravel e listar os
-              usuários cadastrados no banco.
-            </p>
-          </div>
+
+          <Button
+            type="button"
+            onClick={handleLoadUsers}
+            disabled={usersQuery.isFetching}
+            className="min-h-11 bg-brand-primary px-5 py-3 text-white hover:bg-brand-primary-hover"
+          >
+            {usersQuery.isFetching ? (
+              <LoaderCircle
+                aria-hidden="true"
+                className="size-5 animate-spin"
+              />
+            ) : (
+              <Users aria-hidden="true" className="size-5" />
+            )}
+            {usersQuery.isFetching ? "Buscando..." : "Listar usuários"}
+          </Button>
         </div>
 
-        <button
-          type="button"
-          onClick={handleLoadUsers}
-          disabled={usersQuery.isFetching}
-          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-system bg-brand-primary px-5 py-3 font-semibold text-white transition hover:bg-brand-primary-hover focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-input-border-focus disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-        >
-          {usersQuery.isFetching ? (
-            <LoaderCircle aria-hidden="true" className="size-5 animate-spin" />
-          ) : (
-            <Users aria-hidden="true" className="size-5" />
+        <div className="p-5" aria-live="polite">
+          {!usersQuery.data && !usersQuery.isError && (
+            <div className="rounded-system border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+              <UserRound
+                aria-hidden="true"
+                className="mx-auto mb-3 size-10 text-brand-primary"
+              />
+              <p className="font-semibold text-text-primary">
+                Nenhuma consulta realizada
+              </p>
+              <p className="mt-1 text-sm text-text-secondary">
+                Clique em listar usuários para carregar os dados.
+              </p>
+            </div>
           )}
-          {usersQuery.isFetching ? "Buscando usuários..." : "Listar usuários"}
-        </button>
 
-        <div className="mt-8" aria-live="polite">
           {usersQuery.isError && (
             <div
               role="alert"
-              className="flex gap-3 rounded-system border border-red-400/30 bg-red-400/10 p-4 text-red-200"
+              className="flex gap-3 rounded-system border border-red-200 bg-red-50 p-4 text-red-700"
             >
               <AlertCircle
                 aria-hidden="true"
@@ -72,7 +93,7 @@ export function UsersWorkspace() {
           )}
 
           {usersQuery.isSuccess && usersQuery.data.length === 0 && (
-            <p className="rounded-system border border-slate-700 bg-slate-800/60 p-5 text-slate-300">
+            <p className="rounded-system border border-slate-200 bg-slate-50 p-5 text-text-secondary">
               A API respondeu corretamente, mas ainda não há usuários
               cadastrados.
             </p>
@@ -83,14 +104,16 @@ export function UsersWorkspace() {
               {usersQuery.data.map((user) => (
                 <li
                   key={user.id}
-                  className="flex items-center gap-4 rounded-system border border-slate-800 bg-slate-950/60 p-4"
+                  className="flex items-center gap-4 rounded-system border border-slate-200 bg-white p-4 shadow-sm"
                 >
-                  <div className="rounded-full bg-slate-800 p-2.5 text-brand-accent">
+                  <div className="rounded-full bg-brand-primary-soft p-2.5 text-brand-primary">
                     <UserRound aria-hidden="true" className="size-5" />
                   </div>
                   <div className="min-w-0">
-                    <p className="font-semibold text-slate-100">{user.name}</p>
-                    <p className="truncate text-sm text-slate-400">
+                    <p className="font-semibold text-text-primary">
+                      {user.name}
+                    </p>
+                    <p className="truncate text-sm text-text-secondary">
                       {user.email}
                     </p>
                   </div>
@@ -100,6 +123,6 @@ export function UsersWorkspace() {
           )}
         </div>
       </section>
-    </main>
+    </div>
   );
 }

@@ -2,7 +2,8 @@
 
 import { AlertCircle, LoaderCircle, LogIn } from "lucide-react";
 import Image from "next/image";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import ifspFacade from "@/assets/images/ifspcaragua_faxada.png";
 import { CpfInput } from "@/components/form/CpfInput";
 import { PasswordInput } from "@/components/form/PasswordInput";
@@ -11,7 +12,7 @@ import {
   getApiValidationErrors,
 } from "@/services/api/errors/getApiErrorMessage";
 import { authApi } from "@/services/api/modules/auth";
-import { setAuthToken } from "@/services/api/tokenStorage";
+import { getAuthToken, setAuthToken } from "@/services/api/tokenStorage";
 import { isValidCpf, onlyCpfDigits } from "@/utils/cpf/cpf";
 
 type LoginFieldErrors = {
@@ -20,13 +21,19 @@ type LoginFieldErrors = {
 };
 
 export function LoginScreen() {
+  const router = useRouter();
   const [cpf, setCpf] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
   const [error, setError] = useState<string>();
   const [fieldErrors, setFieldErrors] = useState<LoginFieldErrors>({});
-  const [successMessage, setSuccessMessage] = useState<string>();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (getAuthToken()) {
+      router.replace("/dashboard");
+    }
+  }, [router]);
 
   const validateForm = () => {
     const cpfDigits = onlyCpfDigits(cpf);
@@ -59,7 +66,6 @@ export function LoginScreen() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(undefined);
-    setSuccessMessage(undefined);
 
     if (!validateForm()) {
       return;
@@ -74,9 +80,7 @@ export function LoginScreen() {
       });
 
       setAuthToken(response.token, remember);
-      setSuccessMessage(
-        `Login realizado com sucesso. Olá, ${response.user.name}.`,
-      );
+      router.replace("/dashboard");
     } catch (requestError) {
       const validationErrors = getApiValidationErrors(requestError);
 
@@ -171,12 +175,6 @@ export function LoginScreen() {
                 />
                 <p>{error}</p>
               </div>
-            )}
-
-            {successMessage && (
-              <p className="rounded-system border border-brand-primary/20 bg-brand-primary-soft p-3 text-sm font-medium text-brand-primary">
-                {successMessage}
-              </p>
             )}
 
             <button
