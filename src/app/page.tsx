@@ -1,5 +1,5 @@
-import { UsersWorkspace } from "@/components/ui/users/UsersWorkspace";
+import { redirect } from "next/navigation";
 
 export default function Home() {
-  return <UsersWorkspace />;
+  redirect("/login");
 }

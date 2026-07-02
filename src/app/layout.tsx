@@ -3,8 +3,8 @@ import { AppProviders } from "@/contexts/AppProviders";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Hackathon Project",
-  description: "Hackathon project frontend",
+  title: "Acessar sistema",
+  description: "Tela de login do sistema",
 };
 
 export default function RootLayout({
