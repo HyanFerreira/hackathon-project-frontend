@@ -24,13 +24,13 @@ export function UsersWorkspace() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4 py-12 text-slate-100">
-      <section className="w-full max-w-2xl rounded-3xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-cyan-950/30 backdrop-blur sm:p-10">
+      <section className="w-full max-w-2xl rounded-system border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-brand-primary-dark/30 backdrop-blur sm:p-10">
         <div className="mb-8 flex items-start gap-4">
-          <div className="rounded-2xl bg-cyan-400/10 p-3 text-cyan-300">
+          <div className="rounded-system bg-brand-primary-soft/10 p-3 text-brand-accent">
             <Server aria-hidden="true" className="size-7" />
           </div>
           <div>
-            <p className="mb-1 text-sm font-semibold uppercase tracking-[0.2em] text-cyan-300">
+            <p className="mb-1 text-sm font-semibold uppercase tracking-[0.2em] text-brand-accent">
               Integração inicial
             </p>
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
@@ -47,7 +47,7 @@ export function UsersWorkspace() {
           type="button"
           onClick={handleLoadUsers}
           disabled={usersQuery.isFetching}
-          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-400 px-5 py-3 font-semibold text-slate-950 transition hover:bg-cyan-300 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-300 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-system bg-brand-primary px-5 py-3 font-semibold text-white transition hover:bg-brand-primary-hover focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-input-border-focus disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
         >
           {usersQuery.isFetching ? (
             <LoaderCircle aria-hidden="true" className="size-5 animate-spin" />
@@ -61,7 +61,7 @@ export function UsersWorkspace() {
           {usersQuery.isError && (
             <div
               role="alert"
-              className="flex gap-3 rounded-xl border border-red-400/30 bg-red-400/10 p-4 text-red-200"
+              className="flex gap-3 rounded-system border border-red-400/30 bg-red-400/10 p-4 text-red-200"
             >
               <AlertCircle
                 aria-hidden="true"
@@ -72,7 +72,7 @@ export function UsersWorkspace() {
           )}
 
           {usersQuery.isSuccess && usersQuery.data.length === 0 && (
-            <p className="rounded-xl border border-slate-700 bg-slate-800/60 p-5 text-slate-300">
+            <p className="rounded-system border border-slate-700 bg-slate-800/60 p-5 text-slate-300">
               A API respondeu corretamente, mas ainda não há usuários
               cadastrados.
             </p>
@@ -83,9 +83,9 @@ export function UsersWorkspace() {
               {usersQuery.data.map((user) => (
                 <li
                   key={user.id}
-                  className="flex items-center gap-4 rounded-xl border border-slate-800 bg-slate-950/60 p-4"
+                  className="flex items-center gap-4 rounded-system border border-slate-800 bg-slate-950/60 p-4"
                 >
-                  <div className="rounded-full bg-slate-800 p-2.5 text-cyan-300">
+                  <div className="rounded-full bg-slate-800 p-2.5 text-brand-accent">
                     <UserRound aria-hidden="true" className="size-5" />
                   </div>
                   <div className="min-w-0">
