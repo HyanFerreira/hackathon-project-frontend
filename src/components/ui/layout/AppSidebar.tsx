@@ -1,7 +1,14 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
-import { ChevronDown, ChevronUp, LayoutDashboard, Menu } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  LayoutDashboard,
+  Menu,
+  ShieldCheck,
+  Users,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -36,10 +43,22 @@ const sidebarItems: SidebarItem[] = [
     icon: LayoutDashboard,
     href: "/dashboard",
   },
+  {
+    key: "usuarios",
+    label: "Usuários",
+    icon: Users,
+    href: "/usuarios",
+  },
+  {
+    key: "perfis",
+    label: "Perfis",
+    icon: ShieldCheck,
+    href: "/perfis",
+  },
 ];
 
 function isPathActive(pathname: string, href: string) {
-  if (href === "/") return pathname === href;
+  if (href === "/" || href === "/dashboard") return pathname === href;
 
   return pathname === href || pathname.startsWith(`${href}/`);
 }

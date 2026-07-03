@@ -1,10 +1,10 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { LoaderCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
+import { AppShellSkeleton } from "@/components/loading";
 import { authApi } from "@/services/api/modules/auth";
 import { getAuthToken, removeAuthToken } from "@/services/api/tokenStorage";
 
@@ -46,11 +46,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   }, [meQuery.isError, router]);
 
   if (isCheckingStorage || meQuery.isPending || meQuery.isError) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-100 text-brand-primary">
-        <LoaderCircle aria-hidden="true" className="size-8 animate-spin" />
-      </main>
-    );
+    return <AppShellSkeleton />;
   }
 
   return children;

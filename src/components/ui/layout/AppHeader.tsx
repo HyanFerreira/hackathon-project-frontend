@@ -11,6 +11,7 @@ import {
   useState,
 } from "react";
 import { Button } from "@/components/buttons";
+import { Skeleton } from "@/components/loading";
 import { authApi } from "@/services/api/modules/auth";
 import { removeAuthToken } from "@/services/api/tokenStorage";
 
@@ -22,6 +23,7 @@ export type UserMenuItem = {
 };
 
 type AppHeaderProps = {
+  isLoadingUser?: boolean;
   onOpenMobileSidebar?: () => void;
   sidebarWidth: number;
   userMenuItems: UserMenuItem[];
@@ -42,6 +44,7 @@ function getMenuIcon(icon?: UserMenuItem["icon"]) {
 }
 
 export function AppHeader({
+  isLoadingUser = false,
   onOpenMobileSidebar,
   sidebarWidth,
   userMenuItems,
@@ -141,9 +144,13 @@ export function AppHeader({
             <span className="flex size-9 items-center justify-center rounded-full bg-brand-primary-soft text-brand-primary">
               <User aria-hidden="true" className="size-5" />
             </span>
-            <span className="hidden max-w-44 truncate text-sm font-semibold text-text-primary sm:inline">
-              {userName}
-            </span>
+            {isLoadingUser ? (
+              <Skeleton className="hidden h-4 w-24 sm:block" />
+            ) : (
+              <span className="hidden max-w-44 truncate text-sm font-semibold text-text-primary sm:inline">
+                {userName}
+              </span>
+            )}
           </Button>
 
           {isUserMenuOpen && (

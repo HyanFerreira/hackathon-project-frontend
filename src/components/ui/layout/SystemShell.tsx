@@ -51,6 +51,7 @@ export function SystemShell({ children }: SystemShellProps) {
         <AppHeader
           sidebarWidth={sidebarWidth}
           userName={meQuery.data?.name ?? "Usuário"}
+          isLoadingUser={meQuery.isPending}
           userMenuItems={USER_MENU_ITEMS}
         />
 
