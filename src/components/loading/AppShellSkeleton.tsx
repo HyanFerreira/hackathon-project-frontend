@@ -3,7 +3,7 @@ import { SIDEBAR_EXPANDED_WIDTH } from "@/components/ui/layout/AppSidebar";
 import { Skeleton } from "./Skeleton";
 import { TableSkeleton } from "./TableSkeleton";
 
-const NAV_ITEM_KEYS = ["dashboard", "usuarios", "perfis"];
+const NAV_ITEM_KEYS = ["dashboard", "escolas", "usuarios"];
 
 /**
  * Silhueta de carregamento do sistema completo (sidebar + header + conteúdo).

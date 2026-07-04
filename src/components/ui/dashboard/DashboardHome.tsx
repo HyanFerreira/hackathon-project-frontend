@@ -1,10 +1,10 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, ShieldCheck, Users } from "lucide-react";
+import { ArrowRight, Building2, Users } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "@/components/loading";
-import { rolesApi } from "@/services/api/modules/roles";
+import { schoolsApi } from "@/services/api/modules/schools";
 import { usersApi } from "@/services/api/modules/users";
 
 type StatCardProps = {
@@ -63,47 +63,50 @@ function QuickLink({ href, title, description, icon: Icon }: QuickLinkProps) {
 }
 
 export function DashboardHome() {
+  const schoolsQuery = useQuery({
+    queryKey: ["schools"],
+    queryFn: schoolsApi.list,
+  });
   const usersQuery = useQuery({ queryKey: ["users"], queryFn: usersApi.list });
-  const rolesQuery = useQuery({ queryKey: ["roles"], queryFn: rolesApi.list });
 
   return (
     <div className="space-y-6">
       <section>
-        <h1 className="text-3xl font-bold text-brand-primary">Bem-vindo(a)!</h1>
+        <h1 className="text-3xl font-bold text-brand-primary">Painel admin</h1>
         <p className="mt-1 text-base text-text-secondary">
-          Visão geral do sistema
+          Comece criando escolas, gestores e o vinculo entre eles.
         </p>
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2">
         <StatCard
-          label="Usuários cadastrados"
+          label="Escolas cadastradas"
+          value={schoolsQuery.data?.length}
+          isLoading={schoolsQuery.isPending}
+          icon={Building2}
+        />
+        <StatCard
+          label="Usuarios cadastrados"
           value={usersQuery.data?.length}
           isLoading={usersQuery.isPending}
           icon={Users}
         />
-        <StatCard
-          label="Perfis cadastrados"
-          value={rolesQuery.data?.length}
-          isLoading={rolesQuery.isPending}
-          icon={ShieldCheck}
-        />
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-bold text-text-primary">Acesso rápido</h2>
+        <h2 className="text-lg font-bold text-text-primary">Acesso rapido</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <QuickLink
-            href="/usuarios"
-            title="Usuários"
-            description="Cadastre, edite e remova usuários."
-            icon={Users}
+            href="/escolas"
+            title="Escolas"
+            description="Cadastre escolas e vincule gestores."
+            icon={Building2}
           />
           <QuickLink
-            href="/perfis"
-            title="Perfis"
-            description="Gerencie os perfis de acesso."
-            icon={ShieldCheck}
+            href="/usuarios"
+            title="Usuarios"
+            description="Consulte os usuarios cadastrados."
+            icon={Users}
           />
         </div>
       </section>

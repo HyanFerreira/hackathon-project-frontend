@@ -2,11 +2,11 @@
 
 import type { LucideIcon } from "lucide-react";
 import {
+  Building2,
   ChevronDown,
   ChevronUp,
   LayoutDashboard,
   Menu,
-  ShieldCheck,
   Users,
 } from "lucide-react";
 import Link from "next/link";
@@ -44,16 +44,16 @@ const sidebarItems: SidebarItem[] = [
     href: "/dashboard",
   },
   {
+    key: "escolas",
+    label: "Escolas",
+    icon: Building2,
+    href: "/escolas",
+  },
+  {
     key: "usuarios",
     label: "Usuários",
     icon: Users,
     href: "/usuarios",
-  },
-  {
-    key: "perfis",
-    label: "Perfis",
-    icon: ShieldCheck,
-    href: "/perfis",
   },
 ];
 

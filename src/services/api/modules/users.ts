@@ -2,6 +2,7 @@ import type { User } from "@/types/user";
 import { api } from "../api";
 import { userEndpoints } from "../endpoints/userEndpoints";
 import { normalizeRole } from "./roles";
+import { normalizeSchool } from "./schools";
 
 type RoleApi = {
   id: number;
@@ -9,12 +10,21 @@ type RoleApi = {
   guard_name: string;
 };
 
-type UserApi = {
+export type UserApi = {
   id: number;
   name: string;
   email: string;
   cpf?: string;
   roles?: RoleApi[];
+  school?: {
+    id: number;
+    nome: string;
+    cnpj?: string;
+    cidade?: string;
+    estado?: string;
+    status?: string;
+  };
+  school_id?: number;
 };
 
 type UserResponse = {
@@ -31,6 +41,7 @@ export type CreateUserPayload = {
   email: string;
   password: string;
   roles: string[];
+  school_id?: number;
 };
 
 export type UpdateUserPayload = {
@@ -39,15 +50,18 @@ export type UpdateUserPayload = {
   email: string;
   password?: string;
   roles: string[];
+  school_id?: number;
 };
 
-function normalizeUser(user: UserApi): User {
+export function normalizeUser(user: UserApi): User {
   return {
     id: user.id,
     name: user.name,
     email: user.email,
     cpf: user.cpf,
     roles: user.roles?.map(normalizeRole),
+    school: user.school ? normalizeSchool(user.school) : undefined,
+    schoolId: user.school_id ?? user.school?.id,
   };
 }
 

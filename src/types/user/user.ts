@@ -1,4 +1,5 @@
 import type { Role } from "@/types/role";
+import type { School } from "@/types/school";
 
 export type User = {
   id: number;
@@ -6,4 +7,6 @@ export type User = {
   email: string;
   cpf?: string;
   roles?: Role[];
+  school?: School;
+  schoolId?: number;
 };
