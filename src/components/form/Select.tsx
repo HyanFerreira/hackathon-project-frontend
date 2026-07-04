@@ -277,8 +277,9 @@ export function Select({
           disabled={disabled}
           onClick={() => setIsOpen((current) => !current)}
           className={twMerge(
-            "min-h-11 w-full rounded-system border border-input-border bg-white px-3 py-2.5 pr-16 text-left text-sm text-text-primary outline-0 transition focus:border-transparent focus:outline-2 focus:outline-offset-1 focus:outline-input-border-focus disabled:cursor-not-allowed disabled:bg-input-disabled",
-            error && "border-red-500 focus:outline-red-600",
+            "min-h-11 w-full rounded-system border border-input-border bg-white px-3 py-2.5 pr-16 text-left text-sm text-text-primary outline-0 transition focus:border-transparent focus:outline-2 focus:outline-offset-1 focus:outline-input-border-focus focus-visible:border-transparent focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-input-border-focus disabled:cursor-default disabled:bg-input-disabled",
+            error &&
+              "border-red-500 focus:outline-red-600 focus-visible:outline-red-600",
             buttonClassName,
           )}
         >
@@ -388,7 +389,7 @@ export function Select({
                         ? "bg-brand-primary-soft font-semibold text-brand-primary"
                         : "text-text-primary hover:bg-slate-50",
                       option.disabled &&
-                        "cursor-not-allowed opacity-50 hover:bg-transparent",
+                        "cursor-default opacity-50 hover:bg-transparent",
                     )}
                   >
                     <span className="min-w-0 truncate">{option.label}</span>
