@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/loading";
 import { authApi } from "@/services/api/modules/auth";
 import { impersonateApi } from "@/services/api/modules/impersonate";
 import {
+  getAuthActor,
   removeAuthToken,
   restoreOriginalAuth,
 } from "@/services/api/tokenStorage";
@@ -121,15 +122,21 @@ export function AppHeader({
     }
 
     if (key !== "logout") {
+      if (key === "profile") {
+        router.push("/perfil");
+      }
       return;
     }
+
+    const loginRoute =
+      getAuthActor() === "aluno" ? "/login/estudante" : "/login";
 
     try {
       await authApi.logout();
     } finally {
       removeAuthToken();
       queryClient.clear();
-      router.replace("/login");
+      router.replace(loginRoute);
     }
   }
 

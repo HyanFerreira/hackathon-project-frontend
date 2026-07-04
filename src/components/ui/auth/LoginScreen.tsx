@@ -9,6 +9,7 @@ import {
   Users,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { FormEvent, ReactNode } from "react";
 import { useEffect, useState } from "react";
@@ -37,9 +38,12 @@ type LoginFieldErrors = {
   password?: string;
 };
 
-export function LoginScreen() {
+type LoginScreenProps = {
+  mode?: "user" | "aluno";
+};
+
+export function LoginScreen({ mode = "user" }: LoginScreenProps) {
   const router = useRouter();
-  const [mode, setMode] = useState<"user" | "aluno">("user");
   const [cpf, setCpf] = useState("");
   const [codigo, setCodigo] = useState("");
   const [password, setPassword] = useState("");
@@ -49,9 +53,9 @@ export function LoginScreen() {
 
   useEffect(() => {
     if (getAuthToken()) {
-      router.replace("/dashboard");
+      router.replace(mode === "aluno" ? "/lobby" : "/dashboard");
     }
-  }, [router]);
+  }, [mode, router]);
 
   const validateForm = () => {
     if (mode === "aluno") {
@@ -109,7 +113,7 @@ export function LoginScreen() {
 
         setAuthToken(response.token, false);
         setAuthActor("aluno", false);
-        router.replace("/dashboard");
+        router.replace("/lobby");
         return;
       }
 
@@ -192,36 +196,13 @@ export function LoginScreen() {
               </h1>
               <span className="mx-auto mt-5 block h-1 w-12 rounded-full bg-palette-10-yellow" />
               <p className="mt-6 text-base font-medium text-text-secondary">
-                Acesse como equipe escolar ou aluno
+                {mode === "aluno"
+                  ? "Acesse com o codigo gerado pela escola"
+                  : "Acesse como equipe escolar"}
               </p>
             </div>
 
             <form className="space-y-6" onSubmit={handleSubmit}>
-              <div className="grid grid-cols-2 rounded-[14px] bg-slate-100 p-1">
-                <button
-                  type="button"
-                  onClick={() => setMode("user")}
-                  className={`min-h-11 rounded-[12px] text-sm font-bold transition ${
-                    mode === "user"
-                      ? "bg-white text-brand-primary shadow-sm"
-                      : "text-text-secondary"
-                  }`}
-                >
-                  Equipe escolar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMode("aluno")}
-                  className={`min-h-11 rounded-[12px] text-sm font-bold transition ${
-                    mode === "aluno"
-                      ? "bg-white text-brand-primary shadow-sm"
-                      : "text-text-secondary"
-                  }`}
-                >
-                  Aluno
-                </button>
-              </div>
-
               {mode === "user" ? (
                 <>
                   <CpfInput
@@ -307,6 +288,14 @@ export function LoginScreen() {
                   </strong>
                 </p>
               </div>
+              <Link
+                href={mode === "aluno" ? "/login" : "/login/estudante"}
+                className="mt-6 inline-flex min-h-11 w-full items-center justify-center rounded-[14px] border border-slate-200 bg-white px-4 text-sm font-bold text-brand-primary transition hover:bg-brand-primary-soft"
+              >
+                {mode === "aluno"
+                  ? "Entrar como equipe escolar"
+                  : "Entrar como estudante"}
+              </Link>
             </div>
           </section>
         </div>

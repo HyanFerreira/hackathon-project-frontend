@@ -24,6 +24,7 @@ import {
 } from "react";
 import { twMerge } from "tailwind-merge";
 import { Button } from "@/components/buttons";
+import { canShowNavigationItem } from "@/utils/auth/routeAccess";
 
 export const SIDEBAR_COLLAPSED_WIDTH = 80;
 export const SIDEBAR_EXPANDED_WIDTH = 280;
@@ -98,31 +99,18 @@ const sidebarItems: SidebarItem[] = [
     href: "/responder",
   },
   {
+    key: "perfil",
+    label: "Meu perfil",
+    icon: UserRound,
+    href: "/perfil",
+  },
+  {
     key: "ranking",
     label: "Ranking",
     icon: Trophy,
     href: "/ranking",
   },
 ];
-
-function canShowItem(
-  item: SidebarItem,
-  role?: string,
-  actor?: "user" | "aluno",
-) {
-  if (item.key === "dashboard") return true;
-  if (actor === "aluno") return ["responder", "ranking"].includes(item.key);
-  if (!role) return false;
-  if (role === "admin") {
-    return ["escolas", "gestores", "usuarios"].includes(item.key);
-  }
-  if (role === "gestor") {
-    return ["turmas", "professores", "alunos", "ranking"].includes(item.key);
-  }
-  if (role === "professor") return ["questoes", "ranking"].includes(item.key);
-
-  return false;
-}
 
 function isPathActive(pathname: string, href: string) {
   if (href === "/" || href === "/dashboard") return pathname === href;
@@ -279,7 +267,7 @@ export function AppSidebar({ actor, isOpen, onToggle, role }: AppSidebarProps) {
                 className="flex h-full flex-col gap-2 overflow-y-auto px-4 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
               >
                 {sidebarItems
-                  .filter((item) => canShowItem(item, role, actor))
+                  .filter((item) => canShowNavigationItem(item, role, actor))
                   .map((item) => {
                     const isItemActive = isPathActive(pathname, item.href);
                     const itemLabel =

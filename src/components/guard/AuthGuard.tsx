@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { AppShellSkeleton } from "@/components/loading";
@@ -21,25 +21,35 @@ type AuthGuardProps = {
 
 export function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [token, setToken] = useState<string>();
+  const [actor, setActor] = useState(getAuthActor());
   const [isCheckingStorage, setIsCheckingStorage] = useState(true);
 
   useEffect(() => {
     const storedToken = getAuthToken();
+    const storedActor = getAuthActor();
 
     if (!storedToken) {
-      router.replace("/login");
+      router.replace(storedActor === "aluno" ? "/login/estudante" : "/login");
       return;
     }
 
+    setActor(storedActor);
     setToken(storedToken);
     setIsCheckingStorage(false);
   }, [router]);
 
+  useEffect(() => {
+    if (actor === "aluno" && pathname === "/dashboard") {
+      router.replace("/lobby");
+    }
+  }, [actor, pathname, router]);
+
   const meQuery = useQuery<User | Aluno>({
-    queryKey: ["auth", "me", getAuthActor()],
+    queryKey: ["auth", "me", actor],
     queryFn: () =>
-      getAuthActor() === "aluno" ? gamificationApi.alunoMe() : authApi.me(),
+      actor === "aluno" ? gamificationApi.alunoMe() : authApi.me(),
     enabled: Boolean(token),
     retry: false,
   });
@@ -50,8 +60,8 @@ export function AuthGuard({ children }: AuthGuardProps) {
     }
 
     removeAuthToken();
-    router.replace("/login");
-  }, [meQuery.isError, router]);
+    router.replace(actor === "aluno" ? "/login/estudante" : "/login");
+  }, [actor, meQuery.isError, router]);
 
   if (isCheckingStorage || meQuery.isPending || meQuery.isError) {
     return <AppShellSkeleton />;
