@@ -169,9 +169,6 @@ export function SchoolsWorkspace() {
                           <p className="font-semibold text-text-primary">
                             {school.name}
                           </p>
-                          <p className="text-xs text-text-secondary">
-                            {school.cnpj ?? "CNPJ nao informado"}
-                          </p>
                         </td>
                         <td className="px-3 py-3 text-text-secondary">
                           {[school.city, school.state]

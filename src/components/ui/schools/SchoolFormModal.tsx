@@ -22,7 +22,6 @@ type SchoolFormModalProps = {
 
 type SchoolFieldErrors = {
   name?: string;
-  cnpj?: string;
   city?: string;
   state?: string;
   status?: string;
@@ -30,7 +29,6 @@ type SchoolFieldErrors = {
 
 type FormState = {
   name: string;
-  cnpj: string;
   city: string;
   state: string;
   status: string;
@@ -38,7 +36,6 @@ type FormState = {
 
 const EMPTY_FORM: FormState = {
   name: "",
-  cnpj: "",
   city: "",
   state: "",
   status: "ativa",
@@ -68,7 +65,6 @@ export function SchoolFormModal({
     setError(undefined);
     setForm({
       name: school?.name ?? "",
-      cnpj: school?.cnpj ?? "",
       city: school?.city ?? "",
       state: school?.state ?? "",
       status: school?.status ?? "ativa",
@@ -79,7 +75,6 @@ export function SchoolFormModal({
     mutationFn: () => {
       const payload = {
         name: form.name,
-        cnpj: form.cnpj || undefined,
         city: form.city || undefined,
         state: form.state || undefined,
         status: form.status || undefined,
@@ -162,17 +157,6 @@ export function SchoolFormModal({
           error={fieldErrors.name}
           onChange={(event) =>
             setForm((current) => ({ ...current, name: event.target.value }))
-          }
-        />
-
-        <Input
-          label="CNPJ"
-          name="cnpj"
-          placeholder="00.000.000/0000-00"
-          value={form.cnpj}
-          error={fieldErrors.cnpj}
-          onChange={(event) =>
-            setForm((current) => ({ ...current, cnpj: event.target.value }))
           }
         />
 

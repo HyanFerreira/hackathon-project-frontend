@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/buttons";
 import { CpfInput } from "@/components/form/CpfInput";
 import { Input } from "@/components/form/Input";
-import { PasswordInput } from "@/components/form/PasswordInput";
 import { Modal } from "@/components/modal";
 import {
   getApiErrorMessage,
@@ -14,6 +13,7 @@ import {
 } from "@/services/api/errors/getApiErrorMessage";
 import { managersApi } from "@/services/api/modules/managers";
 import type { School } from "@/types/school";
+import { DEFAULT_USER_PASSWORD } from "@/utils/auth/defaultUserPassword";
 import { onlyCpfDigits } from "@/utils/cpf/cpf";
 
 type ManagerFormModalProps = {
@@ -35,14 +35,12 @@ type FormState = {
   name: string;
   cpf: string;
   email: string;
-  password: string;
 };
 
 const EMPTY_FORM: FormState = {
   name: "",
   cpf: "",
   email: "",
-  password: "",
 };
 
 export function ManagerFormModal({
@@ -70,7 +68,7 @@ export function ManagerFormModal({
         name: form.name,
         cpf: onlyCpfDigits(form.cpf),
         email: form.email,
-        password: form.password,
+        password: DEFAULT_USER_PASSWORD,
         escola_id: school?.id ?? 0,
       }),
     onSuccess: async () => {
@@ -180,18 +178,10 @@ export function ManagerFormModal({
           }
         />
 
-        <PasswordInput
-          label="Senha"
-          name="password"
-          autoComplete="new-password"
-          value={form.password}
-          error={fieldErrors.password}
-          onChange={(event) =>
-            setForm((current) => ({ ...current, password: event.target.value }))
-          }
-        />
-
-        {(fieldErrors.school_id || fieldErrors.roles || error) && (
+        {(fieldErrors.password ||
+          fieldErrors.school_id ||
+          fieldErrors.roles ||
+          error) && (
           <div
             role="alert"
             className="flex gap-2 rounded-system border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700"
@@ -200,7 +190,12 @@ export function ManagerFormModal({
               aria-hidden="true"
               className="mt-0.5 size-4 shrink-0"
             />
-            <p>{fieldErrors.school_id ?? fieldErrors.roles ?? error}</p>
+            <p>
+              {fieldErrors.password ??
+                fieldErrors.school_id ??
+                fieldErrors.roles ??
+                error}
+            </p>
           </div>
         )}
       </form>

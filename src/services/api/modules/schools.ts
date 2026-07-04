@@ -5,7 +5,6 @@ import { schoolEndpoints } from "../endpoints/schoolEndpoints";
 type SchoolApi = {
   id: number;
   nome: string;
-  cnpj?: string;
   cidade?: string;
   estado?: string;
   status?: string;
@@ -21,7 +20,6 @@ type SchoolListResponse = {
 
 type SchoolPayloadApi = {
   nome: string;
-  cnpj?: string;
   cidade?: string;
   estado?: string;
   status?: string;
@@ -29,7 +27,6 @@ type SchoolPayloadApi = {
 
 export type CreateSchoolPayload = {
   name: string;
-  cnpj?: string;
   city?: string;
   state?: string;
   status?: string;
@@ -41,7 +38,6 @@ export function normalizeSchool(school: SchoolApi): School {
   return {
     id: school.id,
     name: school.nome,
-    cnpj: school.cnpj,
     city: school.cidade,
     state: school.estado,
     status: school.status,
@@ -51,7 +47,6 @@ export function normalizeSchool(school: SchoolApi): School {
 function serializeSchool(payload: CreateSchoolPayload): SchoolPayloadApi {
   return {
     nome: payload.name,
-    cnpj: payload.cnpj,
     cidade: payload.city,
     estado: payload.state,
     status: payload.status,

@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/buttons";
 import { CpfInput } from "@/components/form/CpfInput";
 import { Input } from "@/components/form/Input";
-import { PasswordInput } from "@/components/form/PasswordInput";
 import { Skeleton } from "@/components/loading";
 import { Modal } from "@/components/modal";
 import {
@@ -16,6 +15,7 @@ import {
 import { rolesApi } from "@/services/api/modules/roles";
 import { usersApi } from "@/services/api/modules/users";
 import type { User } from "@/types/user";
+import { DEFAULT_USER_PASSWORD } from "@/utils/auth/defaultUserPassword";
 import { onlyCpfDigits } from "@/utils/cpf/cpf";
 
 type UserFormModalProps = {
@@ -36,7 +36,6 @@ type FormState = {
   name: string;
   cpf: string;
   email: string;
-  password: string;
   roles: string[];
 };
 
@@ -44,7 +43,6 @@ const EMPTY_FORM: FormState = {
   name: "",
   cpf: "",
   email: "",
-  password: "",
   roles: [],
 };
 
@@ -71,7 +69,6 @@ export function UserFormModal({ isOpen, user, onClose }: UserFormModalProps) {
       name: user?.name ?? "",
       cpf: user?.cpf ?? "",
       email: user?.email ?? "",
-      password: "",
       roles: user?.roles?.map((role) => role.name) ?? [],
     });
   }, [isOpen, user]);
@@ -86,7 +83,6 @@ export function UserFormModal({ isOpen, user, onClose }: UserFormModalProps) {
           cpf: cpfDigits,
           email: form.email,
           roles: form.roles,
-          ...(form.password ? { password: form.password } : {}),
         });
       }
 
@@ -94,7 +90,7 @@ export function UserFormModal({ isOpen, user, onClose }: UserFormModalProps) {
         name: form.name,
         cpf: cpfDigits,
         email: form.email,
-        password: form.password,
+        password: DEFAULT_USER_PASSWORD,
         roles: form.roles,
       });
     },
@@ -204,17 +200,6 @@ export function UserFormModal({ isOpen, user, onClose }: UserFormModalProps) {
           }
         />
 
-        <PasswordInput
-          label={isEditing ? "Nova senha (opcional)" : "Senha"}
-          name="password"
-          autoComplete="new-password"
-          value={form.password}
-          error={fieldErrors.password}
-          onChange={(event) =>
-            setForm((current) => ({ ...current, password: event.target.value }))
-          }
-        />
-
         <fieldset className="space-y-2">
           <legend className="text-sm font-semibold text-text-primary">
             Perfis
@@ -265,7 +250,7 @@ export function UserFormModal({ isOpen, user, onClose }: UserFormModalProps) {
           )}
         </fieldset>
 
-        {error && (
+        {(fieldErrors.password || error) && (
           <div
             role="alert"
             className="flex gap-2 rounded-system border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700"
@@ -274,7 +259,7 @@ export function UserFormModal({ isOpen, user, onClose }: UserFormModalProps) {
               aria-hidden="true"
               className="mt-0.5 size-4 shrink-0"
             />
-            <p>{error}</p>
+            <p>{fieldErrors.password ?? error}</p>
           </div>
         )}
       </form>

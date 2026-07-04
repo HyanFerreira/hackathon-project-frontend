@@ -15,6 +15,7 @@ import { gamificationApi } from "@/services/api/modules/gamification";
 import type { Aluno } from "@/types/aluno";
 import type { Turma } from "@/types/turma";
 import type { User } from "@/types/user";
+import { DEFAULT_USER_PASSWORD } from "@/utils/auth/defaultUserPassword";
 import { onlyCpfDigits } from "@/utils/cpf/cpf";
 
 type ResourceKind = "turmas" | "professores" | "alunos";
@@ -28,7 +29,6 @@ type FormState = {
   name: string;
   cpf: string;
   email: string;
-  password: string;
   year: string;
   shift: string;
   status: string;
@@ -38,7 +38,6 @@ const EMPTY_FORM: FormState = {
   name: "",
   cpf: "",
   email: "",
-  password: "",
   year: "",
   shift: "",
   status: "ativa",
@@ -118,7 +117,6 @@ export function ManagerResourcesWorkspace({ kind }: Props) {
       name: turma?.name ?? user?.name ?? aluno?.name ?? "",
       cpf: user?.cpf ?? "",
       email: user?.email ?? "",
-      password: "",
       year: turma?.year ?? "",
       shift: turma?.shift ?? "",
       status: turma?.status ?? "ativa",
@@ -145,7 +143,7 @@ export function ManagerResourcesWorkspace({ kind }: Props) {
             name: form.name,
             cpf: onlyCpfDigits(form.cpf),
             email: form.email,
-            ...(form.password ? { password: form.password } : {}),
+            ...(!editingItem ? { password: DEFAULT_USER_PASSWORD } : {}),
           },
           editingItem?.id,
         );
@@ -378,18 +376,6 @@ export function ManagerResourcesWorkspace({ kind }: Props) {
                   setForm((current) => ({
                     ...current,
                     email: event.target.value,
-                  }))
-                }
-              />
-              <Input
-                label={editingItem ? "Nova senha (opcional)" : "Senha"}
-                name="password"
-                type="password"
-                value={form.password}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    password: event.target.value,
                   }))
                 }
               />

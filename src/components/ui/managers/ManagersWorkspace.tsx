@@ -7,7 +7,6 @@ import { Button } from "@/components/buttons";
 import { ConfirmDialog } from "@/components/feedback/ConfirmDialog";
 import { CpfInput } from "@/components/form/CpfInput";
 import { Input } from "@/components/form/Input";
-import { PasswordInput } from "@/components/form/PasswordInput";
 import { Select } from "@/components/form/Select";
 import { TableSkeleton } from "@/components/loading";
 import { Modal } from "@/components/modal";
@@ -18,6 +17,7 @@ import {
 import { managersApi } from "@/services/api/modules/managers";
 import { schoolsApi } from "@/services/api/modules/schools";
 import type { User } from "@/types/user";
+import { DEFAULT_USER_PASSWORD } from "@/utils/auth/defaultUserPassword";
 import { formatCpf, onlyCpfDigits } from "@/utils/cpf/cpf";
 
 type FormState = {
@@ -25,17 +25,17 @@ type FormState = {
   name: string;
   cpf: string;
   email: string;
-  password: string;
 };
 
-type FieldErrors = Partial<Record<keyof FormState | "escola_id", string>>;
+type FieldErrors = Partial<
+  Record<keyof FormState | "escola_id" | "password", string>
+>;
 
 const EMPTY_FORM: FormState = {
   schoolId: "",
   name: "",
   cpf: "",
   email: "",
-  password: "",
 };
 
 export function ManagersWorkspace() {
@@ -64,6 +64,15 @@ export function ManagersWorkspace() {
       })) ?? [],
     [schoolsQuery.data],
   );
+  const schoolsById = useMemo(() => {
+    const schools = new Map<number, string>();
+
+    for (const school of schoolsQuery.data ?? []) {
+      schools.set(school.id, school.name);
+    }
+
+    return schools;
+  }, [schoolsQuery.data]);
 
   useEffect(() => {
     if (!isFormOpen) return;
@@ -75,7 +84,6 @@ export function ManagersWorkspace() {
       name: editingManager?.name ?? "",
       cpf: editingManager?.cpf ?? "",
       email: editingManager?.email ?? "",
-      password: "",
     });
   }, [editingManager, isFormOpen]);
 
@@ -86,14 +94,13 @@ export function ManagersWorkspace() {
         name: form.name,
         cpf: onlyCpfDigits(form.cpf),
         email: form.email,
-        ...(form.password ? { password: form.password } : {}),
       };
 
       if (editingManager) return managersApi.update(editingManager.id, payload);
 
       return managersApi.create({
         ...payload,
-        password: form.password,
+        password: DEFAULT_USER_PASSWORD,
       });
     },
     onSuccess: async () => {
@@ -189,7 +196,11 @@ export function ManagersWorkspace() {
                       {manager.email}
                     </td>
                     <td className="px-3 py-3 text-text-secondary">
-                      {manager.school?.name ?? "-"}
+                      {manager.school?.name ??
+                        (manager.schoolId
+                          ? schoolsById.get(manager.schoolId)
+                          : undefined) ??
+                        "-"}
                     </td>
                     <td className="px-3 py-3">
                       <div className="flex justify-end gap-2">
@@ -298,24 +309,12 @@ export function ManagersWorkspace() {
               setForm((current) => ({ ...current, email: event.target.value }))
             }
           />
-          <PasswordInput
-            label={editingManager ? "Nova senha (opcional)" : "Senha"}
-            value={form.password}
-            error={fieldErrors.password}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                password: event.target.value,
-              }))
-            }
-          />
-
-          {error && (
+          {(fieldErrors.password || error) && (
             <div
               role="alert"
               className="rounded-system border border-red-200 bg-red-50 p-3 text-sm text-red-700"
             >
-              {error}
+              {fieldErrors.password ?? error}
             </div>
           )}
         </form>

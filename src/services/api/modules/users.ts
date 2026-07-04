@@ -20,7 +20,6 @@ export type UserApi = {
   school?: {
     id: number;
     nome: string;
-    cnpj?: string;
     cidade?: string;
     estado?: string;
     status?: string;

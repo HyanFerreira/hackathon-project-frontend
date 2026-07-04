@@ -17,9 +17,11 @@ import { Button } from "@/components/buttons";
 import { ConfirmDialog } from "@/components/feedback/ConfirmDialog";
 import { TableSkeleton } from "@/components/loading";
 import { getApiErrorMessage } from "@/services/api/errors/getApiErrorMessage";
+import { authApi } from "@/services/api/modules/auth";
 import { impersonateApi } from "@/services/api/modules/impersonate";
 import { usersApi } from "@/services/api/modules/users";
 import {
+  getAuthActor,
   preserveOriginalAuth,
   setAuthActor,
   setAuthToken,
@@ -38,6 +40,11 @@ export function UsersWorkspace() {
   const usersQuery = useQuery({
     queryKey: ["users"],
     queryFn: usersApi.list,
+  });
+  const currentUserQuery = useQuery({
+    queryKey: ["auth", "me", getAuthActor()],
+    queryFn: authApi.me,
+    retry: false,
   });
 
   const deleteMutation = useMutation({
@@ -161,75 +168,89 @@ export function UsersWorkspace() {
                   </tr>
                 </thead>
                 <tbody>
-                  {usersQuery.data.map((user) => (
-                    <tr
-                      key={user.id}
-                      className="border-slate-100 border-b last:border-0 hover:bg-slate-50"
-                    >
-                      <td className="px-3 py-3 font-semibold text-text-primary">
-                        {user.name}
-                      </td>
-                      <td className="px-3 py-3 text-text-secondary">
-                        {user.cpf ? formatCpf(user.cpf) : "—"}
-                      </td>
-                      <td className="px-3 py-3 text-text-secondary">
-                        {user.email}
-                      </td>
-                      <td className="px-3 py-3">
-                        <div className="flex flex-wrap gap-1.5">
-                          {user.roles && user.roles.length > 0 ? (
-                            user.roles.map((role) => (
-                              <span
-                                key={role.id}
-                                className="rounded-full bg-brand-primary-soft px-2.5 py-0.5 text-xs font-semibold text-brand-primary"
-                              >
-                                {role.name}
-                              </span>
-                            ))
-                          ) : (
-                            <span className="text-text-secondary">—</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-3 py-3">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            type="button"
-                            aria-label={`Impersonar ${user.name}`}
-                            title="Impersonar"
-                            disabled={impersonateMutation.isPending}
-                            onClick={() => impersonateMutation.mutate(user.id)}
-                            className="size-9 border border-slate-200 bg-white p-0 text-brand-primary hover:bg-brand-primary-soft"
-                          >
-                            {impersonateMutation.isPending ? (
-                              <Loader2
-                                aria-hidden="true"
-                                className="size-4 animate-spin"
-                              />
+                  {usersQuery.data.map((user) => {
+                    const isCurrentUser = user.id === currentUserQuery.data?.id;
+                    const isImpersonateDisabled =
+                      currentUserQuery.isPending ||
+                      impersonateMutation.isPending ||
+                      isCurrentUser;
+
+                    return (
+                      <tr
+                        key={user.id}
+                        className="border-slate-100 border-b last:border-0 hover:bg-slate-50"
+                      >
+                        <td className="px-3 py-3 font-semibold text-text-primary">
+                          {user.name}
+                        </td>
+                        <td className="px-3 py-3 text-text-secondary">
+                          {user.cpf ? formatCpf(user.cpf) : "—"}
+                        </td>
+                        <td className="px-3 py-3 text-text-secondary">
+                          {user.email}
+                        </td>
+                        <td className="px-3 py-3">
+                          <div className="flex flex-wrap gap-1.5">
+                            {user.roles && user.roles.length > 0 ? (
+                              user.roles.map((role) => (
+                                <span
+                                  key={role.id}
+                                  className="rounded-full bg-brand-primary-soft px-2.5 py-0.5 text-xs font-semibold text-brand-primary"
+                                >
+                                  {role.name}
+                                </span>
+                              ))
                             ) : (
-                              <LogIn aria-hidden="true" className="size-4" />
+                              <span className="text-text-secondary">—</span>
                             )}
-                          </Button>
-                          <Button
-                            type="button"
-                            aria-label={`Editar ${user.name}`}
-                            onClick={() => openEdit(user)}
-                            className="size-9 border border-slate-200 bg-white p-0 text-brand-primary hover:bg-brand-primary-soft"
-                          >
-                            <Pencil aria-hidden="true" className="size-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            aria-label={`Excluir ${user.name}`}
-                            onClick={() => setUserToDelete(user)}
-                            className="size-9 border border-red-200 bg-white p-0 text-red-600 hover:bg-red-50"
-                          >
-                            <Trash2 aria-hidden="true" className="size-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                          </div>
+                        </td>
+                        <td className="px-3 py-3">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              type="button"
+                              aria-label={`Impersonar ${user.name}`}
+                              title={
+                                isCurrentUser
+                                  ? "Nao e possivel impersonar seu proprio usuario"
+                                  : "Impersonar"
+                              }
+                              disabled={isImpersonateDisabled}
+                              onClick={() =>
+                                impersonateMutation.mutate(user.id)
+                              }
+                              className="size-9 border border-slate-200 bg-white p-0 text-brand-primary hover:bg-brand-primary-soft"
+                            >
+                              {impersonateMutation.isPending ? (
+                                <Loader2
+                                  aria-hidden="true"
+                                  className="size-4 animate-spin"
+                                />
+                              ) : (
+                                <LogIn aria-hidden="true" className="size-4" />
+                              )}
+                            </Button>
+                            <Button
+                              type="button"
+                              aria-label={`Editar ${user.name}`}
+                              onClick={() => openEdit(user)}
+                              className="size-9 border border-slate-200 bg-white p-0 text-brand-primary hover:bg-brand-primary-soft"
+                            >
+                              <Pencil aria-hidden="true" className="size-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              aria-label={`Excluir ${user.name}`}
+                              onClick={() => setUserToDelete(user)}
+                              className="size-9 border border-red-200 bg-white p-0 text-red-600 hover:bg-red-50"
+                            >
+                              <Trash2 aria-hidden="true" className="size-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
