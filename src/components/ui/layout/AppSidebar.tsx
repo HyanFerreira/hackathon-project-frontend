@@ -93,18 +93,6 @@ const sidebarItems: SidebarItem[] = [
     href: "/questoes",
   },
   {
-    key: "responder",
-    label: "Responder",
-    icon: ClipboardList,
-    href: "/responder",
-  },
-  {
-    key: "perfil",
-    label: "Meu perfil",
-    icon: UserRound,
-    href: "/perfil",
-  },
-  {
     key: "ranking",
     label: "Ranking",
     icon: Trophy,

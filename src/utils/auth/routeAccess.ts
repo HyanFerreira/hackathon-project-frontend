@@ -19,8 +19,7 @@ const ROUTE_ACCESS: Record<string, RouteAccess> = {
   "/professores": { actor: "user", roles: ["gestor"] },
   "/alunos": { actor: "user", roles: ["gestor"] },
   "/questoes": { actor: "user", roles: ["professor"] },
-  "/responder": { actor: "aluno" },
-  "/perfil": { actor: "aluno" },
+  "/estudantes": { actor: "aluno" },
   "/ranking": {},
 };
 
@@ -41,7 +40,7 @@ export function canAccessRoute(
 
   if (!baseRoute) return true;
   if (baseRoute === "/ranking") {
-    return actor === "aluno" || role === "gestor" || role === "professor";
+    return role === "gestor" || role === "professor";
   }
 
   const access = ROUTE_ACCESS[baseRoute];

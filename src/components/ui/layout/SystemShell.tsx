@@ -11,11 +11,8 @@ import {
   SIDEBAR_COLLAPSED_WIDTH,
   SIDEBAR_EXPANDED_WIDTH,
 } from "@/components/ui/layout/AppSidebar";
-import { StudentShell } from "@/components/ui/student/StudentShell";
 import { authApi } from "@/services/api/modules/auth";
-import { gamificationApi } from "@/services/api/modules/gamification";
 import { getAuthActor, isImpersonating } from "@/services/api/tokenStorage";
-import type { Aluno } from "@/types/aluno";
 import type { User } from "@/types/user";
 import { canAccessRoute } from "@/utils/auth/routeAccess";
 
@@ -35,10 +32,9 @@ export function SystemShell({ children }: SystemShellProps) {
     ? SIDEBAR_EXPANDED_WIDTH
     : SIDEBAR_COLLAPSED_WIDTH;
 
-  const meQuery = useQuery<User | Aluno>({
+  const meQuery = useQuery<User>({
     queryKey: ["auth", "me", getAuthActor()],
-    queryFn: () =>
-      getAuthActor() === "aluno" ? gamificationApi.alunoMe() : authApi.me(),
+    queryFn: authApi.me,
     retry: false,
   });
 
@@ -47,10 +43,6 @@ export function SystemShell({ children }: SystemShellProps) {
     meQuery.data && "roles" in meQuery.data
       ? meQuery.data.roles?.[0]?.name
       : undefined;
-
-  if (actor === "aluno") {
-    return <StudentShell>{children}</StudentShell>;
-  }
 
   const canAccessCurrentRoute = canAccessRoute(pathname, role, actor);
   const userMenuItems: UserMenuItem[] = isImpersonating()

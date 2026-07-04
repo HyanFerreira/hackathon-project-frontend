@@ -53,7 +53,7 @@ export function LoginScreen({ mode = "user" }: LoginScreenProps) {
 
   useEffect(() => {
     if (getAuthToken()) {
-      router.replace(mode === "aluno" ? "/lobby" : "/dashboard");
+      router.replace(mode === "aluno" ? "/estudantes" : "/dashboard");
     }
   }, [mode, router]);
 
@@ -113,7 +113,7 @@ export function LoginScreen({ mode = "user" }: LoginScreenProps) {
 
         setAuthToken(response.token, false);
         setAuthActor("aluno", false);
-        router.replace("/lobby");
+        router.replace("/estudantes");
         return;
       }
 

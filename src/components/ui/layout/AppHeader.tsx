@@ -123,7 +123,7 @@ export function AppHeader({
 
     if (key !== "logout") {
       if (key === "profile") {
-        router.push("/perfil");
+        router.push("/dashboard");
       }
       return;
     }

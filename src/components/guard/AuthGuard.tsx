@@ -42,7 +42,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
   useEffect(() => {
     if (actor === "aluno" && pathname === "/dashboard") {
-      router.replace("/lobby");
+      router.replace("/estudantes");
     }
   }, [actor, pathname, router]);
 

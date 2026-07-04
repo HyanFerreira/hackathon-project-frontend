@@ -6,8 +6,10 @@ import {
   ChevronDown,
   Home,
   LogOut,
+  Medal,
   Settings,
-  Target,
+  ShoppingBag,
+  Sparkles,
   Trophy,
   UserRound,
 } from "lucide-react";
@@ -35,6 +37,8 @@ function getInitials(name?: string) {
 }
 
 function isActive(pathname: string, href: string) {
+  if (href === "/estudantes") return pathname === href;
+
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -67,7 +71,7 @@ export function StudentShell({ children }: StudentShellProps) {
     <main className="min-h-screen overflow-hidden bg-[#fbf7ff] text-[#101044]">
       <header className="sticky top-0 z-30 bg-gradient-to-r from-[#6d2ee8] via-[#8738f2] to-[#7029dc] text-white shadow-[0_10px_35px_rgba(110,46,232,0.25)]">
         <div className="mx-auto flex h-[86px] max-w-[1740px] items-center justify-between px-5 lg:px-8">
-          <Link href="/lobby" className="flex items-center gap-3">
+          <Link href="/estudantes" className="flex items-center gap-3">
             <Image
               src={paideiaLogoIconWhite}
               alt="Paideia"
@@ -76,30 +80,42 @@ export function StudentShell({ children }: StudentShellProps) {
             />
           </Link>
 
-          <nav className="hidden items-center gap-6 lg:flex">
+          <nav className="hidden items-center gap-2 lg:flex xl:gap-3">
             <StudentNavItem
-              active={isActive(pathname, "/lobby")}
+              active={isActive(pathname, "/estudantes")}
               icon={Home}
               label="Inicio"
-              href="/lobby"
+              href="/estudantes"
             />
             <StudentNavItem
-              active={isActive(pathname, "/responder")}
-              icon={Target}
-              label="Desafios"
-              href="/responder"
+              active={isActive(pathname, "/estudantes/ranking")}
+              icon={Medal}
+              label="Ranking"
+              href="/estudantes/ranking"
             />
             <StudentNavItem
-              active={isActive(pathname, "/ranking")}
+              active={isActive(pathname, "/estudantes/missoes")}
+              icon={Sparkles}
+              label="Missoes"
+              href="/estudantes/missoes"
+            />
+            <StudentNavItem
+              active={isActive(pathname, "/estudantes/conquistas")}
               icon={Trophy}
               label="Conquistas"
-              href="/ranking"
+              href="/estudantes/conquistas"
             />
             <StudentNavItem
-              active={isActive(pathname, "/perfil")}
+              active={isActive(pathname, "/estudantes/personagens")}
               icon={UserRound}
-              label="Personagem"
-              href="/perfil"
+              label="Personagens"
+              href="/estudantes/personagens"
+            />
+            <StudentNavItem
+              active={isActive(pathname, "/estudantes/loja")}
+              icon={ShoppingBag}
+              label="Loja"
+              href="/estudantes/loja"
             />
           </nav>
 
@@ -128,7 +144,45 @@ export function StudentShell({ children }: StudentShellProps) {
             {isUserMenuOpen && (
               <div className="absolute right-0 top-[calc(100%+12px)] z-40 w-56 overflow-hidden rounded-system border border-[#e3d9f8] bg-white py-2 text-[#101044] shadow-[0_18px_45px_rgba(37,19,83,0.18)]">
                 <Link
-                  href="/perfil"
+                  href="/estudantes"
+                  onClick={() => setIsUserMenuOpen(false)}
+                  className="flex min-h-11 items-center gap-3 px-4 text-sm font-semibold transition hover:bg-[#f6f0ff]"
+                >
+                  <Home aria-hidden="true" className="size-4 text-[#7c35e8]" />
+                  Inicio
+                </Link>
+                <Link
+                  href="/estudantes/ranking"
+                  onClick={() => setIsUserMenuOpen(false)}
+                  className="flex min-h-11 items-center gap-3 px-4 text-sm font-semibold transition hover:bg-[#f6f0ff]"
+                >
+                  <Medal aria-hidden="true" className="size-4 text-[#7c35e8]" />
+                  Ranking
+                </Link>
+                <Link
+                  href="/estudantes/missoes"
+                  onClick={() => setIsUserMenuOpen(false)}
+                  className="flex min-h-11 items-center gap-3 px-4 text-sm font-semibold transition hover:bg-[#f6f0ff]"
+                >
+                  <Sparkles
+                    aria-hidden="true"
+                    className="size-4 text-[#7c35e8]"
+                  />
+                  Missoes
+                </Link>
+                <Link
+                  href="/estudantes/conquistas"
+                  onClick={() => setIsUserMenuOpen(false)}
+                  className="flex min-h-11 items-center gap-3 px-4 text-sm font-semibold transition hover:bg-[#f6f0ff]"
+                >
+                  <Trophy
+                    aria-hidden="true"
+                    className="size-4 text-[#7c35e8]"
+                  />
+                  Conquistas
+                </Link>
+                <Link
+                  href="/estudantes/personagens"
                   onClick={() => setIsUserMenuOpen(false)}
                   className="flex min-h-11 items-center gap-3 px-4 text-sm font-semibold transition hover:bg-[#f6f0ff]"
                 >
@@ -136,7 +190,18 @@ export function StudentShell({ children }: StudentShellProps) {
                     aria-hidden="true"
                     className="size-4 text-[#7c35e8]"
                   />
-                  Meu perfil
+                  Personagens
+                </Link>
+                <Link
+                  href="/estudantes/loja"
+                  onClick={() => setIsUserMenuOpen(false)}
+                  className="flex min-h-11 items-center gap-3 px-4 text-sm font-semibold transition hover:bg-[#f6f0ff]"
+                >
+                  <ShoppingBag
+                    aria-hidden="true"
+                    className="size-4 text-[#7c35e8]"
+                  />
+                  Loja
                 </Link>
                 <button
                   type="button"
@@ -187,7 +252,7 @@ function StudentNavItem({
   return (
     <Link
       href={href}
-      className={`flex min-h-12 items-center gap-3 rounded-full px-6 text-base font-semibold transition ${
+      className={`flex min-h-12 items-center gap-2 rounded-full px-3 text-sm font-semibold transition xl:gap-3 xl:px-4 xl:text-base ${
         active ? "bg-[#4f20b5]/60 shadow-inner" : "hover:bg-white/10"
       }`}
     >
