@@ -1,4 +1,14 @@
-import type { Aluno, PerfilAluno, RankingItem } from "@/types/aluno";
+import type {
+  Aluno,
+  AlunoPersonagem,
+  ConquistaProgresso,
+  DisciplinaProgresso,
+  MissaoProgresso,
+  PerfilAluno,
+  PersonagemFeedback,
+  PersonagemLoja,
+  RankingItem,
+} from "@/types/aluno";
 import type {
   Disciplina,
   Habilidade,
@@ -40,6 +50,12 @@ type DisciplinaApi = {
   area?: string;
 };
 
+type DisciplinaProgressoApi = DisciplinaApi & {
+  total: number;
+  respondidas: number;
+  disponiveis: number;
+};
+
 type HabilidadeApi = {
   id: number;
   disciplina_id: number;
@@ -68,6 +84,7 @@ type QuestaoApi = {
 
 type PerfilAlunoApi = {
   pontos: number;
+  pontuacao_total?: number;
   xp: number;
   nivel: number;
   xp_para_proximo_nivel?: number;
@@ -94,6 +111,91 @@ type RespostaAlunoApi = {
   energia_gasta: number;
   respondido_em?: string;
   enunciado?: string;
+};
+
+type ConquistaProgressoApi = {
+  id: number;
+  nome: string;
+  descricao: string;
+  icone?: string;
+  tipo: string;
+  meta: number;
+  atual: number;
+  desbloqueada: boolean;
+  desbloqueada_em?: string;
+  recompensa_pontos: number;
+  recompensa_xp: number;
+};
+
+type MissaoProgressoApi = {
+  id: number;
+  titulo: string;
+  descricao: string;
+  icone?: string;
+  tipo: string;
+  periodo: string;
+  meta: number;
+  progresso: number;
+  concluida: boolean;
+  concluida_em?: string;
+  recompensa_pontos: number;
+  recompensa_xp: number;
+};
+
+type PersonagemLojaApi = {
+  id: number;
+  chave: string;
+  nome: string;
+  descricao: string;
+  tier: string;
+  preco: number;
+  nivel_maximo: number;
+  imagem: string;
+  ja_possui: boolean;
+};
+
+type AlunoPersonagemApi = {
+  personagem_id: number;
+  chave: string;
+  nome: string;
+  tier: string;
+  nivel: number;
+  nivel_maximo: number;
+  questoes_respondidas: number;
+  proximo_nivel_em?: number | null;
+  equipado: boolean;
+  imagem: string;
+};
+
+type PersonagemFeedbackApi = {
+  chave: string;
+  nome: string;
+  nivel: number;
+  subiu_nivel: boolean;
+  imagem: string;
+};
+
+type SimpleConquistaApi = {
+  id: number;
+  nome: string;
+  descricao: string;
+  icone?: string;
+  tipo: string;
+  meta: number;
+  recompensa_pontos: number;
+  recompensa_xp: number;
+};
+
+type SimpleMissaoApi = {
+  id: number;
+  titulo: string;
+  descricao: string;
+  icone?: string;
+  tipo: string;
+  periodo: string;
+  meta: number;
+  recompensa_pontos: number;
+  recompensa_xp: number;
 };
 
 export type DashboardSummary =
@@ -123,6 +225,7 @@ export type DashboardSummary =
       turma?: { id: number; nome: string };
       perfil: {
         pontos: number;
+        pontuacao_total?: number;
         xp: number;
         nivel: number;
         energia: number;
@@ -189,6 +292,20 @@ export function normalizeDisciplina(disciplina: DisciplinaApi): Disciplina {
   };
 }
 
+function normalizeDisciplinaProgresso(
+  disciplina: DisciplinaProgressoApi,
+): DisciplinaProgresso {
+  return {
+    id: disciplina.id,
+    name: disciplina.nome,
+    acronym: disciplina.sigla,
+    area: disciplina.area,
+    total: disciplina.total,
+    answered: disciplina.respondidas,
+    available: disciplina.disponiveis,
+  };
+}
+
 export function normalizeHabilidade(habilidade: HabilidadeApi): Habilidade {
   return {
     id: habilidade.id,
@@ -224,6 +341,7 @@ export function normalizeQuestao(questao: QuestaoApi): Questao {
 export function normalizePerfil(perfil: PerfilAlunoApi): PerfilAluno {
   return {
     points: perfil.pontos,
+    totalPoints: perfil.pontuacao_total ?? perfil.pontos,
     xp: perfil.xp,
     level: perfil.nivel,
     xpToNextLevel: perfil.xp_para_proximo_nivel,
@@ -254,6 +372,119 @@ function normalizeResposta(resposta: RespostaAlunoApi): RespostaAluno {
     energySpent: resposta.energia_gasta,
     answeredAt: resposta.respondido_em,
     statement: resposta.enunciado,
+  };
+}
+
+function normalizeConquista(
+  conquista: ConquistaProgressoApi,
+): ConquistaProgresso {
+  return {
+    id: conquista.id,
+    name: conquista.nome,
+    description: conquista.descricao,
+    icon: conquista.icone,
+    type: conquista.tipo,
+    goal: conquista.meta,
+    current: conquista.atual,
+    unlocked: conquista.desbloqueada,
+    unlockedAt: conquista.desbloqueada_em,
+    rewardPoints: conquista.recompensa_pontos,
+    rewardXp: conquista.recompensa_xp,
+  };
+}
+
+function normalizeMissao(missao: MissaoProgressoApi): MissaoProgresso {
+  return {
+    id: missao.id,
+    title: missao.titulo,
+    description: missao.descricao,
+    icon: missao.icone,
+    type: missao.tipo,
+    period: missao.periodo,
+    goal: missao.meta,
+    progress: missao.progresso,
+    completed: missao.concluida,
+    completedAt: missao.concluida_em,
+    rewardPoints: missao.recompensa_pontos,
+    rewardXp: missao.recompensa_xp,
+  };
+}
+
+function normalizeLojaPersonagem(
+  personagem: PersonagemLojaApi,
+): PersonagemLoja {
+  return {
+    id: personagem.id,
+    key: personagem.chave,
+    name: personagem.nome,
+    description: personagem.descricao,
+    tier: personagem.tier,
+    price: personagem.preco,
+    maxLevel: personagem.nivel_maximo,
+    image: personagem.imagem,
+    owned: personagem.ja_possui,
+  };
+}
+
+function normalizeAlunoPersonagem(
+  personagem: AlunoPersonagemApi,
+): AlunoPersonagem {
+  return {
+    personagemId: personagem.personagem_id,
+    key: personagem.chave,
+    name: personagem.nome,
+    tier: personagem.tier,
+    level: personagem.nivel,
+    maxLevel: personagem.nivel_maximo,
+    answeredQuestions: personagem.questoes_respondidas,
+    nextLevelIn: personagem.proximo_nivel_em,
+    equipped: personagem.equipado,
+    image: personagem.imagem,
+  };
+}
+
+function normalizePersonagemFeedback(
+  personagem: PersonagemFeedbackApi,
+): PersonagemFeedback {
+  return {
+    key: personagem.chave,
+    name: personagem.nome,
+    level: personagem.nivel,
+    leveledUp: personagem.subiu_nivel,
+    image: personagem.imagem,
+  };
+}
+
+function normalizeSimpleConquista(
+  conquista: SimpleConquistaApi,
+): ConquistaProgresso {
+  return {
+    id: conquista.id,
+    name: conquista.nome,
+    description: conquista.descricao,
+    icon: conquista.icone,
+    type: conquista.tipo,
+    goal: conquista.meta,
+    current: conquista.meta,
+    unlocked: true,
+    rewardPoints: conquista.recompensa_pontos,
+    rewardXp: conquista.recompensa_xp,
+  };
+}
+
+function normalizeSimpleMissao(missao: SimpleMissaoApi): MissaoProgresso {
+  return {
+    id: missao.id,
+    title: missao.titulo,
+    description: missao.descricao,
+    icon: missao.icone,
+    type: missao.tipo,
+    period: missao.periodo,
+    goal: missao.meta,
+    progress: missao.meta,
+    completed: true,
+    rewardPoints: missao.recompensa_pontos,
+    rewardXp: missao.recompensa_xp,
   };
 }
 
@@ -485,10 +716,30 @@ export const gamificationApi = {
     return normalizePerfil(data.data);
   },
 
-  async alunoQuestoes(disciplinaId?: number): Promise<Questao[]> {
+  async alunoDisciplinas(): Promise<DisciplinaProgresso[]> {
+    const { data } = await api.get<Collection<DisciplinaProgressoApi>>(
+      gamificationEndpoints.alunoDisciplinas,
+    );
+
+    return data.data.map(normalizeDisciplinaProgresso);
+  },
+
+  async alunoQuestoes(params?: {
+    disciplinaId?: number;
+    aleatorio?: boolean;
+    limite?: number;
+  }): Promise<Questao[]> {
     const { data } = await api.get<Collection<QuestaoApi>>(
       gamificationEndpoints.alunoQuestoes,
-      { params: disciplinaId ? { disciplina_id: disciplinaId } : undefined },
+      {
+        params: {
+          ...(params?.disciplinaId
+            ? { disciplina_id: params.disciplinaId }
+            : {}),
+          ...(params?.aleatorio ? { aleatorio: true } : {}),
+          ...(params?.limite ? { limite: params.limite } : {}),
+        },
+      },
     );
 
     return data.data.map(normalizeQuestao);
@@ -504,6 +755,9 @@ export const gamificationApi = {
     pontos_ganhos: number;
     xp_ganho: number;
     energia_gasta: number;
+    conquistas_desbloqueadas: ConquistaProgresso[];
+    missoes_concluidas: MissaoProgresso[];
+    personagem?: PersonagemFeedback | null;
     perfil: PerfilAluno;
   }> {
     const { data } = await api.post<{
@@ -513,6 +767,9 @@ export const gamificationApi = {
       pontos_ganhos: number;
       xp_ganho: number;
       energia_gasta: number;
+      conquistas_desbloqueadas: Collection<SimpleConquistaApi>;
+      missoes_concluidas: Collection<SimpleMissaoApi>;
+      personagem?: PersonagemFeedbackApi | null;
       perfil: Resource<PerfilAlunoApi>;
     }>(gamificationEndpoints.alunoResponder(questaoId), {
       alternativa_id: alternativaId,
@@ -521,6 +778,15 @@ export const gamificationApi = {
     return {
       ...data,
       gabarito: { id: data.gabarito.id, text: data.gabarito.texto },
+      conquistas_desbloqueadas: data.conquistas_desbloqueadas.data.map(
+        normalizeSimpleConquista,
+      ),
+      missoes_concluidas: data.missoes_concluidas.data.map(
+        normalizeSimpleMissao,
+      ),
+      personagem: data.personagem
+        ? normalizePersonagemFeedback(data.personagem)
+        : null,
       perfil: normalizePerfil(data.perfil.data),
     };
   },
@@ -571,5 +837,70 @@ export const gamificationApi = {
     );
 
     return data.data.map(normalizeRankingItem);
+  },
+
+  async conquistas(): Promise<ConquistaProgresso[]> {
+    const { data } = await api.get<Collection<ConquistaProgressoApi>>(
+      gamificationEndpoints.alunoConquistas,
+    );
+
+    return data.data.map(normalizeConquista);
+  },
+
+  async missoes(): Promise<MissaoProgresso[]> {
+    const { data } = await api.get<Collection<MissaoProgressoApi>>(
+      gamificationEndpoints.alunoMissoes,
+    );
+
+    return data.data.map(normalizeMissao);
+  },
+
+  async loja(): Promise<PersonagemLoja[]> {
+    const { data } = await api.get<Collection<PersonagemLojaApi>>(
+      gamificationEndpoints.alunoLoja,
+    );
+
+    return data.data.map(normalizeLojaPersonagem);
+  },
+
+  async personagens(): Promise<AlunoPersonagem[]> {
+    const { data } = await api.get<Collection<AlunoPersonagemApi>>(
+      gamificationEndpoints.alunoPersonagens,
+    );
+
+    return data.data.map(normalizeAlunoPersonagem);
+  },
+
+  async comprarPersonagem(id: number): Promise<{
+    message: string;
+    perfil: PerfilAluno;
+    inventario: AlunoPersonagem[];
+  }> {
+    const { data } = await api.post<{
+      message: string;
+      perfil: Resource<PerfilAlunoApi>;
+      inventario: Collection<AlunoPersonagemApi>;
+    }>(gamificationEndpoints.alunoComprarPersonagem(id));
+
+    return {
+      message: data.message,
+      perfil: normalizePerfil(data.perfil.data),
+      inventario: data.inventario.data.map(normalizeAlunoPersonagem),
+    };
+  },
+
+  async equiparPersonagem(id: number): Promise<{
+    message: string;
+    inventario: AlunoPersonagem[];
+  }> {
+    const { data } = await api.post<{
+      message: string;
+      inventario: Collection<AlunoPersonagemApi>;
+    }>(gamificationEndpoints.alunoEquiparPersonagem(id));
+
+    return {
+      message: data.message,
+      inventario: data.inventario.data.map(normalizeAlunoPersonagem),
+    };
   },
 };

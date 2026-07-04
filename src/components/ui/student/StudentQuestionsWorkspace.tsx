@@ -1,33 +1,69 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, CheckCircle2, Trophy, XCircle } from "lucide-react";
-import { useState } from "react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  ChevronRight,
+  Circle,
+  Sparkles,
+  Trophy,
+  UserRound,
+  XCircle,
+} from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/buttons";
 import { Skeleton } from "@/components/loading";
 import { getApiErrorMessage } from "@/services/api/errors/getApiErrorMessage";
 import { gamificationApi } from "@/services/api/modules/gamification";
+import type {
+  ConquistaProgresso,
+  MissaoProgresso,
+  PersonagemFeedback,
+} from "@/types/aluno";
 import type { Questao } from "@/types/pedagogico";
 
 type Feedback = {
   questionId: number;
   correct: boolean;
+  correctAlternativeId?: number;
   message: string;
   answer: string;
   points: number;
   xp: number;
+  conquistas: ConquistaProgresso[];
+  missoes: MissaoProgresso[];
+  personagem?: PersonagemFeedback | null;
 };
+
+function getDifficultyLabel(difficulty: Questao["difficulty"]) {
+  const labels = {
+    facil: "Facil",
+    media: "Media",
+    dificil: "Dificil",
+  };
+
+  return labels[difficulty] ?? difficulty;
+}
 
 export function StudentQuestionsWorkspace() {
   const queryClient = useQueryClient();
-  const [selectedAlternatives, setSelectedAlternatives] = useState<
-    Record<number, number>
-  >({});
+  const searchParams = useSearchParams();
+  const disciplinaId = Number(searchParams.get("disciplina")) || undefined;
+  const isRandomMode = searchParams.get("aleatorio") === "1";
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [selectedAlternativeId, setSelectedAlternativeId] = useState<number>();
   const [feedback, setFeedback] = useState<Feedback>();
 
   const questionsQuery = useQuery({
-    queryKey: ["aluno", "questoes"],
-    queryFn: () => gamificationApi.alunoQuestoes(),
+    queryKey: ["aluno", "questoes", disciplinaId, isRandomMode],
+    queryFn: () =>
+      gamificationApi.alunoQuestoes({
+        disciplinaId,
+        aleatorio: isRandomMode,
+        limite: isRandomMode ? 10 : undefined,
+      }),
   });
 
   const perfilQuery = useQuery({
@@ -35,45 +71,93 @@ export function StudentQuestionsWorkspace() {
     queryFn: gamificationApi.alunoPerfil,
   });
 
+  const questions = questionsQuery.data ?? [];
+  const currentQuestion = questions[currentIndex];
+  const hasAnsweredCurrent = feedback?.questionId === currentQuestion?.id;
+  const isLastQuestion = currentIndex >= questions.length - 1;
+  const progressLabel = useMemo(() => {
+    if (!questions.length) return "0 / 0";
+
+    return `${currentIndex + 1} / ${questions.length}`;
+  }, [currentIndex, questions.length]);
+
   const answerMutation = useMutation({
     mutationFn: (question: Questao) => {
-      const alternativeId = selectedAlternatives[question.id];
+      if (!selectedAlternativeId) {
+        throw new Error("Selecione uma alternativa antes de responder.");
+      }
 
-      return gamificationApi.responderQuestao(question.id, alternativeId);
+      return gamificationApi.responderQuestao(
+        question.id,
+        selectedAlternativeId,
+      );
     },
     onSuccess: async (result, question) => {
       setFeedback({
         questionId: question.id,
         correct: result.correta,
+        correctAlternativeId: result.gabarito.id,
         message: result.mensagem,
         answer: result.gabarito.text,
         points: result.pontos_ganhos,
         xp: result.xp_ganho,
+        conquistas: result.conquistas_desbloqueadas,
+        missoes: result.missoes_concluidas,
+        personagem: result.personagem,
       });
-      await queryClient.invalidateQueries({ queryKey: ["aluno"] });
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["aluno", "perfil"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard", "aluno"] }),
+      ]);
     },
   });
 
+  function goToNextQuestion() {
+    if (isLastQuestion) {
+      void queryClient.invalidateQueries({ queryKey: ["aluno", "questoes"] });
+      setSelectedAlternativeId(undefined);
+      setFeedback(undefined);
+      setCurrentIndex((current) => current + 1);
+      return;
+    }
+
+    setCurrentIndex((current) => current + 1);
+    setSelectedAlternativeId(undefined);
+    setFeedback(undefined);
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="flex min-h-[calc(100vh-150px)] flex-col gap-5">
       <section className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-brand-primary">Responder</h1>
           <p className="mt-1 text-base text-text-secondary">
-            Resolva questoes ativas da sua escola e acompanhe sua energia.
+            Resolva uma questao por vez e avance sem voltar.
           </p>
         </div>
-        <div className="rounded-system border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-text-primary shadow-sm">
-          Energia: {perfilQuery.data?.energy ?? "-"} /{" "}
-          {perfilQuery.data?.maxEnergy ?? "-"}
+        <div className="flex flex-wrap gap-3">
+          <div className="rounded-system border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-text-primary shadow-sm">
+            Questao: {progressLabel}
+          </div>
+          <div className="rounded-system border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-text-primary shadow-sm">
+            Energia: {perfilQuery.data?.energy ?? "-"} /{" "}
+            {perfilQuery.data?.maxEnergy ?? "-"}
+          </div>
         </div>
       </section>
 
       {questionsQuery.isPending && (
-        <div className="grid gap-4">
-          <Skeleton className="h-48" />
-          <Skeleton className="h-48" />
-        </div>
+        <section className="mx-auto w-full max-w-5xl rounded-system border border-slate-200 bg-white p-6 shadow-[0_10px_30px_rgba(0,0,0,0.08)]">
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="mt-5 h-8 w-4/5" />
+          <div className="mt-6 grid gap-3">
+            <Skeleton className="h-14" />
+            <Skeleton className="h-14" />
+            <Skeleton className="h-14" />
+            <Skeleton className="h-14" />
+          </div>
+        </section>
       )}
 
       {questionsQuery.isError && (
@@ -86,9 +170,9 @@ export function StudentQuestionsWorkspace() {
         </div>
       )}
 
-      {questionsQuery.data?.length === 0 && (
-        <section className="rounded-system border border-dashed border-slate-300 bg-white p-8 text-center">
-          <Trophy className="mx-auto mb-3 size-10 text-brand-primary" />
+      {!questionsQuery.isPending && questions.length === 0 && (
+        <section className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center rounded-system border border-dashed border-slate-300 bg-white p-8 text-center">
+          <Trophy className="mb-3 size-10 text-brand-primary" />
           <p className="font-semibold text-text-primary">
             Nenhuma questao disponivel agora
           </p>
@@ -98,55 +182,73 @@ export function StudentQuestionsWorkspace() {
         </section>
       )}
 
-      <section className="grid gap-4">
-        {questionsQuery.data?.map((question) => (
-          <article
-            key={question.id}
-            className="rounded-system border border-slate-200 bg-white p-5 shadow-[0_10px_30px_rgba(0,0,0,0.08)]"
-          >
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+      {currentQuestion && currentIndex < questions.length && (
+        <section className="mx-auto flex w-full max-w-5xl flex-1 items-center">
+          <article className="w-full rounded-system border border-slate-200 bg-white p-5 shadow-[0_10px_30px_rgba(0,0,0,0.08)] sm:p-7">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <p className="text-xs font-bold uppercase tracking-wide text-brand-primary">
-                  {question.difficulty} - {question.points} pontos
+                  {getDifficultyLabel(currentQuestion.difficulty)} -{" "}
+                  {currentQuestion.points} pontos
                 </p>
-                <h2 className="mt-2 text-lg font-bold text-text-primary">
-                  {question.statement}
+                <h2 className="mt-2 text-xl font-bold text-text-primary sm:text-2xl">
+                  {currentQuestion.statement}
                 </h2>
               </div>
+              <span className="shrink-0 rounded-full bg-brand-primary-soft px-3 py-1 text-sm font-bold text-brand-primary">
+                {progressLabel}
+              </span>
             </div>
 
-            <div className="mt-4 grid gap-3">
-              {question.alternatives?.map((alternative) => (
-                <label
-                  key={alternative.id}
-                  className="flex cursor-pointer items-center gap-3 rounded-system border border-slate-200 px-4 py-3 text-sm text-text-primary hover:bg-slate-50"
-                >
-                  <input
-                    type="radio"
-                    name={`questao-${question.id}`}
-                    checked={
-                      selectedAlternatives[question.id] === alternative.id
-                    }
-                    onChange={() => {
-                      if (!alternative.id) return;
+            <div className="mt-6 grid gap-3">
+              {currentQuestion.alternatives?.map((alternative) => {
+                const alternativeId = alternative.id;
+                const isSelected = selectedAlternativeId === alternativeId;
+                const isCorrect =
+                  hasAnsweredCurrent &&
+                  alternativeId === feedback.correctAlternativeId;
+                const isWrongSelection =
+                  hasAnsweredCurrent && isSelected && !feedback.correct;
 
-                      const alternativeId = alternative.id;
-
-                      setSelectedAlternatives((current) => ({
-                        ...current,
-                        [question.id]: alternativeId,
-                      }));
+                return (
+                  <button
+                    key={alternativeId}
+                    type="button"
+                    disabled={hasAnsweredCurrent || answerMutation.isPending}
+                    onClick={() => {
+                      if (!alternativeId) return;
+                      setSelectedAlternativeId(alternativeId);
                     }}
-                  />
-                  {alternative.text}
-                </label>
-              ))}
+                    className={`flex min-h-14 w-full items-center gap-3 rounded-system border px-4 py-3 text-left text-sm font-semibold transition ${
+                      isCorrect
+                        ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                        : isWrongSelection
+                          ? "border-red-300 bg-red-50 text-red-700"
+                          : isSelected
+                            ? "border-brand-primary bg-brand-primary-soft text-brand-primary"
+                            : "border-slate-200 bg-white text-text-primary hover:bg-slate-50"
+                    }`}
+                  >
+                    {isCorrect ? (
+                      <CheckCircle2
+                        aria-hidden="true"
+                        className="size-5 shrink-0"
+                      />
+                    ) : isWrongSelection ? (
+                      <XCircle aria-hidden="true" className="size-5 shrink-0" />
+                    ) : (
+                      <Circle aria-hidden="true" className="size-5 shrink-0" />
+                    )}
+                    <span>{alternative.text}</span>
+                  </button>
+                );
+              })}
             </div>
 
-            {feedback?.questionId === question.id && (
+            {hasAnsweredCurrent && feedback && (
               <div
                 role="status"
-                className={`mt-4 flex gap-3 rounded-system border p-4 ${
+                className={`mt-5 flex gap-3 rounded-system border p-4 ${
                   feedback.correct
                     ? "border-emerald-200 bg-emerald-50 text-emerald-800"
                     : "border-amber-200 bg-amber-50 text-amber-800"
@@ -163,23 +265,99 @@ export function StudentQuestionsWorkspace() {
                     Gabarito: {feedback.answer}. +{feedback.points} pontos, +
                     {feedback.xp} XP.
                   </p>
+                  {(feedback.conquistas.length > 0 ||
+                    feedback.missoes.length > 0 ||
+                    feedback.personagem) && (
+                    <div className="mt-3 grid gap-2 text-sm">
+                      {feedback.conquistas.map((conquista) => (
+                        <RewardNotice
+                          key={`conquista-${conquista.id}`}
+                          icon={Trophy}
+                          title={`Conquista: ${conquista.name}`}
+                          description={`+${conquista.rewardPoints} pontos, +${conquista.rewardXp} XP`}
+                        />
+                      ))}
+                      {feedback.missoes.map((missao) => (
+                        <RewardNotice
+                          key={`missao-${missao.id}`}
+                          icon={Sparkles}
+                          title={`Missao: ${missao.title}`}
+                          description={`+${missao.rewardPoints} pontos, +${missao.rewardXp} XP`}
+                        />
+                      ))}
+                      {feedback.personagem && (
+                        <RewardNotice
+                          icon={UserRound}
+                          title={`${feedback.personagem.name} esta no nivel ${feedback.personagem.level}`}
+                          description={
+                            feedback.personagem.leveledUp
+                              ? "Seu personagem evoluiu de nivel."
+                              : "Progresso do personagem atualizado."
+                          }
+                        />
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
-            <Button
-              type="button"
-              disabled={
-                !selectedAlternatives[question.id] || answerMutation.isPending
-              }
-              onClick={() => answerMutation.mutate(question)}
-              className="mt-4 min-h-11 bg-brand-primary px-5 py-2.5 text-white hover:bg-brand-primary-hover"
-            >
-              Responder
-            </Button>
+            <div className="mt-6 flex justify-end">
+              {hasAnsweredCurrent ? (
+                <Button
+                  type="button"
+                  onClick={goToNextQuestion}
+                  className="min-h-11 bg-brand-primary px-5 py-2.5 text-white hover:bg-brand-primary-hover"
+                >
+                  {isLastQuestion ? "Finalizar" : "Proxima questao"}
+                  <ChevronRight aria-hidden="true" className="size-5" />
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  disabled={!selectedAlternativeId || answerMutation.isPending}
+                  onClick={() => answerMutation.mutate(currentQuestion)}
+                  className="min-h-11 bg-brand-primary px-5 py-2.5 text-white hover:bg-brand-primary-hover"
+                >
+                  Responder
+                </Button>
+              )}
+            </div>
           </article>
-        ))}
-      </section>
+        </section>
+      )}
+
+      {currentIndex >= questions.length && questions.length > 0 && (
+        <section className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center rounded-system border border-slate-200 bg-white p-8 text-center shadow-[0_10px_30px_rgba(0,0,0,0.08)]">
+          <Trophy className="mb-3 size-12 text-brand-primary" />
+          <h2 className="text-2xl font-bold text-text-primary">
+            Sequencia finalizada
+          </h2>
+          <p className="mt-2 text-text-secondary">
+            Voce concluiu as questoes carregadas para este desafio.
+          </p>
+        </section>
+      )}
+    </div>
+  );
+}
+
+function RewardNotice({
+  description,
+  icon: Icon,
+  title,
+}: {
+  description: string;
+  icon: typeof Trophy;
+  title: string;
+}) {
+  return (
+    <div className="flex items-center gap-2 rounded-system bg-white/70 px-3 py-2">
+      <Icon aria-hidden="true" className="size-4 shrink-0" />
+      <span>
+        <strong>{title}</strong>
+        <span className="ml-1">{description}</span>
+      </span>
     </div>
   );
 }
