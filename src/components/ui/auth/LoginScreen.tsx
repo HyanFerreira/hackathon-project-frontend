@@ -140,17 +140,18 @@ export function LoginScreen() {
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-palette-60-50 text-text-primary">
-      <div className="absolute right-0 bottom-0">
+      <div className="pointer-events-none absolute right-0 bottom-0">
         <Image
           src={loginBorda}
           alt=""
           priority
-          sizes="w-56"
+          sizes="1100px"
+          className="w-[1100px] max-w-none"
         />
       </div>
 
       <section className="relative z-10 grid min-h-screen gap-8 px-5 py-8 sm:px-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(420px,0.9fr)] lg:items-stretch lg:px-16 xl:px-20">
-        <div className="flex min-h-[52vh] flex-col justify-end lg:min-h-[calc(100vh-4rem)]">
+        <div className="order-2 flex min-h-[52vh] flex-col justify-end lg:order-1 lg:min-h-[calc(100vh-4rem)]">
           <div className="relative flex flex-1 items-end justify-center pb-6 lg:items-center lg:pb-10">
             <Image
               src={loginMascot}
@@ -180,7 +181,7 @@ export function LoginScreen() {
           </div>
         </div>
 
-        <div className="flex items-end justify-center lg:min-h-[calc(100vh-4rem)]">
+        <div className="order-1 flex items-end justify-center lg:order-2 lg:min-h-[calc(100vh-4rem)]">
           <section className="w-full max-w-[550px] rounded-[28px] border border-slate-200/80 bg-white/95 px-6 py-10 shadow-2xl shadow-brand-primary-dark/12 backdrop-blur sm:px-10 lg:px-12 lg:py-14">
             <div className="mb-10 text-center">
               <p className="mb-10 bg-gradient-to-r from-brand-primary to-palette-30-700 bg-clip-text text-4xl font-black tracking-normal text-transparent">
