@@ -260,11 +260,13 @@ function normalizeResposta(resposta: RespostaAlunoApi): RespostaAluno {
 export const gamificationApi = {
   async loginAluno(codigo: string): Promise<{ aluno: Aluno; token: string }> {
     const { data } = await api.post<{
-      aluno: Resource<AlunoApi>;
+      aluno: Resource<AlunoApi> | AlunoApi;
       token: string;
     }>(gamificationEndpoints.alunoLogin, { codigo });
 
-    return { aluno: normalizeAluno(data.aluno.data), token: data.token };
+    const aluno = "data" in data.aluno ? data.aluno.data : data.aluno;
+
+    return { aluno: normalizeAluno(aluno), token: data.token };
   },
 
   async alunoMe(): Promise<Aluno> {
@@ -558,6 +560,14 @@ export const gamificationApi = {
   async rankingGestorTurma(turmaId: number): Promise<RankingItem[]> {
     const { data } = await api.get<Collection<RankingItemApi>>(
       gamificationEndpoints.gestorRankingTurma(turmaId),
+    );
+
+    return data.data.map(normalizeRankingItem);
+  },
+
+  async rankingProfessorTurma(turmaId: number): Promise<RankingItem[]> {
+    const { data } = await api.get<Collection<RankingItemApi>>(
+      gamificationEndpoints.professorRankingTurma(turmaId),
     );
 
     return data.data.map(normalizeRankingItem);
