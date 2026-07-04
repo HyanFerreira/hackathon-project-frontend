@@ -12,7 +12,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { FormEvent, ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import loginBorda from "@/assets/images/login-borda.png";
 import loginMascot from "@/assets/images/login-mascot.png";
 import { Button } from "@/components/buttons";
@@ -40,12 +40,17 @@ type LoginFieldErrors = {
 
 type LoginScreenProps = {
   mode?: "user" | "aluno";
+  initialCodigo?: string;
 };
 
-export function LoginScreen({ mode = "user" }: LoginScreenProps) {
+export function LoginScreen({
+  mode = "user",
+  initialCodigo,
+}: LoginScreenProps) {
   const router = useRouter();
+  const autoLoginDone = useRef(false);
   const [cpf, setCpf] = useState("");
-  const [codigo, setCodigo] = useState("");
+  const [codigo, setCodigo] = useState((initialCodigo ?? "").toUpperCase());
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string>();
   const [fieldErrors, setFieldErrors] = useState<LoginFieldErrors>({});
@@ -56,6 +61,51 @@ export function LoginScreen({ mode = "user" }: LoginScreenProps) {
       router.replace(mode === "aluno" ? "/estudantes" : "/dashboard");
     }
   }, [mode, router]);
+
+  const doAlunoLogin = useCallback(
+    async (rawCodigo: string) => {
+      const codigoValue = rawCodigo.trim().toUpperCase();
+
+      if (!codigoValue) {
+        setFieldErrors({ codigo: "Informe o codigo de acesso." });
+        return;
+      }
+
+      setError(undefined);
+      setIsSubmitting(true);
+
+      try {
+        const response = await gamificationApi.loginAluno(codigoValue);
+
+        setAuthToken(response.token, false);
+        setAuthActor("aluno", false);
+        router.replace("/estudantes");
+      } catch (requestError) {
+        const validationErrors = getApiValidationErrors(requestError);
+
+        if (validationErrors) {
+          setFieldErrors({ codigo: validationErrors.codigo });
+        } else {
+          setError(getApiErrorMessage(requestError));
+        }
+
+        setIsSubmitting(false);
+      }
+    },
+    [router],
+  );
+
+  // Auto-login quando o codigo chega pela URL (QR code do cartao de acesso).
+  useEffect(() => {
+    if (autoLoginDone.current) {
+      return;
+    }
+
+    if (mode === "aluno" && initialCodigo && !getAuthToken()) {
+      autoLoginDone.current = true;
+      void doAlunoLogin(initialCodigo);
+    }
+  }, [mode, initialCodigo, doAlunoLogin]);
 
   const validateForm = () => {
     if (mode === "aluno") {
@@ -99,6 +149,16 @@ export function LoginScreen({ mode = "user" }: LoginScreenProps) {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    if (mode === "aluno") {
+      if (!validateForm()) {
+        return;
+      }
+
+      await doAlunoLogin(codigo);
+      return;
+    }
+
     setError(undefined);
 
     if (!validateForm()) {
@@ -108,15 +168,6 @@ export function LoginScreen({ mode = "user" }: LoginScreenProps) {
     setIsSubmitting(true);
 
     try {
-      if (mode === "aluno") {
-        const response = await gamificationApi.loginAluno(codigo.trim());
-
-        setAuthToken(response.token, false);
-        setAuthActor("aluno", false);
-        router.replace("/estudantes");
-        return;
-      }
-
       const response = await authApi.login({
         cpf: onlyCpfDigits(cpf),
         password,
