@@ -3,23 +3,33 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
+  Loader2,
+  LogIn,
   Pencil,
   Plus,
   Trash2,
   UserRound,
   Users,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/buttons";
 import { ConfirmDialog } from "@/components/feedback/ConfirmDialog";
 import { TableSkeleton } from "@/components/loading";
 import { getApiErrorMessage } from "@/services/api/errors/getApiErrorMessage";
+import { impersonateApi } from "@/services/api/modules/impersonate";
 import { usersApi } from "@/services/api/modules/users";
+import {
+  preserveOriginalAuth,
+  setAuthActor,
+  setAuthToken,
+} from "@/services/api/tokenStorage";
 import type { User } from "@/types/user";
 import { formatCpf } from "@/utils/cpf/cpf";
 import { UserFormModal } from "./UserFormModal";
 
 export function UsersWorkspace() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User>();
@@ -35,6 +45,18 @@ export function UsersWorkspace() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["users"] });
       setUserToDelete(undefined);
+    },
+  });
+
+  const impersonateMutation = useMutation({
+    mutationFn: (id: number) => impersonateApi.user(id),
+    onSuccess: async (response) => {
+      preserveOriginalAuth();
+      setAuthToken(response.token, false);
+      setAuthActor("user", false);
+      queryClient.clear();
+      router.replace("/dashboard");
+      router.refresh();
     },
   });
 
@@ -67,6 +89,16 @@ export function UsersWorkspace() {
           Novo usuário
         </Button>
       </section>
+
+      {impersonateMutation.isError && (
+        <div
+          role="alert"
+          className="flex gap-3 rounded-system border border-red-200 bg-red-50 p-4 text-red-700"
+        >
+          <AlertCircle aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
+          <p>{getApiErrorMessage(impersonateMutation.error)}</p>
+        </div>
+      )}
 
       <section className="rounded-system border border-slate-200 bg-white shadow-[0_10px_30px_rgba(0,0,0,0.08)]">
         <div className="flex items-center gap-3 border-slate-200 border-b p-5">
@@ -161,6 +193,23 @@ export function UsersWorkspace() {
                       </td>
                       <td className="px-3 py-3">
                         <div className="flex justify-end gap-2">
+                          <Button
+                            type="button"
+                            aria-label={`Impersonar ${user.name}`}
+                            title="Impersonar"
+                            disabled={impersonateMutation.isPending}
+                            onClick={() => impersonateMutation.mutate(user.id)}
+                            className="size-9 border border-slate-200 bg-white p-0 text-brand-primary hover:bg-brand-primary-soft"
+                          >
+                            {impersonateMutation.isPending ? (
+                              <Loader2
+                                aria-hidden="true"
+                                className="size-4 animate-spin"
+                              />
+                            ) : (
+                              <LogIn aria-hidden="true" className="size-4" />
+                            )}
+                          </Button>
                           <Button
                             type="button"
                             aria-label={`Editar ${user.name}`}

@@ -10,12 +10,16 @@ import {
   SIDEBAR_EXPANDED_WIDTH,
 } from "@/components/ui/layout/AppSidebar";
 import { authApi } from "@/services/api/modules/auth";
+import { gamificationApi } from "@/services/api/modules/gamification";
+import { getAuthActor, isImpersonating } from "@/services/api/tokenStorage";
+import type { Aluno } from "@/types/aluno";
+import type { User } from "@/types/user";
 
 type SystemShellProps = {
   children: ReactNode;
 };
 
-const USER_MENU_ITEMS: UserMenuItem[] = [
+const BASE_USER_MENU_ITEMS: UserMenuItem[] = [
   { key: "profile", label: "Meu perfil", icon: "profile" },
   { key: "settings", label: "Configurações", icon: "settings" },
   { key: "logout", label: "Sair", icon: "logout", danger: true },
@@ -27,17 +31,36 @@ export function SystemShell({ children }: SystemShellProps) {
     ? SIDEBAR_EXPANDED_WIDTH
     : SIDEBAR_COLLAPSED_WIDTH;
 
-  const meQuery = useQuery({
-    queryKey: ["auth", "me"],
-    queryFn: authApi.me,
+  const meQuery = useQuery<User | Aluno>({
+    queryKey: ["auth", "me", getAuthActor()],
+    queryFn: () =>
+      getAuthActor() === "aluno" ? gamificationApi.alunoMe() : authApi.me(),
     retry: false,
   });
+
+  const actor = getAuthActor();
+  const role =
+    meQuery.data && "roles" in meQuery.data
+      ? meQuery.data.roles?.[0]?.name
+      : undefined;
+  const userMenuItems: UserMenuItem[] = isImpersonating()
+    ? [
+        {
+          key: "stop-impersonation",
+          label: "Encerrar impersonacao",
+          icon: "return",
+        },
+        ...BASE_USER_MENU_ITEMS,
+      ]
+    : BASE_USER_MENU_ITEMS;
 
   return (
     <div className="min-h-screen bg-slate-100 text-text-primary">
       <AppSidebar
+        actor={actor}
         isOpen={isSidebarOpen}
         onToggle={() => setIsSidebarOpen((current) => !current)}
+        role={role}
       />
 
       <div
@@ -52,7 +75,7 @@ export function SystemShell({ children }: SystemShellProps) {
           sidebarWidth={sidebarWidth}
           userName={meQuery.data?.name ?? "Usuário"}
           isLoadingUser={meQuery.isPending}
-          userMenuItems={USER_MENU_ITEMS}
+          userMenuItems={userMenuItems}
         />
 
         <main className="px-5 pt-32 pb-8 lg:px-8">{children}</main>

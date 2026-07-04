@@ -1,6 +1,7 @@
 "use client";
 
-import { LogOut, Menu, Settings, User } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { LogOut, Menu, RotateCcw, Settings, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   type CSSProperties,
@@ -13,11 +14,15 @@ import {
 import { Button } from "@/components/buttons";
 import { Skeleton } from "@/components/loading";
 import { authApi } from "@/services/api/modules/auth";
-import { removeAuthToken } from "@/services/api/tokenStorage";
+import { impersonateApi } from "@/services/api/modules/impersonate";
+import {
+  removeAuthToken,
+  restoreOriginalAuth,
+} from "@/services/api/tokenStorage";
 
 export type UserMenuItem = {
   danger?: boolean;
-  icon?: "profile" | "settings" | "logout";
+  icon?: "profile" | "settings" | "logout" | "return";
   key: string;
   label: string;
 };
@@ -38,6 +43,8 @@ function getMenuIcon(icon?: UserMenuItem["icon"]) {
       return <Settings aria-hidden="true" className="size-4" />;
     case "logout":
       return <LogOut aria-hidden="true" className="size-4" />;
+    case "return":
+      return <RotateCcw aria-hidden="true" className="size-4" />;
     default:
       return null;
   }
@@ -51,6 +58,7 @@ export function AppHeader({
   userName,
 }: AppHeaderProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userDropdownRef = useRef<HTMLDivElement | null>(null);
 
@@ -100,6 +108,18 @@ export function AppHeader({
   async function handleUserMenuAction(key: string) {
     setIsUserMenuOpen(false);
 
+    if (key === "stop-impersonation") {
+      try {
+        await impersonateApi.stop();
+      } finally {
+        restoreOriginalAuth();
+        queryClient.clear();
+        router.replace("/dashboard");
+        router.refresh();
+      }
+      return;
+    }
+
     if (key !== "logout") {
       return;
     }
@@ -108,6 +128,7 @@ export function AppHeader({
       await authApi.logout();
     } finally {
       removeAuthToken();
+      queryClient.clear();
       router.replace("/login");
     }
   }
