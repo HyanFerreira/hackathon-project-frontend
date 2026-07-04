@@ -19,6 +19,8 @@ export type CreateManagerPayload = {
   password: string;
 };
 
+export type UpdateManagerPayload = Partial<CreateManagerPayload>;
+
 export const managersApi = {
   async list(): Promise<User[]> {
     const { data } = await api.get<ManagerListResponse>(managerEndpoints.list);
@@ -29,6 +31,15 @@ export const managersApi = {
   async create(payload: CreateManagerPayload): Promise<User> {
     const { data } = await api.post<ManagerResponse>(
       managerEndpoints.create,
+      payload,
+    );
+
+    return normalizeUser(data.data);
+  },
+
+  async update(id: number, payload: UpdateManagerPayload): Promise<User> {
+    const { data } = await api.put<ManagerResponse>(
+      managerEndpoints.update(id),
       payload,
     );
 

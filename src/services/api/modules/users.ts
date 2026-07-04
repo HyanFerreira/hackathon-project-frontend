@@ -16,6 +16,7 @@ export type UserApi = {
   email: string;
   cpf?: string;
   roles?: RoleApi[];
+  escola_id?: number;
   school?: {
     id: number;
     nome: string;
@@ -61,7 +62,7 @@ export function normalizeUser(user: UserApi): User {
     cpf: user.cpf,
     roles: user.roles?.map(normalizeRole),
     school: user.school ? normalizeSchool(user.school) : undefined,
-    schoolId: user.school_id ?? user.school?.id,
+    schoolId: user.escola_id ?? user.school_id ?? user.school?.id,
   };
 }
 

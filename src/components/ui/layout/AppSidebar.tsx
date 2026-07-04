@@ -5,8 +5,12 @@ import {
   Building2,
   ChevronDown,
   ChevronUp,
+  ClipboardList,
   LayoutDashboard,
   Menu,
+  School,
+  Trophy,
+  UserRound,
   Users,
 } from "lucide-react";
 import Link from "next/link";
@@ -34,6 +38,8 @@ type SidebarItem = {
 type AppSidebarProps = {
   isOpen: boolean;
   onToggle: () => void;
+  role?: string;
+  actor?: "user" | "aluno";
 };
 
 const sidebarItems: SidebarItem[] = [
@@ -50,12 +56,73 @@ const sidebarItems: SidebarItem[] = [
     href: "/escolas",
   },
   {
-    key: "usuarios",
+    key: "gestores",
     label: "Usuários",
+    icon: Users,
+    href: "/gestores",
+  },
+  {
+    key: "usuarios",
+    label: "Usuarios",
     icon: Users,
     href: "/usuarios",
   },
+  {
+    key: "turmas",
+    label: "Turmas",
+    icon: School,
+    href: "/turmas",
+  },
+  {
+    key: "professores",
+    label: "Professores",
+    icon: UserRound,
+    href: "/professores",
+  },
+  {
+    key: "alunos",
+    label: "Alunos",
+    icon: Users,
+    href: "/alunos",
+  },
+  {
+    key: "questoes",
+    label: "Questoes",
+    icon: ClipboardList,
+    href: "/questoes",
+  },
+  {
+    key: "responder",
+    label: "Responder",
+    icon: ClipboardList,
+    href: "/responder",
+  },
+  {
+    key: "ranking",
+    label: "Ranking",
+    icon: Trophy,
+    href: "/ranking",
+  },
 ];
+
+function canShowItem(
+  item: SidebarItem,
+  role?: string,
+  actor?: "user" | "aluno",
+) {
+  if (item.key === "dashboard") return true;
+  if (actor === "aluno") return ["responder", "ranking"].includes(item.key);
+  if (!role) return false;
+  if (role === "admin") {
+    return ["escolas", "gestores", "usuarios"].includes(item.key);
+  }
+  if (role === "gestor") {
+    return ["turmas", "professores", "alunos", "ranking"].includes(item.key);
+  }
+  if (role === "professor") return ["questoes", "ranking"].includes(item.key);
+
+  return false;
+}
 
 function isPathActive(pathname: string, href: string) {
   if (href === "/" || href === "/dashboard") return pathname === href;
@@ -100,7 +167,7 @@ function SidebarRow({ icon: Icon, isOpen, label, rightSlot }: SidebarRowProps) {
   );
 }
 
-export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
+export function AppSidebar({ actor, isOpen, onToggle, role }: AppSidebarProps) {
   const pathname = usePathname();
   const [hasNavOverflow, setHasNavOverflow] = useState(false);
   const [navAction, setNavAction] = useState<"down" | "up">("down");
@@ -211,30 +278,34 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                 ref={navViewportRef}
                 className="flex h-full flex-col gap-2 overflow-y-auto px-4 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
               >
-                {sidebarItems.map((item) => {
-                  const isItemActive = isPathActive(pathname, item.href);
+                {sidebarItems
+                  .filter((item) => canShowItem(item, role, actor))
+                  .map((item) => {
+                    const isItemActive = isPathActive(pathname, item.href);
+                    const itemLabel =
+                      item.key === "gestores" ? "Gestores" : item.label;
 
-                  return (
-                    <Link
-                      className={twMerge(
-                        itemBaseClass,
-                        isItemActive
-                          ? sidebarActiveClass
-                          : sidebarInactiveClass,
-                      )}
-                      href={item.href}
-                      key={item.key}
-                      title={isOpen ? undefined : item.label}
-                    >
-                      <SidebarRow
-                        icon={item.icon}
-                        label={item.label}
-                        isOpen={isOpen}
-                        rightSlot={<span className="size-4 opacity-0" />}
-                      />
-                    </Link>
-                  );
-                })}
+                    return (
+                      <Link
+                        className={twMerge(
+                          itemBaseClass,
+                          isItemActive
+                            ? sidebarActiveClass
+                            : sidebarInactiveClass,
+                        )}
+                        href={item.href}
+                        key={item.key}
+                        title={isOpen ? undefined : itemLabel}
+                      >
+                        <SidebarRow
+                          icon={item.icon}
+                          label={itemLabel}
+                          isOpen={isOpen}
+                          rightSlot={<span className="size-4 opacity-0" />}
+                        />
+                      </Link>
+                    );
+                  })}
               </div>
 
               <div

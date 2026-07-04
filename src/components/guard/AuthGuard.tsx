@@ -6,7 +6,14 @@ import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { AppShellSkeleton } from "@/components/loading";
 import { authApi } from "@/services/api/modules/auth";
-import { getAuthToken, removeAuthToken } from "@/services/api/tokenStorage";
+import { gamificationApi } from "@/services/api/modules/gamification";
+import {
+  getAuthActor,
+  getAuthToken,
+  removeAuthToken,
+} from "@/services/api/tokenStorage";
+import type { Aluno } from "@/types/aluno";
+import type { User } from "@/types/user";
 
 type AuthGuardProps = {
   children: ReactNode;
@@ -29,9 +36,10 @@ export function AuthGuard({ children }: AuthGuardProps) {
     setIsCheckingStorage(false);
   }, [router]);
 
-  const meQuery = useQuery({
-    queryKey: ["auth", "me"],
-    queryFn: authApi.me,
+  const meQuery = useQuery<User | Aluno>({
+    queryKey: ["auth", "me", getAuthActor()],
+    queryFn: () =>
+      getAuthActor() === "aluno" ? gamificationApi.alunoMe() : authApi.me(),
     enabled: Boolean(token),
     retry: false,
   });

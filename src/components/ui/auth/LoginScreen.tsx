@@ -12,26 +12,36 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { FormEvent, ReactNode } from "react";
 import { useEffect, useState } from "react";
+import loginBorda from "@/assets/images/login-borda.png";
 import loginMascot from "@/assets/images/login-mascot.png";
 import { Button } from "@/components/buttons";
 import { CpfInput } from "@/components/form/CpfInput";
+import { Input } from "@/components/form/Input";
 import { PasswordInput } from "@/components/form/PasswordInput";
 import {
   getApiErrorMessage,
   getApiValidationErrors,
 } from "@/services/api/errors/getApiErrorMessage";
 import { authApi } from "@/services/api/modules/auth";
-import { getAuthToken, setAuthToken } from "@/services/api/tokenStorage";
+import { gamificationApi } from "@/services/api/modules/gamification";
+import {
+  getAuthToken,
+  setAuthActor,
+  setAuthToken,
+} from "@/services/api/tokenStorage";
 import { isValidCpf, onlyCpfDigits } from "@/utils/cpf/cpf";
 
 type LoginFieldErrors = {
   cpf?: string;
+  codigo?: string;
   password?: string;
 };
 
 export function LoginScreen() {
   const router = useRouter();
+  const [mode, setMode] = useState<"user" | "aluno">("user");
   const [cpf, setCpf] = useState("");
+  const [codigo, setCodigo] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string>();
   const [fieldErrors, setFieldErrors] = useState<LoginFieldErrors>({});
@@ -44,6 +54,18 @@ export function LoginScreen() {
   }, [router]);
 
   const validateForm = () => {
+    if (mode === "aluno") {
+      const nextErrors: LoginFieldErrors = {};
+
+      if (!codigo.trim()) {
+        nextErrors.codigo = "Informe o codigo de acesso.";
+      }
+
+      setFieldErrors(nextErrors);
+
+      return Object.keys(nextErrors).length === 0;
+    }
+
     const cpfDigits = onlyCpfDigits(cpf);
     const nextErrors: LoginFieldErrors = {};
 
@@ -82,12 +104,22 @@ export function LoginScreen() {
     setIsSubmitting(true);
 
     try {
+      if (mode === "aluno") {
+        const response = await gamificationApi.loginAluno(codigo.trim());
+
+        setAuthToken(response.token, false);
+        setAuthActor("aluno", false);
+        router.replace("/dashboard");
+        return;
+      }
+
       const response = await authApi.login({
         cpf: onlyCpfDigits(cpf),
         password,
       });
 
       setAuthToken(response.token, false);
+      setAuthActor("user", false);
       router.replace("/dashboard");
     } catch (requestError) {
       const validationErrors = getApiValidationErrors(requestError);
@@ -95,6 +127,7 @@ export function LoginScreen() {
       if (validationErrors) {
         setFieldErrors({
           cpf: validationErrors.cpf,
+          codigo: validationErrors.codigo,
           password: validationErrors.password,
         });
       } else {
@@ -107,10 +140,14 @@ export function LoginScreen() {
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-palette-60-50 text-text-primary">
-      <div className="absolute -top-56 left-1/2 h-[34rem] w-[34rem] -translate-x-1/2 rounded-full bg-white/90 blur-2xl" />
-      <div className="absolute -bottom-48 left-[44%] h-96 w-[72rem] rounded-[100%] bg-brand-primary opacity-70" />
-      <div className="absolute right-0 bottom-0 h-72 w-64 rounded-tl-[180px] bg-palette-30-400/80" />
-      <div className="absolute top-24 left-16 hidden h-28 w-28 rounded-full border border-brand-primary/10 bg-white/40 blur-sm lg:block" />
+      <div className="absolute right-0 bottom-0">
+        <Image
+          src={loginBorda}
+          alt=""
+          priority
+          sizes="w-56"
+        />
+      </div>
 
       <section className="relative z-10 grid min-h-screen gap-8 px-5 py-8 sm:px-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(420px,0.9fr)] lg:items-stretch lg:px-16 xl:px-20">
         <div className="flex min-h-[52vh] flex-col justify-end lg:min-h-[calc(100vh-4rem)]">
@@ -154,34 +191,76 @@ export function LoginScreen() {
               </h1>
               <span className="mx-auto mt-5 block h-1 w-12 rounded-full bg-palette-10-yellow" />
               <p className="mt-6 text-base font-medium text-text-secondary">
-                Acesse com seu CPF e senha
+                Acesse como equipe escolar ou aluno
               </p>
             </div>
 
             <form className="space-y-6" onSubmit={handleSubmit}>
-              <CpfInput
-                error={fieldErrors.cpf}
-                inputClassName="h-14 rounded-[14px] text-base font-medium shadow-sm shadow-slate-200/50"
-                label="CPF"
-                name="cpf"
-                onChange={(value) => {
-                  setCpf(value);
-                  clearFieldError("cpf");
-                }}
-                value={cpf}
-              />
+              <div className="grid grid-cols-2 rounded-[14px] bg-slate-100 p-1">
+                <button
+                  type="button"
+                  onClick={() => setMode("user")}
+                  className={`min-h-11 rounded-[12px] text-sm font-bold transition ${
+                    mode === "user"
+                      ? "bg-white text-brand-primary shadow-sm"
+                      : "text-text-secondary"
+                  }`}
+                >
+                  Equipe escolar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode("aluno")}
+                  className={`min-h-11 rounded-[12px] text-sm font-bold transition ${
+                    mode === "aluno"
+                      ? "bg-white text-brand-primary shadow-sm"
+                      : "text-text-secondary"
+                  }`}
+                >
+                  Aluno
+                </button>
+              </div>
 
-              <PasswordInput
-                error={fieldErrors.password}
-                inputClassName="h-14 rounded-[14px] text-base font-medium shadow-sm shadow-slate-200/50"
-                label="Senha"
-                name="password"
-                onChange={(event) => {
-                  setPassword(event.target.value);
-                  clearFieldError("password");
-                }}
-                value={password}
-              />
+              {mode === "user" ? (
+                <>
+                  <CpfInput
+                    error={fieldErrors.cpf}
+                    inputClassName="h-14 rounded-[14px] text-base font-medium shadow-sm shadow-slate-200/50"
+                    label="CPF"
+                    name="cpf"
+                    onChange={(value) => {
+                      setCpf(value);
+                      clearFieldError("cpf");
+                    }}
+                    value={cpf}
+                  />
+
+                  <PasswordInput
+                    error={fieldErrors.password}
+                    inputClassName="h-14 rounded-[14px] text-base font-medium shadow-sm shadow-slate-200/50"
+                    label="Senha"
+                    name="password"
+                    onChange={(event) => {
+                      setPassword(event.target.value);
+                      clearFieldError("password");
+                    }}
+                    value={password}
+                  />
+                </>
+              ) : (
+                <Input
+                  error={fieldErrors.codigo}
+                  inputClassName="h-14 rounded-[14px] text-base font-medium uppercase shadow-sm shadow-slate-200/50"
+                  label="Codigo de acesso"
+                  name="codigo"
+                  placeholder="Ex.: ALU12345"
+                  value={codigo}
+                  onChange={(event) => {
+                    setCodigo(event.target.value.toUpperCase());
+                    clearFieldError("codigo");
+                  }}
+                />
+              )}
 
               {error && (
                 <div
