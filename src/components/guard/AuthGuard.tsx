@@ -17,9 +17,10 @@ import type { User } from "@/types/user";
 
 type AuthGuardProps = {
   children: ReactNode;
+  loadingFallback?: ReactNode;
 };
 
-export function AuthGuard({ children }: AuthGuardProps) {
+export function AuthGuard({ children, loadingFallback }: AuthGuardProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [token, setToken] = useState<string>();
@@ -65,7 +66,9 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
   if (isCheckingStorage || meQuery.isPending || meQuery.isError) {
     return (
-      <AppShellSkeleton variant={actor === "aluno" ? "student" : "system"} />
+      loadingFallback ?? (
+        <AppShellSkeleton variant={actor === "aluno" ? "student" : "system"} />
+      )
     );
   }
 

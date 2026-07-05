@@ -14,6 +14,7 @@ import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { Select } from "@/components/form/Select";
 import { TableSkeleton } from "@/components/loading";
+import { useMinimumVisibleLoading } from "@/hooks/useMinimumVisibleLoading";
 import { getApiErrorMessage } from "@/services/api/errors/getApiErrorMessage";
 import { authApi } from "@/services/api/modules/auth";
 import { gamificationApi } from "@/services/api/modules/gamification";
@@ -25,6 +26,7 @@ import {
   readStoredEquippedCharacterId,
   resolveEquippedCharacterId,
 } from "@/utils/student/equippedCharacter";
+import { StudentRankingSkeleton } from "../student/StudentWorkspaceSkeletons";
 import { getAvatarProfileImage } from "../student/studentVisualAssets";
 
 export function RankingWorkspace() {
@@ -131,8 +133,18 @@ export function RankingWorkspace() {
   const equippedCharacter = personagens?.find(
     (personagem) => personagem.equipped,
   );
+  const showStudentInitialSkeleton = useMinimumVisibleLoading(
+    actor === "aluno" &&
+      (meQuery.isPending ||
+        rankingQuery.isPending ||
+        personagensQuery.isPending),
+  );
 
   if (actor === "aluno") {
+    if (showStudentInitialSkeleton) {
+      return <StudentRankingSkeleton />;
+    }
+
     return (
       <StudentRankingView
         currentStudentAvatar={
@@ -146,7 +158,7 @@ export function RankingWorkspace() {
         }
         error={rankingQuery.error}
         isError={rankingQuery.isError}
-        isFetching={rankingQuery.isFetching}
+        isFetching={rankingQuery.isPending}
         isSuccess={rankingQuery.isSuccess}
         items={rankingQuery.data ?? []}
       />
@@ -159,7 +171,7 @@ export function RankingWorkspace() {
         <div>
           <h1 className="text-3xl font-bold text-brand-primary">Ranking</h1>
           <p className="mt-1 text-base text-text-secondary">
-            Classificacao por pontos, XP e nivel.
+            Classificação por pontos, XP e nível.
           </p>
         </div>
 
@@ -205,7 +217,7 @@ export function RankingWorkspace() {
           professorTurmasQuery.isSuccess && (
             <div className="rounded-system border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
               <Medal className="mx-auto mb-3 size-10 text-brand-primary" />
-              <p className="font-semibold text-text-primary">
+              <p className="font-bold text-text-primary">
                 Nenhuma turma vinculada para consultar
               </p>
             </div>
@@ -224,8 +236,8 @@ export function RankingWorkspace() {
         {role === "gestor" && !selectedTurmaId && !turmasQuery.isPending && (
           <div className="rounded-system border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
             <Medal className="mx-auto mb-3 size-10 text-brand-primary" />
-            <p className="font-semibold text-text-primary">
-              Nenhuma turma disponivel para consultar
+            <p className="font-bold text-text-primary">
+              Nenhuma turma disponível para consultar
             </p>
           </div>
         )}
@@ -235,11 +247,11 @@ export function RankingWorkspace() {
             <table className="w-full min-w-[640px] border-collapse text-left text-sm">
               <thead>
                 <tr className="border-slate-200 border-b text-xs font-bold uppercase tracking-wide text-text-secondary">
-                  <th className="px-3 py-3">Posicao</th>
+                  <th className="px-3 py-3">Posição</th>
                   <th className="px-3 py-3">Aluno</th>
                   <th className="px-3 py-3">Pontos</th>
                   <th className="px-3 py-3">XP</th>
-                  <th className="px-3 py-3">Nivel</th>
+                  <th className="px-3 py-3">Nível</th>
                 </tr>
               </thead>
               <tbody>
@@ -251,7 +263,7 @@ export function RankingWorkspace() {
                     <td className="px-3 py-3 font-bold text-brand-primary">
                       #{item.position}
                     </td>
-                    <td className="px-3 py-3 font-semibold text-text-primary">
+                    <td className="px-3 py-3 font-bold text-text-primary">
                       {item.aluno.name}
                     </td>
                     <td className="px-3 py-3 text-text-secondary">
@@ -270,7 +282,7 @@ export function RankingWorkspace() {
           rankingQuery.isSuccess && (
             <div className="rounded-system border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
               <Medal className="mx-auto mb-3 size-10 text-brand-primary" />
-              <p className="font-semibold text-text-primary">
+              <p className="font-bold text-text-primary">
                 Ranking ainda sem dados
               </p>
             </div>
@@ -308,22 +320,22 @@ function StudentRankingView({
   }));
 
   return (
-    <div className="relative px-3 py-4 sm:px-6 lg:px-8">
+    <div className="relative space-y-6">
       <RankingDecorations />
 
       <section className="relative z-10">
         <div>
-          <h1 className="text-5xl font-black tracking-normal text-[#5b2bdc]">
+          <h1 className="text-4xl font-bold tracking-normal text-[#4b18dc]">
             Ranking
           </h1>
-          <p className="mt-2 text-lg font-medium text-[#656099]">
-            Classificacao por pontos, XP e nivel.
+          <p className="mt-1 text-base font-medium text-[#4f4b80]">
+            Classificação por pontos, XP e nível.
           </p>
         </div>
       </section>
 
       {isFetching && (
-        <section className="relative z-10 mt-10 rounded-[24px] border border-[#e3d9f8] bg-white/90 p-5 shadow-[0_22px_60px_rgba(72,35,137,0.08)]">
+        <section className="relative z-10 rounded-[24px] border border-[#e3d9f8] bg-white/90 p-5 shadow-[0_22px_60px_rgba(72,35,137,0.08)]">
           <TableSkeleton rows={8} columns={5} />
         </section>
       )}
@@ -331,7 +343,7 @@ function StudentRankingView({
       {isError && (
         <div
           role="alert"
-          className="relative z-10 mt-8 flex gap-3 rounded-[18px] border border-red-200 bg-red-50 p-4 text-red-700"
+          className="relative z-10 flex gap-3 rounded-[18px] border border-red-200 bg-red-50 p-4 text-red-700"
         >
           <AlertCircle className="mt-0.5 size-5 shrink-0" />
           <p>{getApiErrorMessage(error)}</p>
@@ -340,7 +352,7 @@ function StudentRankingView({
 
       {!isFetching && (
         <>
-          <section className="relative z-10 mx-auto mt-3 grid max-w-[900px] items-end justify-center gap-5 md:grid-cols-3">
+          <section className="relative z-10 mx-auto grid max-w-[900px] items-end justify-center gap-5 md:grid-cols-3">
             {podiumSlots.map(({ item, position }) => (
               <PodiumCard
                 key={position}
@@ -352,23 +364,23 @@ function StudentRankingView({
           </section>
 
           {items.length > 0 && (
-            <section className="relative z-10 mt-6 overflow-hidden rounded-[24px] border border-[#e3d9f8] bg-white/95 p-4 shadow-[0_22px_60px_rgba(72,35,137,0.1)]">
-              <div className="hidden grid-cols-[120px_minmax(240px,1fr)_140px_130px_220px_32px] px-6 py-3 text-sm font-black text-[#5d5a89] lg:grid">
-                <span>Posicao</span>
+            <section className="relative z-10 overflow-hidden rounded-[24px] border border-[#e3d9f8] bg-white/95 p-4 shadow-[0_22px_60px_rgba(72,35,137,0.1)]">
+              <div className="hidden grid-cols-[120px_minmax(240px,1fr)_140px_130px_220px_32px] px-6 py-3 text-sm font-bold text-[#5d5a89] lg:grid">
+                <span>Posição</span>
                 <span>Aluno</span>
                 <span className="inline-flex items-center gap-2">
                   <Star className="size-5 fill-[#ffb900] text-[#ffb900]" />
                   Pontos
                 </span>
                 <span className="inline-flex items-center gap-2">
-                  <span className="rounded-full bg-[#7c35e8] px-1.5 py-0.5 text-[10px] font-black text-white">
+                  <span className="rounded-full bg-[#7c35e8] px-1.5 py-0.5 text-[10px] font-bold text-white">
                     XP
                   </span>
                   XP
                 </span>
                 <span className="inline-flex items-center gap-2">
                   <Shield className="size-5 fill-[#63bd47] text-[#4aa53c]" />
-                  Nivel
+                  Nível
                 </span>
                 <span />
               </div>
@@ -449,16 +461,16 @@ function PodiumCard({
             item={item}
             className={isFirst ? "mt-0 size-24" : "mt-1 size-20"}
           />
-          <h2 className="mt-3 line-clamp-1 text-xl font-black text-[#101044]">
+          <h2 className="mt-3 line-clamp-1 text-xl font-bold text-[#101044]">
             {item.aluno.name}
           </h2>
-          <p className="mt-2 inline-flex items-center gap-2 text-2xl font-black text-[#101044]">
+          <p className="mt-2 inline-flex items-center gap-2 text-2xl font-bold text-[#101044]">
             {item.points}
             <Star className="size-6 fill-[#ffb900] text-[#ffb900]" />
           </p>
           <div className="mt-4 flex items-center justify-center gap-3">
             <Pill tone="xp">XP {item.xp}</Pill>
-            <Pill tone="level">Nivel {item.level}</Pill>
+            <Pill tone="level">Nível {item.level}</Pill>
           </div>
         </>
       ) : (
@@ -502,16 +514,16 @@ function RankingRow({
           item={item}
           className="size-11 shrink-0"
         />
-        <p className="truncate text-lg font-black">{item.aluno.name}</p>
+        <p className="truncate text-lg font-bold">{item.aluno.name}</p>
       </div>
 
-      <p className="inline-flex items-center gap-2 font-black lg:justify-start">
+      <p className="inline-flex items-center gap-2 font-bold lg:justify-start">
         <span className="lg:hidden">Pontos</span>
         {item.points}
         <Star className="size-4 fill-[#ffb900] text-[#ffb900]" />
       </p>
 
-      <p className="font-black text-[#101044]">
+      <p className="font-bold text-[#101044]">
         <span className="mr-2 lg:hidden">XP</span>
         {item.xp}
       </p>
@@ -519,7 +531,7 @@ function RankingRow({
       <div className="grid grid-cols-[44px_1fr] items-center gap-3">
         <span className="relative flex size-8 items-center justify-center">
           <Shield className="absolute size-9 fill-[#63bd47] text-[#4aa53c]" />
-          <span className="relative text-sm font-black text-white">
+          <span className="relative text-sm font-bold text-white">
             {item.level}
           </span>
         </span>
@@ -581,7 +593,7 @@ function PositionMedal({
 }) {
   if (position > 3) {
     return (
-      <span className="text-lg font-black text-[#7c35e8]">#{position}</span>
+      <span className="text-lg font-bold text-[#7c35e8]">#{position}</span>
     );
   }
 
@@ -594,7 +606,7 @@ function PositionMedal({
 
   return (
     <span
-      className={`relative flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${tone} font-black shadow-[0_8px_18px_rgba(0,0,0,0.16)] ${
+      className={`relative flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${tone} font-bold shadow-[0_8px_18px_rgba(0,0,0,0.16)] ${
         compact ? "size-9 text-base" : "absolute left-4 top-6 size-12 text-xl"
       }`}
     >
@@ -612,7 +624,7 @@ function Pill({
 }) {
   return (
     <span
-      className={`inline-flex min-h-8 items-center rounded-full px-4 text-sm font-black ${
+      className={`inline-flex min-h-8 items-center rounded-full px-4 text-sm font-bold ${
         tone === "xp"
           ? "bg-[#efe7ff] text-[#6d2ee8] ring-1 ring-[#d9c6ff]"
           : "bg-[#e9f8e3] text-[#2f8d2f] ring-1 ring-[#c7edbc]"

@@ -26,10 +26,12 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Button } from "@/components/buttons";
+import { Button, buttonVariants } from "@/components/buttons";
 import { Toast } from "@/components/feedback";
 import { Select } from "@/components/form/Select";
 import { Skeleton, TableSkeleton } from "@/components/loading";
+import { Modal } from "@/components/modal";
+import { useMinimumVisibleLoading } from "@/hooks/useMinimumVisibleLoading";
 import { getApiErrorMessage } from "@/services/api/errors/getApiErrorMessage";
 import { gamificationApi } from "@/services/api/modules/gamification";
 import type {
@@ -45,7 +47,12 @@ import {
   resolveEquippedCharacterId,
   storeEquippedCharacterId,
 } from "@/utils/student/equippedCharacter";
-import { getAchievementImage, getAvatarImage } from "./studentVisualAssets";
+import { StudentProfileSkeleton } from "./StudentWorkspaceSkeletons";
+import {
+  getAchievementImage,
+  getAvatarEvolutionImage,
+  getAvatarImage,
+} from "./studentVisualAssets";
 
 type StudentProfileWorkspaceProps = {
   view?: StudentProfileView;
@@ -64,15 +71,15 @@ const viewContent: Record<
 > = {
   resumo: {
     title: "Meu perfil",
-    description: "Acompanhe seus dados de progresso e historico.",
+    description: "Acompanhe seus dados de progresso e histórico.",
   },
   missoes: {
-    title: "Missoes",
-    description: "Veja objetivos ativos e recompensas disponiveis.",
+    title: "Missões",
+    description: "Veja objetivos ativos e recompensas disponíveis.",
   },
   conquistas: {
     title: "Conquistas",
-    description: "Acompanhe marcos desbloqueados e proximos objetivos.",
+    description: "Acompanhe marcos desbloqueados e próximos objetivos.",
   },
   personagens: {
     title: "Personagens",
@@ -114,26 +121,32 @@ export function StudentProfileWorkspace({
   const perfilQuery = useQuery({
     queryKey: ["aluno", "perfil"],
     queryFn: gamificationApi.alunoPerfil,
+    enabled: view === "resumo" || view === "personagens" || view === "loja",
   });
   const respostasQuery = useQuery({
     queryKey: ["aluno", "respostas"],
     queryFn: gamificationApi.respostas,
+    enabled: view === "resumo",
   });
   const missoesQuery = useQuery({
     queryKey: ["aluno", "missoes"],
     queryFn: gamificationApi.missoes,
+    enabled: view === "missoes",
   });
   const conquistasQuery = useQuery({
     queryKey: ["aluno", "conquistas"],
     queryFn: gamificationApi.conquistas,
+    enabled: view === "conquistas",
   });
   const personagensQuery = useQuery({
     queryKey: ["aluno", "personagens"],
     queryFn: gamificationApi.personagens,
+    enabled: view === "resumo" || view === "personagens",
   });
   const lojaQuery = useQuery({
     queryKey: ["aluno", "loja"],
     queryFn: gamificationApi.loja,
+    enabled: view === "personagens" || view === "loja",
   });
 
   const comprarMutation = useMutation({
@@ -315,16 +328,32 @@ export function StudentProfileWorkspace({
   const equippedCharacter = personagens?.find(
     (personagem) => personagem.equipped,
   );
+  const isPerfilRequired =
+    view === "resumo" || view === "personagens" || view === "loja";
+  const initialQueriesPending =
+    (isPerfilRequired && perfilQuery.isPending) ||
+    (view === "resumo" &&
+      (respostasQuery.isPending || personagensQuery.isPending)) ||
+    (view === "missoes" && missoesQuery.isPending) ||
+    (view === "conquistas" && conquistasQuery.isPending) ||
+    (view === "personagens" &&
+      (personagensQuery.isPending || lojaQuery.isPending)) ||
+    (view === "loja" && lojaQuery.isPending);
+  const showInitialSkeleton = useMinimumVisibleLoading(initialQueriesPending);
+
+  if (showInitialSkeleton) {
+    return <StudentProfileSkeleton view={view} />;
+  }
 
   return (
     <div className="space-y-6">
       {view !== "loja" && view !== "personagens" && view !== "conquistas" && (
         <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-brand-primary">
+            <h1 className="text-4xl font-bold tracking-normal text-[#4b18dc]">
               {viewContent[view].title}
             </h1>
-            <p className="mt-1 text-base text-text-secondary">
+            <p className="mt-1 text-base font-medium text-[#4f4b80]">
               {viewContent[view].description}
             </p>
           </div>
@@ -376,7 +405,7 @@ export function StudentProfileWorkspace({
       {view === "missoes" && (
         <ProgressGrid
           isPending={missoesQuery.isPending}
-          emptyTitle="Nenhuma missao disponivel"
+          emptyTitle="Nenhuma missão disponível"
           items={missoesQuery.data ?? []}
           renderItem={(missao) => (
             <MissionCard key={missao.id} missao={missao} />
@@ -395,6 +424,7 @@ export function StudentProfileWorkspace({
         <CharacterInventory
           items={personagens ?? []}
           storeItems={lojaQuery.data ?? []}
+          points={perfilQuery.data?.points ?? 0}
           isPending={personagensQuery.isPending}
           isEquipping={equiparMutation.isPending}
           onEquip={(id) => equiparMutation.mutate(id)}
@@ -443,7 +473,7 @@ function ResumoTab({
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <MetricCard
           icon={Trophy}
-          label="Pontuacao"
+          label="Pontuação"
           isPending={isPerfilPending}
           value={totalPoints.toLocaleString("pt-BR")}
           detail={`${points.toLocaleString("pt-BR")} saldo`}
@@ -456,9 +486,9 @@ function ResumoTab({
         />
         <MetricCard
           icon={History}
-          label="Nivel e XP"
+          label="Nível e XP"
           isPending={isPerfilPending}
-          value={`Nivel ${level}`}
+          value={`Nível ${level}`}
           detail={`${xp.toLocaleString("pt-BR")} XP`}
         />
         <MetricCard
@@ -485,7 +515,7 @@ function ResumoTab({
                   {equippedCharacter.name}
                 </p>
                 <p className="text-sm text-text-secondary">
-                  Nivel {equippedCharacter.level}
+                  Nível {equippedCharacter.level}
                 </p>
               </div>
             </div>
@@ -501,7 +531,7 @@ function ResumoTab({
         <div className="flex items-center gap-3">
           <History aria-hidden="true" className="size-5 text-brand-primary" />
           <h2 className="text-lg font-bold text-text-primary">
-            Historico de respostas
+            Histórico de respostas
           </h2>
         </div>
 
@@ -527,7 +557,7 @@ function ResumoTab({
             <table className="w-full min-w-[760px] border-collapse text-left text-sm">
               <thead>
                 <tr className="border-slate-200 border-b text-xs font-bold uppercase tracking-wide text-text-secondary">
-                  <th className="px-3 py-3">Questao</th>
+                  <th className="px-3 py-3">Questão</th>
                   <th className="px-3 py-3">Resultado</th>
                   <th className="px-3 py-3">Pontos</th>
                   <th className="px-3 py-3">XP</th>
@@ -540,8 +570,8 @@ function ResumoTab({
                     key={resposta.id}
                     className="border-slate-100 border-b last:border-0 hover:bg-slate-50"
                   >
-                    <td className="px-3 py-3 font-semibold text-text-primary">
-                      {resposta.statement ?? `Questao #${resposta.questionId}`}
+                    <td className="px-3 py-3 font-bold text-text-primary">
+                      {resposta.statement ?? `Questão #${resposta.questionId}`}
                     </td>
                     <td className="px-3 py-3">
                       <span
@@ -576,11 +606,11 @@ function ResumoTab({
         ) : (
           respostasQuery.isSuccess && (
             <div className="mt-4 rounded-system border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
-              <p className="font-semibold text-text-primary">
+              <p className="font-bold text-text-primary">
                 Nenhuma resposta registrada
               </p>
               <p className="mt-1 text-sm text-text-secondary">
-                Depois que voce responder questoes, elas aparecem aqui.
+                Depois que você responder questões, elas aparecem aqui.
               </p>
             </div>
           )
@@ -615,7 +645,7 @@ function MetricCard({
         <p className="mt-4 text-3xl font-bold text-text-primary">
           {value}
           {detail && (
-            <span className="ml-2 text-base font-semibold text-text-secondary">
+            <span className="ml-2 text-base font-bold text-text-secondary">
               {detail}
             </span>
           )}
@@ -675,13 +705,13 @@ function AchievementsDashboard({
 
   return (
     <section className="space-y-6">
-      <div className="grid gap-5 xl:grid-cols-[1fr_2.05fr] xl:items-center">
+      <div className="grid gap-5 xl:grid-cols-[1fr_2.05fr] xl:items-start">
         <div>
-          <h1 className="text-5xl font-black tracking-normal text-[#4b18dc]">
+          <h1 className="text-4xl font-bold tracking-normal text-[#4b18dc]">
             Conquistas
           </h1>
-          <p className="mt-3 max-w-md text-lg font-medium leading-8 text-[#5d5a89]">
-            Acompanhe marcos desbloqueados e proximos objetivos.
+          <p className="mt-1 max-w-md text-base font-medium text-[#4f4b80]">
+            Acompanhe marcos desbloqueados e próximos objetivos.
           </p>
         </div>
 
@@ -732,7 +762,7 @@ function AchievementsDashboard({
             icon={CheckCircle2}
             onClick={() => setFilter("completed")}
           >
-            Concluidas
+            Concluídas
           </AchievementFilterButton>
           <AchievementFilterButton
             active={filter === "progress"}
@@ -771,7 +801,7 @@ function AchievementsDashboard({
           />
           <Button
             type="button"
-            aria-label="Visualizacao em grade"
+            aria-label="Visualização em grade"
             onClick={() => setLayout("grid")}
             className={`size-12 rounded-[12px] p-0 ${
               layout === "grid"
@@ -783,7 +813,7 @@ function AchievementsDashboard({
           </Button>
           <Button
             type="button"
-            aria-label="Visualizacao em lista"
+            aria-label="Visualização em lista"
             onClick={() => setLayout("list")}
             className={`size-12 rounded-[12px] p-0 ${
               layout === "list"
@@ -798,13 +828,13 @@ function AchievementsDashboard({
 
       {items.length === 0 ? (
         <section className="rounded-[18px] border border-dashed border-[#d9cdf8] bg-white p-8 text-center shadow-[0_18px_50px_rgba(72,35,137,0.08)]">
-          <p className="font-black text-[#101044]">
-            Nenhuma conquista disponivel
+          <p className="font-bold text-[#101044]">
+            Nenhuma conquista disponível
           </p>
         </section>
       ) : visibleItems.length === 0 ? (
         <section className="rounded-[18px] border border-dashed border-[#d9cdf8] bg-white p-8 text-center shadow-[0_18px_50px_rgba(72,35,137,0.08)]">
-          <p className="font-black text-[#101044]">
+          <p className="font-bold text-[#101044]">
             Nenhuma conquista neste filtro
           </p>
         </section>
@@ -860,8 +890,8 @@ function AchievementMetricCard({
           <Icon aria-hidden="true" className="size-8" />
         </span>
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-[#5d5a89]">{label}</p>
-          <p className={`text-2xl font-black ${toneClasses.value}`}>{value}</p>
+          <p className="text-sm font-bold text-[#5d5a89]">{label}</p>
+          <p className={`text-2xl font-bold ${toneClasses.value}`}>{value}</p>
           <p className="text-sm font-medium text-[#5d5a89]">{detail}</p>
         </div>
       </div>
@@ -892,11 +922,8 @@ function AchievementFilterButton({
     <Button
       type="button"
       onClick={onClick}
-      className={`min-h-11 rounded-full border px-5 text-sm font-black ${
-        active
-          ? "border-transparent bg-gradient-to-r from-[#6d2ee8] to-[#8a3df2] text-white shadow-[0_12px_24px_rgba(109,46,232,0.22)]"
-          : "border-[#d8c9fb] bg-white text-[#6d2ee8] hover:bg-[#f6f0ff]"
-      }`}
+      variant={active ? "primary" : "secondary"}
+      className="rounded-full"
     >
       <Icon aria-hidden="true" className="size-4" />
       {children}
@@ -935,10 +962,10 @@ function AchievementTemplateCard({
       <div className="min-w-0">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <p className="text-xs font-black uppercase tracking-wide text-[#7c35e8]">
+            <p className="text-xs font-bold uppercase tracking-wide text-[#7c35e8]">
               {formatAchievementType(conquista.type)}
             </p>
-            <h2 className="mt-1 text-xl font-black text-[#101044] sm:truncate sm:text-2xl">
+            <h2 className="mt-1 text-xl font-bold text-[#101044] sm:truncate sm:text-2xl">
               {conquista.name}
             </h2>
             <p className="mt-1 line-clamp-2 text-base font-medium text-[#5d5a89]">
@@ -955,7 +982,7 @@ function AchievementTemplateCard({
               style={{ width: `${percent}%` }}
             />
           </div>
-          <span className="text-sm font-black text-[#4f4b80]">
+          <span className="text-sm font-bold text-[#4f4b80]">
             {conquista.current}/{conquista.goal}
           </span>
         </div>
@@ -973,7 +1000,7 @@ function AchievementStatusPill({
 }) {
   if (status === "completed") {
     return (
-      <span className="inline-flex min-h-9 shrink-0 items-center gap-2 rounded-full bg-[#e6f8dc] px-4 text-sm font-black text-[#27851f]">
+      <span className="inline-flex min-h-9 shrink-0 items-center gap-2 rounded-full bg-[#e6f8dc] px-4 text-sm font-bold text-[#27851f]">
         <CheckCircle2 aria-hidden="true" className="size-4" />
         Concluida
       </span>
@@ -982,7 +1009,7 @@ function AchievementStatusPill({
 
   if (status === "progress") {
     return (
-      <span className="inline-flex min-h-9 shrink-0 items-center gap-2 rounded-full bg-[#fff0de] px-4 text-sm font-black text-[#e96d00]">
+      <span className="inline-flex min-h-9 shrink-0 items-center gap-2 rounded-full bg-[#fff0de] px-4 text-sm font-bold text-[#e96d00]">
         <Clock aria-hidden="true" className="size-4" />
         Em progresso
       </span>
@@ -990,7 +1017,7 @@ function AchievementStatusPill({
   }
 
   return (
-    <span className="inline-flex min-h-9 shrink-0 items-center gap-2 rounded-full bg-[#eef0f4] px-4 text-sm font-black text-[#667085]">
+    <span className="inline-flex min-h-9 shrink-0 items-center gap-2 rounded-full bg-[#eef0f4] px-4 text-sm font-bold text-[#667085]">
       <Lock aria-hidden="true" className="size-4" />
       Bloqueada
     </span>
@@ -1072,7 +1099,7 @@ function ProgressGrid<T>({
     return (
       <section className="rounded-system border border-dashed border-slate-300 bg-white p-8 text-center">
         <Trophy className="mx-auto mb-3 size-10 text-brand-primary" />
-        <p className="font-semibold text-text-primary">{emptyTitle}</p>
+        <p className="font-bold text-text-primary">{emptyTitle}</p>
       </section>
     );
   }
@@ -1150,7 +1177,7 @@ function ProgressLine({
 }) {
   return (
     <div className="mt-5">
-      <div className="flex justify-between text-sm font-semibold text-text-secondary">
+      <div className="flex justify-between text-sm font-bold text-text-secondary">
         <span>Progresso</span>
         <span>
           {current}/{goal}
@@ -1184,14 +1211,18 @@ function CharacterInventory({
   isPending,
   items,
   onEquip,
+  points,
   storeItems,
 }: {
   isEquipping: boolean;
   isPending: boolean;
   items: AlunoPersonagem[];
   onEquip: (id: number) => void;
+  points: number;
   storeItems: PersonagemLoja[];
 }) {
+  const [isEvolutionModalOpen, setIsEvolutionModalOpen] = useState(false);
+
   if (isPending) {
     return (
       <div className="space-y-6">
@@ -1209,7 +1240,7 @@ function CharacterInventory({
     return (
       <section className="space-y-6">
         <div>
-          <h1 className="text-4xl font-black tracking-normal text-[#4b18dc]">
+          <h1 className="text-4xl font-bold tracking-normal text-[#4b18dc]">
             Personagens
           </h1>
           <p className="mt-1 text-base font-medium text-[#4f4b80]">
@@ -1218,12 +1249,15 @@ function CharacterInventory({
         </div>
         <div className="rounded-[18px] border border-dashed border-[#d9cdf8] bg-white p-8 text-center shadow-[0_18px_50px_rgba(72,35,137,0.08)]">
           <PackageCheck className="mx-auto mb-3 size-10 text-[#6d2ee8]" />
-          <p className="font-black text-[#101044]">
-            Voce ainda nao possui personagens
+          <p className="font-bold text-[#101044]">
+            Você ainda não possui personagens
           </p>
           <Link
             href="/estudantes/loja"
-            className="mt-4 inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] bg-[#6d2ee8] px-5 font-black text-white transition hover:bg-[#5f22d7]"
+            className={buttonVariants({
+              className: "mt-4",
+              variant: "primary",
+            })}
           >
             <ShoppingBag aria-hidden="true" className="size-5" />
             Ver loja de personagens
@@ -1242,11 +1276,15 @@ function CharacterInventory({
         !items.some((item) => item.personagemId === personagem.id),
     );
   const totalCharacters = items.length + lockedCharacters.length;
+  const firstPaidCharacter = storeItems
+    .filter((personagem) => !personagem.owned && personagem.price > 0)
+    .sort((a, b) => a.price - b.price)[0];
+  const firstUnlockPrice = firstPaidCharacter?.price ?? 100;
 
   return (
-    <section className="space-y-7">
+    <section className="space-y-6">
       <div>
-        <h1 className="text-4xl font-black tracking-normal text-[#4b18dc]">
+        <h1 className="text-4xl font-bold tracking-normal text-[#4b18dc]">
           Personagens
         </h1>
         <p className="mt-1 text-base font-medium text-[#4f4b80]">
@@ -1256,7 +1294,18 @@ function CharacterInventory({
 
       <div className="grid gap-5 xl:grid-cols-[1.35fr_1fr_1fr]">
         <EquippedCharacterPanel personagem={equippedCharacter} />
-        <CharacterEvolutionPanel personagem={equippedCharacter} />
+        {isNonLevelingCharacter(equippedCharacter) ? (
+          <CharacterUnlockGoalPanel
+            characterName={firstPaidCharacter?.name}
+            points={points}
+            target={firstUnlockPrice}
+          />
+        ) : (
+          <CharacterEvolutionPanel
+            personagem={equippedCharacter}
+            onOpenDetails={() => setIsEvolutionModalOpen(true)}
+          />
+        )}
         <CharacterCollectionPanel
           equippedId={equippedCharacter.personagemId}
           items={items}
@@ -1269,7 +1318,7 @@ function CharacterInventory({
         <div>
           <div className="flex items-center gap-3">
             <ShoppingBag aria-hidden="true" className="size-7 text-[#6d2ee8]" />
-            <h2 className="text-lg font-black text-[#101044]">Sua colecao</h2>
+            <h2 className="text-lg font-bold text-[#101044]">Sua coleção</h2>
           </div>
           <p className="mt-1 text-sm font-medium text-[#4f4b80]">
             Conheca todos os seus companheiros e descubra novos aliados.
@@ -1278,7 +1327,7 @@ function CharacterInventory({
 
         <Link
           href="/estudantes/loja"
-          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[12px] bg-white px-5 font-black text-[#6d2ee8] shadow-[0_12px_35px_rgba(72,35,137,0.1)] transition hover:bg-[#f6f0ff]"
+          className={buttonVariants({ variant: "primary" })}
         >
           <ShoppingBag aria-hidden="true" className="size-5" />
           Ver loja de personagens
@@ -1290,19 +1339,33 @@ function CharacterInventory({
           <InventoryCharacterCard
             key={personagem.personagemId}
             personagem={personagem}
+            description={
+              storeItems.find((item) => item.id === personagem.personagemId)
+                ?.description
+            }
             isEquipping={isEquipping}
             onEquip={onEquip}
           />
         ))}
       </div>
 
-      <div className="mx-auto flex max-w-[780px] items-center gap-3 rounded-[12px] bg-white px-5 py-3 text-sm font-semibold text-[#5e18e6] shadow-[0_12px_35px_rgba(72,35,137,0.1)]">
+      <div className="mx-auto flex max-w-[780px] items-center gap-3 rounded-[12px] bg-white px-5 py-3 text-sm font-bold text-[#5e18e6] shadow-[0_12px_35px_rgba(72,35,137,0.1)]">
         <Info aria-hidden="true" className="size-5 shrink-0 fill-[#6d2ee8]" />
         <span>
-          Dica: Responda questoes todos os dias para ganhar pontos de
+          Dica: Responda questões todos os dias para ganhar pontos de
           experiencia e evoluir seus personagens!
         </span>
       </div>
+
+      <CharacterEvolutionModal
+        description={
+          storeItems.find((item) => item.id === equippedCharacter.personagemId)
+            ?.description
+        }
+        isOpen={isEvolutionModalOpen}
+        onClose={() => setIsEvolutionModalOpen(false)}
+        personagem={equippedCharacter}
+      />
     </section>
   );
 }
@@ -1314,10 +1377,11 @@ function EquippedCharacterPanel({
 }) {
   const tier = formatTier(personagem.tier);
   const tierTone = getTierTone(tier);
+  const progress = getCharacterProgressState(personagem);
 
   return (
     <article className="overflow-hidden rounded-[18px] border border-[#e3d9f8] bg-white shadow-[0_18px_50px_rgba(72,35,137,0.08)]">
-      <div className="bg-gradient-to-r from-[#6d2ee8] to-[#8a3df2] px-5 py-4 font-semibold text-white">
+      <div className="bg-gradient-to-r from-[#6d2ee8] to-[#8a3df2] px-5 py-4 font-bold text-white">
         Personagem equipado
       </div>
       <div className="grid gap-4 p-6 sm:grid-cols-[44%_1fr] sm:items-center">
@@ -1332,44 +1396,39 @@ function EquippedCharacterPanel({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span
-              className={`rounded-full px-3 py-1 text-xs font-black uppercase ${tierTone.badge}`}
+              className={`rounded-full px-3 py-1 text-xs font-bold uppercase ${tierTone.badge}`}
             >
               {tier}
             </span>
-            <span className="inline-flex min-h-10 items-center gap-2 rounded-[10px] bg-[#f0e7ff] px-4 text-sm font-black text-[#6d2ee8]">
+            <span className="inline-flex min-h-10 items-center gap-2 rounded-[10px] bg-[#f0e7ff] px-4 text-sm font-bold text-[#6d2ee8]">
               <CheckCircle2 aria-hidden="true" className="size-5" />
               Equipado
             </span>
           </div>
-          <h2 className="mt-4 text-3xl font-black text-[#101044]">
+          <h2 className="mt-4 text-3xl font-bold text-[#101044]">
             {personagem.name}
           </h2>
-          <p className="mt-5 text-lg font-black text-[#4f4b80]">
-            Nivel {personagem.level}/{personagem.maxLevel}
-          </p>
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-lg font-bold text-[#4f4b80]">
+              Nível {progress.level}
+            </p>
+            {progress.isMaxed && (
+              <span
+                className={`rounded-full px-2.5 py-1 text-xs font-bold uppercase ${tierTone.badge}`}
+              >
+                MÁX
+              </span>
+            )}
+          </div>
           <div className="mt-3 h-3 overflow-hidden rounded-full bg-[#eee8fb]">
             <div
               className="h-full rounded-full bg-gradient-to-r from-[#6d2ee8] to-[#8a3df2]"
-              style={{
-                width: `${getProgressPercent(
-                  personagem.level,
-                  personagem.maxLevel,
-                )}%`,
-              }}
+              style={{ width: `${progress.percent}%` }}
             />
           </div>
           <p className="mt-3 text-sm font-medium text-[#4f4b80]">
-            {personagem.nextLevelIn
-              ? `${personagem.nextLevelIn} questoes para evoluir`
-              : "Nivel maximo"}
+            {progress.description}
           </p>
-          <Button
-            type="button"
-            className="mt-6 min-h-12 w-full rounded-[10px] bg-gradient-to-r from-[#6d2ee8] to-[#8a3df2] px-5 text-white hover:from-[#5f22d7] hover:to-[#7a30e6]"
-          >
-            Ver detalhes do personagem
-            <ArrowRight aria-hidden="true" className="size-5" />
-          </Button>
         </div>
       </div>
     </article>
@@ -1377,8 +1436,10 @@ function EquippedCharacterPanel({
 }
 
 function CharacterEvolutionPanel({
+  onOpenDetails,
   personagem,
 }: {
+  onOpenDetails: () => void;
   personagem: AlunoPersonagem;
 }) {
   const progressGoal = personagem.nextLevelIn
@@ -1390,24 +1451,24 @@ function CharacterEvolutionPanel({
   );
 
   return (
-    <article className="rounded-[18px] border border-[#e3d9f8] bg-white p-6 shadow-[0_18px_50px_rgba(72,35,137,0.08)]">
+    <article className="flex flex-col rounded-[18px] border border-[#e3d9f8] bg-white p-6 shadow-[0_18px_50px_rgba(72,35,137,0.08)]">
       <div className="flex items-center gap-4">
         <span className="flex size-12 items-center justify-center rounded-[10px] bg-[#f0e7ff] text-[#6d2ee8]">
           <TrendingUp aria-hidden="true" className="size-7" />
         </span>
-        <h2 className="text-xl font-black text-[#101044]">
-          Evolucao do personagem
+        <h2 className="text-xl font-bold text-[#101044]">
+          Evolução do personagem
         </h2>
       </div>
       <p className="mt-5 text-sm font-medium leading-6 text-[#4f4b80]">
-        Ajude o {personagem.name} a evoluir respondendo questoes corretamente.
+        Ajude o {personagem.name} a evoluir respondendo questões corretamente.
       </p>
       <div className="mt-10 flex items-center gap-4">
         <span className="flex size-10 items-center justify-center rounded-[10px] bg-[#fff3c4] text-[#ffb900] ring-1 ring-[#ffd56d]">
           <Star aria-hidden="true" className="size-6 fill-[#ffb900]" />
         </span>
-        <span className="font-black text-[#4f4b80]">
-          {personagem.answeredQuestions}/{progressGoal || 1} questoes concluidas
+        <span className="font-bold text-[#4f4b80]">
+          {personagem.answeredQuestions}/{progressGoal || 1} questões concluídas
         </span>
       </div>
       <div className="mt-5 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-5">
@@ -1417,14 +1478,233 @@ function CharacterEvolutionPanel({
             style={{ width: `${progressPercent}%` }}
           />
         </div>
-        <span className="font-black text-[#4f4b80]">{progressPercent}%</span>
+        <span className="font-bold text-[#4f4b80]">{progressPercent}%</span>
       </div>
       <Button
         type="button"
-        className="mt-10 min-h-12 w-full rounded-[10px] border border-[#6d2ee8] bg-white px-5 font-black text-[#5e18e6] hover:bg-[#f6f0ff]"
+        variant="primary"
+        className="mt-auto w-full"
+        onClick={onOpenDetails}
       >
-        Ver evolucao completa
+        Ver evolução completa
       </Button>
+    </article>
+  );
+}
+
+function CharacterEvolutionModal({
+  description,
+  isOpen,
+  onClose,
+  personagem,
+}: {
+  description?: string;
+  isOpen: boolean;
+  onClose: () => void;
+  personagem: AlunoPersonagem;
+}) {
+  const progress = getCharacterProgressState(personagem);
+  const progressGoal = personagem.nextLevelIn
+    ? personagem.answeredQuestions + personagem.nextLevelIn
+    : personagem.answeredQuestions;
+  const answeredPercent = progress.isMaxed
+    ? 100
+    : getProgressPercent(
+        personagem.answeredQuestions,
+        Math.max(progressGoal, 1),
+      );
+  const levels = Array.from(
+    { length: progress.maxLevel },
+    (_, index) => index + 1,
+  );
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Evolução do personagem"
+      description={`${personagem.name} • Nível ${progress.level} de ${progress.maxLevel}`}
+      className="max-w-4xl"
+      contentClassName="max-h-none overflow-visible"
+      footer={
+        <Button type="button" variant="primary" onClick={onClose}>
+          Fechar
+        </Button>
+      }
+    >
+      <div className="grid gap-6 md:grid-cols-[240px_minmax(0,1fr)] md:items-center">
+        <div className="flex min-h-[240px] items-center justify-center rounded-[14px] bg-[#fcfaff]">
+          <Image
+            src={getAvatarEvolutionImage(
+              personagem.key,
+              personagem.image,
+              progress.level,
+            )}
+            alt={`${personagem.name} no nível ${progress.level}`}
+            className="max-h-[230px] w-auto object-contain"
+          />
+        </div>
+        <div>
+          <div className="flex flex-wrap items-center gap-3">
+            <h3 className="text-3xl font-bold text-[#101044]">
+              {personagem.name}
+            </h3>
+            <span className="rounded-full bg-[#f1e8ff] px-3 py-1 text-sm font-bold text-[#7c35e8]">
+              Nível {progress.level}
+            </span>
+          </div>
+          <div className="mt-6 flex items-center justify-between gap-4">
+            <span className="inline-flex items-center gap-2 font-bold text-[#4f4b80]">
+              <Star
+                aria-hidden="true"
+                className="size-5 fill-[#ffb900] text-[#ffb900]"
+              />
+              {personagem.answeredQuestions}/{Math.max(progressGoal, 1)}{" "}
+              questões
+            </span>
+            <span className="font-bold text-[#4f4b80]">{answeredPercent}%</span>
+          </div>
+          <div className="mt-3 h-3 overflow-hidden rounded-full bg-[#eee8fb]">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-[#7c35e8] to-[#833af0]"
+              style={{ width: `${answeredPercent}%` }}
+            />
+          </div>
+          <p className="mt-5 text-sm leading-6 text-[#4f4b80]">
+            {description ??
+              `${personagem.name} acompanha você em sua jornada de aprendizado.`}
+          </p>
+        </div>
+      </div>
+
+      {progress.maxLevel > 1 && (
+        <section className="mt-7 border-[#e3d9f8] border-t pt-6">
+          <div className="flex items-center gap-3">
+            <TrendingUp aria-hidden="true" className="size-6 text-[#7c35e8]" />
+            <h3 className="text-xl font-bold text-[#101044]">Evoluções</h3>
+          </div>
+          <div className="mt-5 grid gap-4 sm:grid-cols-3">
+            {levels.map((level) => {
+              const isUnlocked = level <= progress.level;
+              const isCurrent = level === progress.level;
+
+              return (
+                <article
+                  key={level}
+                  className={`relative flex min-h-[250px] flex-col items-center justify-between rounded-[14px] border p-4 text-center ${
+                    isCurrent
+                      ? "border-[#7c35e8] bg-[#fcfaff]"
+                      : "border-[#e3d9f8] bg-white"
+                  }`}
+                >
+                  <span className="absolute top-3 left-3 rounded-full bg-[#f1e8ff] px-3 py-1 text-xs font-bold text-[#7c35e8]">
+                    Nível {level}
+                  </span>
+                  {!isUnlocked && (
+                    <span className="absolute top-3 right-3 flex size-8 items-center justify-center rounded-full bg-[#f1e8ff] text-[#7c35e8]">
+                      <Lock aria-hidden="true" className="size-4" />
+                    </span>
+                  )}
+                  <div className="relative mt-7 flex h-[150px] items-center justify-center">
+                    <Image
+                      src={getAvatarEvolutionImage(
+                        personagem.key,
+                        personagem.image,
+                        level,
+                      )}
+                      alt={
+                        isUnlocked
+                          ? `${personagem.name} no nível ${level}`
+                          : `Silhueta da evolução de nível ${level}`
+                      }
+                      className={`max-h-[145px] w-auto object-contain ${
+                        isUnlocked ? "" : "brightness-0"
+                      }`}
+                    />
+                    {!isUnlocked && (
+                      <span className="absolute text-4xl font-bold text-white drop-shadow-[0_2px_3px_rgba(0,0,0,0.45)]">
+                        ?
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-bold text-[#101044]">
+                      {isCurrent
+                        ? "Forma atual"
+                        : isUnlocked
+                          ? "Desbloqueado"
+                          : "Desconhecido"}
+                    </p>
+                    <p className="mt-1 text-xs text-[#5d5a89]">
+                      {isUnlocked
+                        ? personagem.name
+                        : `Desbloqueia no nível ${level}`}
+                    </p>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      )}
+    </Modal>
+  );
+}
+
+function CharacterUnlockGoalPanel({
+  characterName,
+  points,
+  target,
+}: {
+  characterName?: string;
+  points: number;
+  target: number;
+}) {
+  const progressPercent = getProgressPercent(points, target);
+  const missingPoints = Math.max(0, target - points);
+
+  return (
+    <article className="rounded-[18px] border border-[#e3d9f8] bg-white p-6 shadow-[0_18px_50px_rgba(72,35,137,0.08)]">
+      <div className="flex items-center gap-4">
+        <span className="flex size-12 items-center justify-center rounded-[10px] bg-[#f0e7ff] text-[#6d2ee8]">
+          <ShoppingBag aria-hidden="true" className="size-7" />
+        </span>
+        <h2 className="text-xl font-bold text-[#101044]">Próxima conquista</h2>
+      </div>
+      <p className="mt-5 text-sm font-medium leading-6 text-[#4f4b80]">
+        Junte pontos consumíveis para desbloquear seu primeiro personagem
+        {characterName ? `: ${characterName}.` : "."}
+      </p>
+      <div className="mt-10 flex items-center gap-4">
+        <span className="flex size-10 items-center justify-center rounded-[10px] bg-[#fff3c4] text-[#ffb900] ring-1 ring-[#ffd56d]">
+          <Star aria-hidden="true" className="size-6 fill-[#ffb900]" />
+        </span>
+        <span className="font-bold text-[#4f4b80]">
+          {points.toLocaleString("pt-BR")}/{target.toLocaleString("pt-BR")}{" "}
+          pontos
+        </span>
+      </div>
+      <div className="mt-5 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-5">
+        <div className="h-3 overflow-hidden rounded-full bg-[#eee8fb]">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-[#6d2ee8] to-[#8a3df2]"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+        <span className="font-bold text-[#4f4b80]">{progressPercent}%</span>
+      </div>
+      <Link
+        href="/estudantes/loja"
+        className={buttonVariants({
+          className: "mt-10 w-full",
+          variant: "primary",
+        })}
+      >
+        {missingPoints > 0
+          ? `Faltam ${missingPoints.toLocaleString("pt-BR")} pontos`
+          : "Comprar personagem"}
+        <ArrowRight aria-hidden="true" className="size-5" />
+      </Link>
     </article>
   );
 }
@@ -1447,8 +1727,8 @@ function CharacterCollectionPanel({
           <UserRound aria-hidden="true" className="size-7" />
         </span>
         <div>
-          <h2 className="text-xl font-black text-[#101044]">
-            Colecao desbloqueada
+          <h2 className="text-xl font-bold text-[#101044]">
+            Coleção desbloqueada
           </h2>
           <p className="text-sm font-medium text-[#4f4b80]">
             {items.length}/{totalCharacters || items.length} personagens
@@ -1464,7 +1744,7 @@ function CharacterCollectionPanel({
             image={personagem.image}
             isEquipped={personagem.personagemId === equippedId}
             isLocked={false}
-            level={`Lv ${personagem.level}/${personagem.maxLevel}`}
+            level={`Nível ${getCharacterProgressState(personagem).level}`}
             name={personagem.name}
           />
         ))}
@@ -1474,7 +1754,7 @@ function CharacterCollectionPanel({
             image={personagem.image}
             isEquipped={false}
             isLocked
-            level="Lv 0"
+            level="Bloqueado"
             name={personagem.name}
           />
         ))}
@@ -1493,7 +1773,7 @@ function CollectionRow({
   image: string;
   isEquipped: boolean;
   isLocked: boolean;
-  level: string;
+  level?: string;
   name: string;
 }) {
   return (
@@ -1509,15 +1789,15 @@ function CollectionRow({
         alt={name}
         className={`size-10 rounded-[8px] object-contain ${isLocked ? "grayscale" : ""}`}
       />
-      <p className="min-w-0 truncate font-black text-[#4f4b80]">{name}</p>
-      <div className="flex items-center gap-3 text-sm font-semibold text-[#4f4b80]">
+      <p className="min-w-0 truncate font-bold text-[#4f4b80]">{name}</p>
+      <div className="flex items-center gap-3 text-sm font-bold text-[#4f4b80]">
         {isEquipped && (
-          <span className="hidden items-center gap-2 rounded-[8px] bg-[#f0e7ff] px-3 py-1 text-xs font-black text-[#6d2ee8] sm:inline-flex">
+          <span className="hidden items-center gap-2 rounded-[8px] bg-[#f0e7ff] px-3 py-1 text-xs font-bold text-[#6d2ee8] sm:inline-flex">
             <CheckCircle2 aria-hidden="true" className="size-4" />
             Equipado
           </span>
         )}
-        <span>{level}</span>
+        {level && <span>{level}</span>}
         {isLocked && <Lock aria-hidden="true" className="size-4" />}
       </div>
     </div>
@@ -1525,16 +1805,19 @@ function CollectionRow({
 }
 
 function InventoryCharacterCard({
+  description,
   isEquipping,
   onEquip,
   personagem,
 }: {
+  description?: string;
   isEquipping: boolean;
   onEquip: (id: number) => void;
   personagem: AlunoPersonagem;
 }) {
   const tier = formatTier(personagem.tier);
   const tierTone = getTierTone(tier);
+  const progress = getCharacterProgressState(personagem);
 
   return (
     <article
@@ -1548,28 +1831,39 @@ function InventoryCharacterCard({
         </span>
       )}
       <span
-        className={`w-fit rounded-full px-3 py-1 text-xs font-black uppercase ${tierTone.badge}`}
+        className={`w-fit rounded-full px-3 py-1 text-xs font-bold uppercase ${tierTone.badge}`}
       >
         {tier}
       </span>
-      <div className="mt-2 flex flex-1 justify-center">
+      <div className="mt-2 flex min-h-[150px] flex-1 items-center justify-center">
         <Image
           src={getAvatarImage(personagem.image)}
           alt={personagem.name}
-          className="max-h-[120px] w-auto object-contain"
+          className="max-h-[150px] w-auto object-contain"
         />
       </div>
-      <h3 className="mt-2 text-lg font-black text-[#101044]">
+      <h3 className="mt-2 text-lg font-bold text-[#101044]">
         {personagem.name}
       </h3>
-      <p className="mt-1 min-h-10 text-sm font-medium text-[#4f4b80]">
-        Nivel {personagem.level}/{personagem.maxLevel}
+      <div className="mt-1 flex items-center justify-between gap-2 text-sm font-bold text-[#4f4b80]">
+        <span>Nível {progress.level}</span>
+        {progress.isMaxed && (
+          <span
+            className={`rounded-full px-2.5 py-1 text-[11px] font-bold uppercase ${tierTone.badge}`}
+          >
+            MÁX
+          </span>
+        )}
+      </div>
+      <p className="mt-1 min-h-10 text-sm font-medium leading-5 text-[#4f4b80]">
+        {description ?? "Seu companheiro inicial na jornada."}
       </p>
       <Button
         type="button"
         disabled={personagem.equipped || isEquipping}
         onClick={() => onEquip(personagem.personagemId)}
-        className="mt-3 min-h-10 w-full rounded-[8px] bg-gradient-to-r from-[#6d2ee8] to-[#8a3df2] px-4 text-white hover:from-[#5f22d7] hover:to-[#7a30e6]"
+        variant="primary"
+        className="mt-3 w-full"
       >
         <CheckCircle2 aria-hidden="true" className="size-5" />
         {personagem.equipped ? "Equipado" : "Equipar"}
@@ -1607,7 +1901,7 @@ function CharacterStore({
 
   if (isPending) {
     return (
-      <div className="space-y-7">
+      <div className="space-y-6">
         <StoreHeader
           tiers={["Todos", "Comum", "Raro", "Epico"]}
           selectedTier="Todos"
@@ -1626,7 +1920,7 @@ function CharacterStore({
   }
 
   return (
-    <section className="space-y-7">
+    <section className="space-y-6">
       <StoreHeader
         tiers={tiers}
         selectedTier={selectedTier}
@@ -1638,11 +1932,11 @@ function CharacterStore({
       {items.length === 0 ? (
         <div className="rounded-[18px] border border-dashed border-[#d9cdf8] bg-white p-8 text-center shadow-[0_18px_50px_rgba(72,35,137,0.08)]">
           <ShoppingBag className="mx-auto mb-3 size-10 text-[#7c35e8]" />
-          <p className="font-black text-[#101044]">
-            Nenhum item disponivel na loja
+          <p className="font-bold text-[#101044]">
+            Nenhum item disponível na loja
           </p>
           <p className="mt-1 text-sm font-medium text-[#5d5a89]">
-            Novos personagens aparecerao aqui quando forem liberados.
+            Novos personagens aparecerão aqui quando forem liberados.
           </p>
         </div>
       ) : (
@@ -1665,17 +1959,17 @@ function CharacterStore({
           <Gift aria-hidden="true" className="size-7" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="font-black text-[#101044]">
+          <p className="font-bold text-[#101044]">
             Novos personagens em breve!
           </p>
           <p className="text-sm font-medium text-[#5d5a89]">
             Continue cumprindo desafios e acumulando pontos para descobrir
-            novidades incriveis na loja.
+            novidades incríveis na loja.
           </p>
         </div>
         <Link
           href="/estudantes/desafios"
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[12px] border border-[#e3d9f8] bg-white px-5 font-semibold text-[#6d2ee8] transition hover:bg-[#f6f0ff]"
+          className={buttonVariants({ variant: "primary" })}
         >
           Ver desafios
           <ArrowRight aria-hidden="true" className="size-5" />
@@ -1699,19 +1993,14 @@ function StoreHeader({
   tiers: string[];
 }) {
   return (
-    <div className="grid gap-5 xl:grid-cols-[minmax(260px,1fr)_minmax(520px,0.95fr)] xl:items-center">
-      <div className="flex items-center gap-5">
-        <span className="flex size-20 shrink-0 items-center justify-center rounded-[22px] bg-[#f0e7ff] text-[#6d2ee8] ring-1 ring-[#dfd2fb]">
-          <ShoppingBag aria-hidden="true" className="size-10" />
-        </span>
-        <div className="min-w-0">
-          <h1 className="text-4xl font-black tracking-normal text-[#101044]">
-            Loja
-          </h1>
-          <p className="mt-1 text-base font-medium text-[#5d5a89]">
-            Troque seus pontos por personagens e itens especiais.
-          </p>
-        </div>
+    <div className="grid gap-5 xl:grid-cols-[minmax(260px,1fr)_minmax(520px,0.95fr)] xl:items-start">
+      <div>
+        <h1 className="text-4xl font-bold tracking-normal text-[#4b18dc]">
+          Loja
+        </h1>
+        <p className="mt-1 text-base font-medium text-[#4f4b80]">
+          Troque seus pontos por personagens e itens especiais.
+        </p>
       </div>
 
       <div className="flex flex-col gap-4 rounded-[18px] border border-[#e3d9f8] bg-white p-4 shadow-[0_18px_50px_rgba(72,35,137,0.08)] lg:flex-row lg:items-center lg:justify-between">
@@ -1726,13 +2015,11 @@ function StoreHeader({
             {isPointsPending ? (
               <Skeleton className="h-8 w-32" />
             ) : (
-              <p className="text-2xl font-black text-[#5e18e6]">
+              <p className="text-2xl font-bold text-[#5e18e6]">
                 {points.toLocaleString("pt-BR")} pontos
               </p>
             )}
-            <p className="text-sm font-semibold text-[#5d5a89]">
-              Seu saldo atual
-            </p>
+            <p className="text-sm font-bold text-[#5d5a89]">Seu saldo atual</p>
           </div>
         </div>
 
@@ -1745,11 +2032,8 @@ function StoreHeader({
                 key={tier}
                 type="button"
                 onClick={() => onSelectTier(tier)}
-                className={`min-h-11 rounded-[14px] border px-5 text-sm ${
-                  isSelected
-                    ? "border-transparent bg-gradient-to-r from-[#6d2ee8] to-[#8a3df2] text-white shadow-[0_12px_24px_rgba(109,46,232,0.22)]"
-                    : "border-[#e3d9f8] bg-white text-[#4f4b80] hover:bg-[#f6f0ff]"
-                }`}
+                variant={isSelected ? "primary" : "secondary"}
+                className="rounded-[14px]"
               >
                 {tier}
               </Button>
@@ -1780,7 +2064,7 @@ function StoreCharacterCard({
   return (
     <article className="flex min-h-[288px] flex-col rounded-[18px] border border-[#e3d9f8] bg-white p-4 shadow-[0_18px_50px_rgba(72,35,137,0.08)] transition hover:-translate-y-0.5 hover:shadow-[0_22px_58px_rgba(72,35,137,0.13)]">
       <span
-        className={`mb-2 w-fit rounded-full px-3 py-1 text-xs font-black uppercase ${tierTone.badge}`}
+        className={`mb-2 w-fit rounded-full px-3 py-1 text-xs font-bold uppercase ${tierTone.badge}`}
       >
         {tier}
       </span>
@@ -1794,14 +2078,14 @@ function StoreCharacterCard({
           />
         </div>
         <div className="min-w-0">
-          <h2 className="text-xl font-black text-[#101044]">
+          <h2 className="text-xl font-bold text-[#101044]">
             {personagem.name}
           </h2>
           <p className="mt-2 text-sm font-medium leading-6 text-[#5d5a89]">
             {personagem.description}
           </p>
           <p className="mt-2 text-xs font-bold text-[#7c35e8]">
-            Ate nivel {personagem.maxLevel}
+            Até nível {personagem.maxLevel}
           </p>
         </div>
       </div>
@@ -1810,7 +2094,8 @@ function StoreCharacterCard({
         type="button"
         disabled={!canBuy || isBuyingDisabled}
         onClick={() => onBuy(personagem.id)}
-        className={`mt-4 min-h-12 w-full rounded-[10px] px-4 text-base font-black ${tierTone.price}`}
+        variant="primary"
+        className="mt-4 w-full"
       >
         {isBuying ? (
           <LoaderCircle aria-hidden="true" className="size-5 animate-spin" />
@@ -1823,7 +2108,7 @@ function StoreCharacterCard({
         {isBuying
           ? "Comprando"
           : personagem.owned
-            ? "Ja possui"
+            ? "Já possui"
             : `${personagem.price.toLocaleString("pt-BR")} pontos`}
       </Button>
     </article>
@@ -1860,6 +2145,34 @@ function isFreeTier(tier: string) {
   const normalized = normalizeTier(tier);
 
   return normalized === "free" || normalized === "gratis";
+}
+
+function isNonLevelingCharacter(
+  personagem: Pick<AlunoPersonagem, "key" | "tier">,
+) {
+  return (
+    isFreeTier(formatTier(personagem.tier)) ||
+    normalizeTier(personagem.key).startsWith("lumi")
+  );
+}
+
+function getCharacterProgressState(personagem: AlunoPersonagem) {
+  const isNonLeveling = isNonLevelingCharacter(personagem);
+  const level = isNonLeveling ? 1 : personagem.level;
+  const maxLevel = isNonLeveling ? 1 : personagem.maxLevel;
+  const isMaxed = level >= maxLevel;
+
+  return {
+    description: isMaxed
+      ? "Este personagem já atingiu o nível máximo."
+      : personagem.nextLevelIn
+        ? `${personagem.nextLevelIn} questões para evoluir`
+        : "Continue respondendo questões para evoluir.",
+    isMaxed,
+    level,
+    maxLevel,
+    percent: isMaxed ? 100 : getProgressPercent(level, maxLevel),
+  };
 }
 
 function normalizeTier(tier: string) {

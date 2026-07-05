@@ -14,7 +14,7 @@ import {
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/buttons";
-import { Skeleton } from "@/components/loading";
+import { useMinimumVisibleLoading } from "@/hooks/useMinimumVisibleLoading";
 import { getApiErrorMessage } from "@/services/api/errors/getApiErrorMessage";
 import { gamificationApi } from "@/services/api/modules/gamification";
 import type {
@@ -23,6 +23,7 @@ import type {
   PersonagemFeedback,
 } from "@/types/aluno";
 import type { Questao } from "@/types/pedagogico";
+import { StudentQuestionsSkeleton } from "./StudentWorkspaceSkeletons";
 
 type Feedback = {
   questionId: number;
@@ -40,9 +41,9 @@ type Feedback = {
 
 function getDifficultyLabel(difficulty: Questao["difficulty"]) {
   const labels = {
-    facil: "Facil",
-    media: "Media",
-    dificil: "Dificil",
+    facil: "Fácil",
+    media: "Média",
+    dificil: "Difícil",
   };
 
   return labels[difficulty] ?? difficulty;
@@ -81,6 +82,9 @@ export function StudentQuestionsWorkspace() {
 
     return `${currentIndex + 1} / ${questions.length}`;
   }, [currentIndex, questions.length]);
+  const showInitialSkeleton = useMinimumVisibleLoading(
+    questionsQuery.isPending || perfilQuery.isPending,
+  );
 
   const answerMutation = useMutation({
     mutationFn: (question: Questao) => {
@@ -103,7 +107,7 @@ export function StudentQuestionsWorkspace() {
         answeredAlternativeId === undefined ||
         correctAlternativeId === undefined
       ) {
-        throw new Error("Nao foi possivel identificar o gabarito da questao.");
+        throw new Error("Não foi possível identificar o gabarito da questão.");
       }
 
       setFeedback({
@@ -146,38 +150,31 @@ export function StudentQuestionsWorkspace() {
     setFeedback(undefined);
   }
 
+  if (showInitialSkeleton) {
+    return <StudentQuestionsSkeleton />;
+  }
+
   return (
     <div className="flex min-h-[calc(100vh-150px)] flex-col gap-5">
       <section className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-brand-primary">Responder</h1>
-          <p className="mt-1 text-base text-text-secondary">
-            Resolva uma questao por vez e avance sem voltar.
+          <h1 className="text-4xl font-bold tracking-normal text-[#4b18dc]">
+            Responder
+          </h1>
+          <p className="mt-1 text-base font-medium text-[#4f4b80]">
+            Resolva uma questão por vez e avance sem voltar.
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
-          <div className="rounded-system border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-text-primary shadow-sm">
-            Questao: {progressLabel}
+          <div className="rounded-system border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-text-primary shadow-sm">
+            Questão: {progressLabel}
           </div>
-          <div className="rounded-system border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-text-primary shadow-sm">
+          <div className="rounded-system border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-text-primary shadow-sm">
             Energia: {perfilQuery.data?.energy ?? "-"} /{" "}
             {perfilQuery.data?.maxEnergy ?? "-"}
           </div>
         </div>
       </section>
-
-      {questionsQuery.isPending && (
-        <section className="mx-auto w-full max-w-5xl rounded-system border border-slate-200 bg-white p-6 shadow-[0_10px_30px_rgba(0,0,0,0.08)]">
-          <Skeleton className="h-5 w-32" />
-          <Skeleton className="mt-5 h-8 w-4/5" />
-          <div className="mt-6 grid gap-3">
-            <Skeleton className="h-14" />
-            <Skeleton className="h-14" />
-            <Skeleton className="h-14" />
-            <Skeleton className="h-14" />
-          </div>
-        </section>
-      )}
 
       {questionsQuery.isError && (
         <div
@@ -192,11 +189,11 @@ export function StudentQuestionsWorkspace() {
       {!questionsQuery.isPending && questions.length === 0 && (
         <section className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center rounded-system border border-dashed border-slate-300 bg-white p-8 text-center">
           <Trophy className="mb-3 size-10 text-brand-primary" />
-          <p className="font-semibold text-text-primary">
-            Nenhuma questao disponivel agora
+          <p className="font-bold text-text-primary">
+            Nenhuma questão disponível agora
           </p>
           <p className="mt-1 text-sm text-text-secondary">
-            Quando novas questoes forem publicadas, elas aparecem aqui.
+            Quando novas questões forem publicadas, elas aparecem aqui.
           </p>
         </section>
       )}
@@ -232,7 +229,7 @@ export function StudentQuestionsWorkspace() {
                   !feedback.correct;
 
                 return (
-                  <button
+                  <Button
                     key={alternativeId}
                     type="button"
                     disabled={hasAnsweredCurrent || answerMutation.isPending}
@@ -240,7 +237,7 @@ export function StudentQuestionsWorkspace() {
                       if (!alternativeId) return;
                       setSelectedAlternativeId(alternativeId);
                     }}
-                    className={`flex min-h-14 w-full items-center gap-3 rounded-system border px-4 py-3 text-left text-sm font-semibold transition ${
+                    className={`flex min-h-14 w-full items-center gap-3 rounded-system border px-4 py-3 text-left text-sm font-bold transition ${
                       isCorrect
                         ? "border-emerald-300 bg-emerald-50 text-emerald-800"
                         : isWrongSelection
@@ -261,7 +258,7 @@ export function StudentQuestionsWorkspace() {
                       <Circle aria-hidden="true" className="size-5 shrink-0" />
                     )}
                     <span>{alternative.text}</span>
-                  </button>
+                  </Button>
                 );
               })}
             </div>
@@ -281,7 +278,7 @@ export function StudentQuestionsWorkspace() {
                   <XCircle className="mt-0.5 size-5 shrink-0" />
                 )}
                 <div>
-                  <p className="font-semibold">{feedback.message}</p>
+                  <p className="font-bold">{feedback.message}</p>
                   <p className="mt-1 text-sm">
                     Gabarito: {feedback.answer}. +{feedback.points} pontos, +
                     {feedback.xp} XP.
@@ -302,17 +299,17 @@ export function StudentQuestionsWorkspace() {
                         <RewardNotice
                           key={`missao-${missao.id}`}
                           icon={Sparkles}
-                          title={`Missao: ${missao.title}`}
+                          title={`Missão: ${missao.title}`}
                           description={`+${missao.rewardPoints} pontos, +${missao.rewardXp} XP`}
                         />
                       ))}
                       {feedback.personagem && (
                         <RewardNotice
                           icon={UserRound}
-                          title={`${feedback.personagem.name} esta no nivel ${feedback.personagem.level}`}
+                          title={`${feedback.personagem.name} está no nível ${feedback.personagem.level}`}
                           description={
                             feedback.personagem.leveledUp
-                              ? "Seu personagem evoluiu de nivel."
+                              ? "Seu personagem evoluiu de nível."
                               : "Progresso do personagem atualizado."
                           }
                         />
@@ -338,9 +335,9 @@ export function StudentQuestionsWorkspace() {
                 <Button
                   type="button"
                   onClick={goToNextQuestion}
-                  className="min-h-11 bg-brand-primary px-5 py-2.5 text-white hover:bg-brand-primary-hover"
+                  variant="primary"
                 >
-                  {isLastQuestion ? "Finalizar" : "Proxima questao"}
+                  {isLastQuestion ? "Finalizar" : "Próxima questão"}
                   <ChevronRight aria-hidden="true" className="size-5" />
                 </Button>
               ) : (
@@ -348,7 +345,7 @@ export function StudentQuestionsWorkspace() {
                   type="button"
                   disabled={!selectedAlternativeId || answerMutation.isPending}
                   onClick={() => answerMutation.mutate(currentQuestion)}
-                  className="min-h-11 bg-brand-primary px-5 py-2.5 text-white hover:bg-brand-primary-hover"
+                  variant="primary"
                 >
                   Responder
                 </Button>
@@ -362,10 +359,10 @@ export function StudentQuestionsWorkspace() {
         <section className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center rounded-system border border-slate-200 bg-white p-8 text-center shadow-[0_10px_30px_rgba(0,0,0,0.08)]">
           <Trophy className="mb-3 size-12 text-brand-primary" />
           <h2 className="text-2xl font-bold text-text-primary">
-            Sequencia finalizada
+            Sequência finalizada
           </h2>
           <p className="mt-2 text-text-secondary">
-            Voce concluiu as questoes carregadas para este desafio.
+            Você concluiu as questões carregadas para este desafio.
           </p>
         </section>
       )}

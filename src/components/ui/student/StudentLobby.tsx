@@ -30,7 +30,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import mascotEstudante from "@/assets/images/mascot-estudante.png";
 import mascotPaideia from "@/assets/images/mascote/mascote_feliz.svg";
+import { buttonVariants } from "@/components/buttons";
 import { Toast } from "@/components/feedback";
+import { useMinimumVisibleLoading } from "@/hooks/useMinimumVisibleLoading";
 import { gamificationApi } from "@/services/api/modules/gamification";
 import type {
   ConquistaProgresso,
@@ -43,6 +45,7 @@ import {
   readStoredEquippedCharacterId,
   resolveEquippedCharacterId,
 } from "@/utils/student/equippedCharacter";
+import { StudentLobbySkeleton } from "./StudentWorkspaceSkeletons";
 import {
   getAchievementImage,
   getAvatarImage,
@@ -67,8 +70,8 @@ const rankingSkeletonKeys = [
 ];
 const paideiaTips = [
   "Pratique um pouco todos os dias e evolua sempre!",
-  "Revise as disciplinas com mais questoes disponiveis primeiro.",
-  "Mantenha sua sequencia para chegar mais rapido no proximo bonus.",
+  "Revise as disciplinas com mais questões disponíveis primeiro.",
+  "Mantenha sua sequência para chegar mais rápido no próximo bônus.",
 ];
 
 function ProgressBar({
@@ -156,7 +159,7 @@ function getDisciplineProgressPercent(disciplina: DisciplinaProgresso) {
 }
 
 function getDisciplineProgressText(disciplina: DisciplinaProgresso) {
-  if (disciplina.total <= 0) return "Sem questoes";
+  if (disciplina.total <= 0) return "Sem questões";
 
   return `${disciplina.answered} / ${disciplina.total}`;
 }
@@ -168,7 +171,10 @@ function getDisciplineProgressWidth(disciplina: DisciplinaProgresso) {
 function getAchievementPercent(achievement: ConquistaProgresso) {
   if (achievement.goal <= 0) return 0;
 
-  return Math.min(Math.round((achievement.current / achievement.goal) * 100), 100);
+  return Math.min(
+    Math.round((achievement.current / achievement.goal) * 100),
+    100,
+  );
 }
 
 export function StudentLobby() {
@@ -302,7 +308,7 @@ export function StudentLobby() {
     : "/estudantes/responder";
   const challengeProgress = challengeDiscipline
     ? getDisciplineProgressText(challengeDiscipline)
-    : "Sem questoes";
+    : "Sem questões";
   const challengeProgressPercent = challengeDiscipline
     ? getDisciplineProgressPercent(challengeDiscipline)
     : 0;
@@ -333,6 +339,21 @@ export function StudentLobby() {
         studentId: meQuery.data?.id,
       }
     : undefined;
+  const showInitialSkeleton = useMinimumVisibleLoading(
+    meQuery.isPending ||
+      dashboardQuery.isPending ||
+      disciplinasQuery.isPending ||
+      allDisciplinasQuery.isPending ||
+      rankingQuery.isPending ||
+      perfilQuery.isPending ||
+      conquistasQuery.isPending ||
+      personagensQuery.isPending ||
+      liveSessionQuery.isPending,
+  );
+
+  if (showInitialSkeleton) {
+    return <StudentLobbySkeleton />;
+  }
 
   return (
     <div className="grid gap-5">
@@ -358,22 +379,26 @@ export function StudentLobby() {
                 <Radio aria-hidden="true" className="size-6" />
               </span>
               <div>
-                <p className="text-sm font-black uppercase text-[#7c35e8]">
-                  Sessao ao vivo disponivel
+                <p className="text-sm font-bold uppercase text-[#7c35e8]">
+                  Sessão ao vivo disponível
                 </p>
-                <h2 className="text-xl font-black text-[#101044]">
+                <h2 className="text-xl font-bold text-[#101044]">
                   {liveSessionQuery.data.session.title ??
                     "Atividade com o professor"}
                 </h2>
-                <p className="text-sm font-semibold text-[#5d5a89]">
+                <p className="text-sm font-bold text-[#5d5a89]">
                   {liveSessionQuery.data.session.turma?.name ?? "Sua turma"}{" "}
-                  esta respondendo em tempo real.
+                  está respondendo em tempo real.
                 </p>
               </div>
             </div>
             <Link
               href="/estudantes/ao-vivo"
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[8px] bg-[#7c35e8] px-5 font-black text-white shadow-[0_14px_24px_rgba(124,53,232,0.25)]"
+              className={buttonVariants({
+                className:
+                  "min-h-12 shadow-[0_14px_24px_rgba(124,53,232,0.25)]",
+                variant: "primary",
+              })}
             >
               Entrar
               <ChevronRight aria-hidden="true" className="size-5" />
@@ -383,7 +408,7 @@ export function StudentLobby() {
 
       <section className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
         <div className="rounded-[18px] border border-[#e3d9f8] bg-white p-5 shadow-[0_18px_50px_rgba(72,35,137,0.08)]">
-          <div className="grid gap-5 sm:grid-cols-[210px_1fr]">
+          <div className="grid gap-5 sm:grid-cols-[210px_1fr] sm:items-center">
             <div className="relative flex items-center justify-center">
               <Image
                 src={getAvatarImage(equippedCharacter?.image)}
@@ -392,17 +417,17 @@ export function StudentLobby() {
                     ? `Personagem ${equippedCharacter.name}`
                     : "Avatar do estudante"
                 }
-                className="h-[220px] w-auto origin-center scale-[1.45] object-contain"
+                className="h-[250px] w-auto object-contain"
                 priority
               />
             </div>
 
             <div className="flex flex-col justify-center">
-              <h1 className="text-3xl font-black tracking-normal">
+              <h1 className="text-3xl font-bold tracking-normal">
                 {studentName ?? "Estudante"}
               </h1>
-              <p className="mt-2 text-lg font-black text-[#7c35e8]">
-                Nivel {level}
+              <p className="mt-2 text-lg font-bold text-[#7c35e8]">
+                Nível {level}
               </p>
               <p className="mt-1 flex items-center gap-2 text-sm font-medium text-[#4c4a79]">
                 {equippedCharacter
@@ -412,7 +437,7 @@ export function StudentLobby() {
               </p>
 
               <div className="mt-5 grid grid-cols-[max-content_minmax(140px,1fr)] items-center gap-4">
-                <span className="flex items-center gap-2 whitespace-nowrap text-xl font-black">
+                <span className="flex items-center gap-2 whitespace-nowrap text-xl font-bold">
                   <span className="text-[#ffb000]">★</span>
                   {xp.toLocaleString("pt-BR")} XP
                 </span>
@@ -424,10 +449,10 @@ export function StudentLobby() {
 
               <div className="mt-3 flex justify-between gap-4 text-xs font-medium text-[#5d5a89]">
                 <span className="whitespace-nowrap">
-                  Proximo nivel: {level + 1}
+                  Próximo nível: {level + 1}
                 </span>
                 <span className="whitespace-nowrap">
-                  {xpToNextLevel} XP para o Nivel {level + 1}
+                  {xpToNextLevel} XP para o Nível {level + 1}
                 </span>
               </div>
             </div>
@@ -441,11 +466,11 @@ export function StudentLobby() {
             />
             <StudentMetric
               icon={<Star className="size-9 fill-[#ffb000] text-[#ffb000]" />}
-              label="Pontuacao"
+              label="Pontuação"
               value={totalPoints.toLocaleString("pt-BR")}
             />
             <StudentMetric
-              icon={<Medal className="size-9 fill-[#7c35e8] text-[#7c35e8]" />}
+              icon={<RankingMedalIcon />}
               label="Ranking"
               value={rank ? `Top ${rank}` : "—"}
             />
@@ -455,7 +480,7 @@ export function StudentLobby() {
               value={`${streak.currentDays} dia${streak.currentDays === 1 ? "" : "s"}`}
             />
           </div>
-          <p className="mt-2 text-center text-xs font-semibold text-[#5d5a89]">
+          <p className="mt-2 text-center text-xs font-bold text-[#5d5a89]">
             Recorde: {streak.longestDays} dia(s) · Próximo bônus em{" "}
             {streak.daysUntilNextBonus} dia(s)
           </p>
@@ -465,10 +490,10 @@ export function StudentLobby() {
           <div className="flex min-w-0 flex-col md:max-w-[calc(100%-280px)] xl:mt-5 xl:max-w-[58%]">
             <div className="flex items-center gap-4">
               <BookOpen className="size-8 text-[#7c35e8]" />
-              <h2 className="text-lg font-black">Continue praticando</h2>
+              <h2 className="text-lg font-bold">Continue praticando</h2>
             </div>
-            <p className="mt-5 text-2xl font-black">
-              {challengeDiscipline?.name ?? "Questoes"}
+            <p className="mt-5 text-2xl font-bold">
+              {challengeDiscipline?.name ?? "Questões"}
             </p>
             <p className="mt-2 text-lg text-[#4f4b80]">
               {challengeDiscipline?.area ??
@@ -481,16 +506,20 @@ export function StudentLobby() {
                 style={{ width: `${challengeProgressPercent}%` }}
                 valueClassName="bg-[#7c35e8]"
               />
-              <span className="whitespace-nowrap font-semibold text-[#4f4b80]">
+              <span className="whitespace-nowrap font-bold text-[#4f4b80]">
                 {challengeProgress}
               </span>
             </div>
             <Link
               href={challengeHref}
-              className="mt-5 inline-flex min-h-12 w-full max-w-[285px] items-center justify-center gap-8 rounded-[8px] bg-gradient-to-r from-[#7c35e8] to-[#833af0] text-lg font-black text-white shadow-[0_14px_24px_rgba(124,53,232,0.25)] md:absolute md:bottom-11 md:left-6 md:mt-0"
+              className={buttonVariants({
+                className:
+                  "mt-5 w-full max-w-[285px] md:absolute md:bottom-11 md:left-6 md:mt-0",
+                variant: "primary",
+              })}
             >
               Continuar
-              <ChevronRight aria-hidden="true" className="size-7" />
+              <ChevronRight aria-hidden="true" className="size-5" />
             </Link>
           </div>
           <div className="hidden md:block">
@@ -507,21 +536,21 @@ export function StudentLobby() {
       <section className="rounded-[18px] border border-[#e3d9f8] bg-white p-7 shadow-[0_18px_50px_rgba(72,35,137,0.08)]">
         <div className="flex items-center gap-3">
           <Target className="size-7 text-[#7c35e8]" />
-          <h2 className="text-xl font-black">Escolha um desafio</h2>
+          <h2 className="text-xl font-bold">Escolha um desafio</h2>
         </div>
 
         <div className="mt-4 grid gap-7 lg:grid-cols-2">
           <ChallengeCard
             icon={<BookOpen className="size-9" />}
-            title="Questoes por disciplina"
+            title="Questões por disciplina"
             description="Escolha uma disciplina da BNCC e pratique temas especificos."
             href="/estudantes/responder"
             tone="purple"
           />
           <ChallengeCard
             icon={<Shuffle className="size-9" />}
-            title="Questoes aleatorias"
-            description="Responda questoes de diversas disciplinas aleatoriamente."
+            title="Questões aleatórias"
+            description="Responda questões de diversas disciplinas aleatoriamente."
             href="/estudantes/responder?aleatorio=1"
             tone="orange"
           />
@@ -532,7 +561,7 @@ export function StudentLobby() {
         <div className="flex h-full flex-col rounded-[18px] border border-[#e3d9f8] bg-white p-7 shadow-[0_18px_50px_rgba(72,35,137,0.08)]">
           <div className="flex items-center gap-3">
             <BookOpen className="size-7 text-[#7c35e8]" />
-            <h2 className="text-xl font-black">Disciplinas</h2>
+            <h2 className="text-xl font-bold">Disciplinas</h2>
           </div>
           <div className="mt-4 grid flex-1 grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {isDisciplinesPending &&
@@ -544,9 +573,9 @@ export function StudentLobby() {
               ))}
 
             {isDisciplinesError && (
-              <div className="col-span-full flex min-h-[110px] items-center gap-3 rounded-[12px] border border-red-200 bg-red-50 px-4 text-sm font-semibold text-red-700">
+              <div className="col-span-full flex min-h-[110px] items-center gap-3 rounded-[12px] border border-red-200 bg-red-50 px-4 text-sm font-bold text-red-700">
                 <AlertCircle aria-hidden="true" className="size-5" />
-                Nao foi possivel carregar as disciplinas.
+                Não foi possível carregar as disciplinas.
               </div>
             )}
 
@@ -572,11 +601,11 @@ export function StudentLobby() {
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <Medal className="size-7 text-[#7c35e8]" />
-              <h2 className="text-xl font-black">Top 5 da turma</h2>
+              <h2 className="text-xl font-bold">Top 5 da turma</h2>
             </div>
             <Link
               href="/estudantes/ranking"
-              className="text-sm font-black text-[#7c35e8] underline"
+              className="text-sm font-bold text-[#7c35e8] underline"
             >
               Ver ranking
             </Link>
@@ -591,16 +620,16 @@ export function StudentLobby() {
               ))}
 
             {rankingQuery.isError && (
-              <div className="flex min-h-[96px] items-center gap-3 px-4 text-sm font-semibold text-red-700">
+              <div className="flex min-h-[96px] items-center gap-3 px-4 text-sm font-bold text-red-700">
                 <AlertCircle aria-hidden="true" className="size-5" />
-                Nao foi possivel carregar o ranking.
+                Não foi possível carregar o ranking.
               </div>
             )}
 
             {!rankingQuery.isPending &&
               !rankingQuery.isError &&
               topRanking.length === 0 && (
-                <div className="px-4 py-6 text-sm font-semibold text-[#5d5a89]">
+                <div className="px-4 py-6 text-sm font-bold text-[#5d5a89]">
                   O ranking da turma aparece aqui.
                 </div>
               )}
@@ -621,11 +650,11 @@ export function StudentLobby() {
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <Trophy className="size-7 text-[#7c35e8]" />
-              <h2 className="text-xl font-black">Conquistas recentes</h2>
+              <h2 className="text-xl font-bold">Conquistas recentes</h2>
             </div>
             <Link
               href="/estudantes/conquistas"
-              className="text-sm font-black text-[#7c35e8] underline"
+              className="text-sm font-bold text-[#7c35e8] underline"
             >
               Ver todas
             </Link>
@@ -640,7 +669,7 @@ export function StudentLobby() {
               ))}
 
             {!conquistasQuery.isPending && recentAchievements.length === 0 && (
-              <div className="px-4 py-6 text-sm font-semibold text-[#5d5a89]">
+              <div className="px-4 py-6 text-sm font-bold text-[#5d5a89]">
                 Suas conquistas desbloqueadas aparecem aqui.
               </div>
             )}
@@ -655,11 +684,11 @@ export function StudentLobby() {
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <Trophy className="size-7 text-[#7c35e8]" />
-              <h2 className="text-xl font-black">Conquistas em progresso</h2>
+              <h2 className="text-xl font-bold">Conquistas em progresso</h2>
             </div>
             <Link
               href="/estudantes/conquistas"
-              className="text-sm font-black text-[#7c35e8] underline"
+              className="text-sm font-bold text-[#7c35e8] underline"
             >
               Ver todas
             </Link>
@@ -675,7 +704,7 @@ export function StudentLobby() {
 
             {!conquistasQuery.isPending &&
               achievementsInProgress.length === 0 && (
-                <div className="px-4 py-6 text-sm font-semibold text-[#5d5a89]">
+                <div className="px-4 py-6 text-sm font-bold text-[#5d5a89]">
                   Conquistas em andamento aparecem aqui.
                 </div>
               )}
@@ -697,7 +726,7 @@ export function StudentLobby() {
           className="h-14 w-14 object-contain"
         />
         <div>
-          <p className="text-lg font-black text-[#7c35e8]">Dica do Paideia</p>
+          <p className="text-lg font-bold text-[#7c35e8]">Dica do Paideia</p>
           <p className="font-medium">{currentTip}</p>
         </div>
         <div className="ml-auto hidden items-center gap-2 sm:flex">
@@ -733,7 +762,7 @@ function StudentMetric({
         <p className="whitespace-nowrap text-sm font-medium text-[#4f4b80]">
           {label}
         </p>
-        <p className="whitespace-nowrap text-xl font-black text-[#101044]">
+        <p className="whitespace-nowrap text-xl font-bold text-[#101044]">
           {value}
         </p>
         {detail && (
@@ -741,6 +770,28 @@ function StudentMetric({
         )}
       </div>
     </div>
+  );
+}
+
+function RankingMedalIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="size-9"
+      viewBox="0 0 36 36"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path d="M13 2h5l3 12h-6L13 2Z" fill="#f47f1f" />
+      <path d="M23 2h-5l-3 12h6L23 2Z" fill="#d94f23" />
+      <path d="M16 2h4l-2 11-2-11Z" fill="#c73b2f" />
+      <circle cx="18" cy="22" r="11" fill="#ffdc4d" />
+      <circle cx="18" cy="22" r="7.5" fill="#ffc414" />
+      <path
+        d="M18 16.8l1.7 3.3 3.7.6-2.7 2.6.6 3.7-3.3-1.8-3.3 1.8.6-3.7-2.7-2.6 3.7-.6 1.7-3.3Z"
+        fill="#f5821f"
+      />
+    </svg>
   );
 }
 
@@ -777,7 +828,7 @@ function ChallengeCard({
         {icon}
       </span>
       <span>
-        <span className="block text-lg font-black">{title}</span>
+        <span className="block text-lg font-bold">{title}</span>
         <span className="mt-1 block max-w-[350px] text-sm font-medium text-[#101044]">
           {description}
         </span>
@@ -796,7 +847,7 @@ function AchievementRow({ achievement }: { achievement: ConquistaProgresso }) {
 
   return (
     <div className="grid grid-cols-[48px_1fr_auto] items-center gap-4 border-[#e3d9f8] border-b px-4 py-3 last:border-b-0">
-      <span className="flex size-11 items-center justify-center rounded-[8px] bg-[#f1e8ff] text-sm font-black text-[#7c35e8]">
+      <span className="flex size-11 items-center justify-center rounded-[8px] bg-[#f1e8ff] text-sm font-bold text-[#7c35e8]">
         {achievementImage ? (
           <Image
             src={achievementImage}
@@ -808,7 +859,7 @@ function AchievementRow({ achievement }: { achievement: ConquistaProgresso }) {
         )}
       </span>
       <div className="min-w-0">
-        <p className="truncate font-black">{achievement.name}</p>
+        <p className="truncate font-bold">{achievement.name}</p>
         <p className="truncate text-sm text-[#5d5a89]">
           {achievement.description}
         </p>
@@ -830,7 +881,7 @@ function AchievementProgressRow({
 
   return (
     <div className="grid grid-cols-[48px_1fr_auto] items-center gap-4 border-[#e3d9f8] border-b px-4 py-3 last:border-b-0">
-      <span className="flex size-11 items-center justify-center rounded-[8px] bg-[#f1e8ff] text-sm font-black text-[#7c35e8]">
+      <span className="flex size-11 items-center justify-center rounded-[8px] bg-[#f1e8ff] text-sm font-bold text-[#7c35e8]">
         {achievementImage ? (
           <Image
             src={achievementImage}
@@ -842,18 +893,18 @@ function AchievementProgressRow({
         )}
       </span>
       <div className="min-w-0">
-        <p className="truncate font-black">{achievement.name}</p>
+        <p className="truncate font-bold">{achievement.name}</p>
         <div className="mt-2 grid grid-cols-[minmax(0,1fr)_max-content] items-center gap-3">
           <ProgressBar
             style={{ width: `${percent}%` }}
             valueClassName="bg-[#7c35e8]"
           />
-          <span className="text-xs font-black text-[#5d5a89]">
+          <span className="text-xs font-bold text-[#5d5a89]">
             {achievement.current} / {achievement.goal}
           </span>
         </div>
       </div>
-      <span className="whitespace-nowrap text-sm font-black text-[#7c35e8]">
+      <span className="whitespace-nowrap text-sm font-bold text-[#7c35e8]">
         {percent}%
       </span>
     </div>
@@ -890,7 +941,7 @@ function RankingTopRow({
       className="grid min-h-[66px] grid-cols-[42px_48px_1fr_auto] items-center gap-3 border-[#e3d9f8] border-b px-4 py-3 transition last:border-b-0 hover:bg-[#fbf7ff]"
     >
       <span
-        className={`flex size-9 items-center justify-center rounded-full text-sm font-black ${
+        className={`flex size-9 items-center justify-center rounded-full text-sm font-bold ${
           item.position === 1
             ? "bg-[#fff0b8] text-[#d98300]"
             : item.position === 2
@@ -911,12 +962,12 @@ function RankingTopRow({
         />
       </span>
       <div className="min-w-0">
-        <p className="truncate font-black text-[#101044]">{item.aluno.name}</p>
-        <p className="truncate text-sm font-semibold text-[#5d5a89]">
-          Nivel {item.level}
+        <p className="truncate font-bold text-[#101044]">{item.aluno.name}</p>
+        <p className="truncate text-sm font-bold text-[#5d5a89]">
+          Nível {item.level}
         </p>
       </div>
-      <span className="flex items-center gap-1 whitespace-nowrap text-sm font-black text-[#101044]">
+      <span className="flex items-center gap-1 whitespace-nowrap text-sm font-bold text-[#101044]">
         {item.points.toLocaleString("pt-BR")}
         <span className="text-[#ffb000]">★</span>
       </span>
@@ -955,7 +1006,7 @@ function SubjectCard({
       >
         <Icon aria-hidden="true" className="size-7" />
       </span>
-      <span className="text-xs font-black leading-4">{name}</span>
+      <span className="text-xs font-bold leading-4">{name}</span>
       <span className="min-h-5 text-sm font-medium text-[#4f4b80]">
         {progress}
       </span>

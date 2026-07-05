@@ -2,7 +2,6 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Bell,
   type BookOpen,
   Home,
   LogOut,
@@ -18,9 +17,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import paideiaLogoWhite from "@/assets/images/logotipo/paideia_branco.svg";
-import { Button } from "@/components/buttons";
+import { Button, buttonVariants } from "@/components/buttons";
+import { Skeleton } from "@/components/loading";
+import { useMinimumVisibleLoading } from "@/hooks/useMinimumVisibleLoading";
 import { authApi } from "@/services/api/modules/auth";
 import { gamificationApi } from "@/services/api/modules/gamification";
 import { removeAuthToken } from "@/services/api/tokenStorage";
@@ -82,6 +83,9 @@ export function StudentShell({ children }: StudentShellProps) {
   const equippedCharacter = personagens?.find(
     (personagem) => personagem.equipped,
   );
+  const showUserSkeleton = useMinimumVisibleLoading(
+    meQuery.isPending || personagensQuery.isPending,
+  );
   const pendingChallenges = (desafiosQuery.data ?? []).filter(
     (challenge) =>
       challenge.status === "pendente" &&
@@ -105,32 +109,41 @@ export function StudentShell({ children }: StudentShellProps) {
     }
   }
 
+  useEffect(() => {
+    if (!pathname) return;
+
+    setIsMobileNavOpen(false);
+  }, [pathname]);
+
   return (
     <main className="min-h-screen overflow-hidden bg-[#fbf7ff] text-[#101044]">
       <header className="sticky top-0 z-30 bg-gradient-to-r from-[#6d2ee8] via-[#8738f2] to-[#7029dc] text-white shadow-[0_10px_35px_rgba(110,46,232,0.25)]">
-        <div className="mx-auto flex h-[72px] max-w-[1740px] items-center justify-between gap-2 px-4 sm:px-5 lg:grid lg:h-[86px] lg:grid-cols-[220px_minmax(0,1fr)_auto] lg:px-8">
+        <div className="mx-auto flex h-[72px] max-w-[1740px] items-center justify-between gap-2 px-4 sm:px-5 xl:grid xl:h-[86px] xl:grid-cols-[150px_minmax(0,1fr)_auto] xl:px-5 min-[1536px]:grid-cols-[180px_minmax(0,1fr)_auto] min-[1680px]:grid-cols-[220px_minmax(0,1fr)_auto] min-[1680px]:px-8">
           <Button
             aria-label="Abrir navegação"
-            className="size-11 shrink-0 border border-white/20 bg-white/10 p-0 text-white hover:bg-white/20 lg:hidden"
+            className="order-last ml-auto size-11 shrink-0 border border-white/20 bg-white/10 p-0 text-white hover:bg-white/20 xl:hidden"
             onClick={() => setIsMobileNavOpen((current) => !current)}
             type="button"
           >
             <Menu aria-hidden="true" className="size-5" />
           </Button>
-          <Link href="/estudantes" className="flex items-center gap-3">
+          <Link
+            href="/estudantes"
+            className="order-first flex items-center gap-3"
+          >
             <Image
               src={paideiaLogoWhite}
               alt="Paideia"
-              className="h-8 w-auto max-w-[112px] object-contain sm:h-10 sm:max-w-[156px] lg:h-12 lg:max-w-[180px]"
+              className="h-8 w-auto max-w-[112px] object-contain sm:h-10 sm:max-w-[156px] xl:h-12 xl:max-w-[140px] min-[1536px]:max-w-[160px] min-[1680px]:max-w-[180px]"
               priority
             />
           </Link>
 
-          <nav className="hidden min-w-0 items-center justify-center gap-2 justify-self-center lg:flex xl:gap-3">
+          <nav className="hidden min-w-0 items-center justify-center gap-1 justify-self-center xl:flex min-[1536px]:gap-2 min-[1680px]:gap-3">
             <StudentNavItem
               active={isActive(pathname, "/estudantes")}
               icon={Home}
-              label="Inicio"
+              label="Início"
               href="/estudantes"
             />
             <StudentNavItem
@@ -171,104 +184,139 @@ export function StudentShell({ children }: StudentShellProps) {
             />
           </nav>
 
-          <div className="ml-auto flex items-center gap-2 lg:ml-0 lg:justify-self-end">
-            <div className="flex h-11 min-w-0 items-center gap-2 px-1.5 text-white sm:h-12">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#f1e8ff] text-sm font-black text-[#7c35e8] ring-1 ring-white/40">
-                {equippedCharacter ? (
-                  <Image
-                    src={getAvatarProfileImage(
-                      equippedCharacter.avatar,
-                      equippedCharacter.image,
-                    )}
-                    alt={`Avatar ${equippedCharacter.name}`}
-                    className="size-9 rounded-full object-cover"
-                  />
-                ) : (
-                  initials
-                )}
-              </span>
-              <span className="hidden min-w-0 flex-1 truncate text-sm font-bold sm:block">
-                {studentName}
-              </span>
-            </div>
-
-            <Link
-              aria-label={
-                pendingChallenges.length > 0
-                  ? `${pendingChallenges.length} convite(s) de desafio`
-                  : "Nenhum convite de desafio"
-              }
-              className="relative flex size-11 shrink-0 items-center justify-center rounded-full text-white transition hover:bg-white/10 sm:size-12"
-              href="/estudantes/desafios"
-            >
-              <Bell aria-hidden="true" className="size-5" />
-              {pendingChallenges.length > 0 && (
-                <span className="absolute -top-1 -right-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-[#ffb703] px-1 text-[11px] font-black text-[#2d1655] ring-2 ring-[#7c35e8]">
-                  {pendingChallenges.length > 9
-                    ? "9+"
-                    : pendingChallenges.length}
+          <div className="ml-auto hidden h-14 min-w-0 items-center overflow-hidden rounded-[14px] bg-white text-[#7c35e8] shadow-[0_12px_26px_rgba(55,22,118,0.16)] ring-1 ring-[#e9ddff] xl:flex xl:ml-0 xl:justify-self-end">
+            {showUserSkeleton ? (
+              <div className="flex h-full min-w-0 items-center gap-3 px-3 pr-4 sm:min-w-[168px]">
+                <Skeleton className="size-10 shrink-0 rounded-full bg-[#e8ddfb]" />
+                <Skeleton className="hidden h-4 w-28 rounded-full bg-[#e8ddfb] sm:block" />
+              </div>
+            ) : (
+              <div className="flex h-full min-w-0 items-center gap-3 px-3 pr-4 text-[#101044] sm:min-w-[168px]">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#f1e8ff] text-sm font-bold text-[#7c35e8] ring-1 ring-[#dcc9ff]">
+                  {equippedCharacter ? (
+                    <Image
+                      src={getAvatarProfileImage(
+                        equippedCharacter.avatar,
+                        equippedCharacter.image,
+                      )}
+                      alt={`Avatar ${equippedCharacter.name}`}
+                      className="size-10 rounded-full object-cover"
+                    />
+                  ) : (
+                    initials
+                  )}
                 </span>
-              )}
-            </Link>
+                <span className="hidden min-w-0 flex-1 truncate text-sm font-bold sm:block">
+                  {studentName}
+                </span>
+              </div>
+            )}
 
             <Button
               type="button"
               onClick={handleLogout}
               aria-label="Sair"
               title="Sair"
-              className="size-11 shrink-0 rounded-full bg-transparent p-0 text-white hover:bg-white/10 sm:size-12"
+              className="h-full w-14 shrink-0 !rounded-none border-[#e3d9f8] border-l bg-transparent p-0 text-[#7c35e8] transition hover:bg-[#f5efff]"
             >
               <LogOut aria-hidden="true" className="size-5" />
             </Button>
           </div>
         </div>
 
-        {isMobileNavOpen && (
-          <nav className="grid max-h-[calc(100vh-72px)] grid-cols-2 gap-2 overflow-y-auto border-white/15 border-t bg-[#6827d9] p-4 lg:hidden">
-            <StudentNavItem
-              active={isActive(pathname, "/estudantes")}
-              icon={Home}
-              label="Inicio"
-              href="/estudantes"
-            />
-            <StudentNavItem
-              active={isActive(pathname, "/estudantes/ranking")}
-              icon={Medal}
-              label="Ranking"
-              href="/estudantes/ranking"
-            />
-            <StudentNavItem
-              active={isActive(pathname, "/estudantes/desafios")}
-              icon={Sparkles}
-              label="Desafios"
-              href="/estudantes/desafios"
-            />
-            <StudentNavItem
-              active={isActive(pathname, "/estudantes/ao-vivo")}
-              icon={Radio}
-              label="Ao vivo"
-              href="/estudantes/ao-vivo"
-            />
-            <StudentNavItem
-              active={isActive(pathname, "/estudantes/conquistas")}
-              icon={Trophy}
-              label="Conquistas"
-              href="/estudantes/conquistas"
-            />
-            <StudentNavItem
-              active={isActive(pathname, "/estudantes/personagens")}
-              icon={UserRound}
-              label="Personagens"
-              href="/estudantes/personagens"
-            />
-            <StudentNavItem
-              active={isActive(pathname, "/estudantes/loja")}
-              icon={ShoppingBag}
-              label="Loja"
-              href="/estudantes/loja"
-            />
-          </nav>
-        )}
+        <div
+          className={`absolute top-full right-0 left-0 z-40 overflow-hidden border-white/15 border-t bg-[#6827d9] shadow-[0_18px_36px_rgba(45,18,94,0.3)] transition-all duration-300 ease-out xl:hidden ${
+            isMobileNavOpen
+              ? "max-h-[calc(100vh-72px)] translate-y-0 opacity-100"
+              : "pointer-events-none max-h-0 -translate-y-3 opacity-0"
+          }`}
+        >
+          <div className="grid max-h-[calc(100vh-72px)] gap-4 overflow-y-auto p-4">
+            <div className="flex h-14 min-w-0 items-center overflow-hidden rounded-[14px] bg-white text-[#7c35e8] shadow-[0_12px_26px_rgba(55,22,118,0.16)] ring-1 ring-[#e9ddff]">
+              {showUserSkeleton ? (
+                <div className="flex h-full min-w-0 flex-1 items-center gap-3 px-3 pr-4">
+                  <Skeleton className="size-10 shrink-0 rounded-full bg-[#e8ddfb]" />
+                  <Skeleton className="h-4 w-28 rounded-full bg-[#e8ddfb]" />
+                </div>
+              ) : (
+                <div className="flex h-full min-w-0 flex-1 items-center gap-3 px-3 pr-4 text-[#101044]">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#f1e8ff] text-sm font-bold text-[#7c35e8] ring-1 ring-[#dcc9ff]">
+                    {equippedCharacter ? (
+                      <Image
+                        src={getAvatarProfileImage(
+                          equippedCharacter.avatar,
+                          equippedCharacter.image,
+                        )}
+                        alt={`Avatar ${equippedCharacter.name}`}
+                        className="size-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      initials
+                    )}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-sm font-bold">
+                    {studentName}
+                  </span>
+                </div>
+              )}
+
+              <Button
+                type="button"
+                onClick={handleLogout}
+                aria-label="Sair"
+                title="Sair"
+                className="h-full w-14 shrink-0 !rounded-none border-[#e3d9f8] border-l bg-transparent p-0 text-[#7c35e8] transition hover:bg-[#f5efff]"
+              >
+                <LogOut aria-hidden="true" className="size-5" />
+              </Button>
+            </div>
+
+            <nav className="grid grid-cols-2 gap-2">
+              <StudentNavItem
+                active={isActive(pathname, "/estudantes")}
+                icon={Home}
+                label="Início"
+                href="/estudantes"
+              />
+              <StudentNavItem
+                active={isActive(pathname, "/estudantes/ranking")}
+                icon={Medal}
+                label="Ranking"
+                href="/estudantes/ranking"
+              />
+              <StudentNavItem
+                active={isActive(pathname, "/estudantes/desafios")}
+                icon={Sparkles}
+                label="Desafios"
+                href="/estudantes/desafios"
+              />
+              <StudentNavItem
+                active={isActive(pathname, "/estudantes/ao-vivo")}
+                icon={Radio}
+                label="Ao vivo"
+                href="/estudantes/ao-vivo"
+              />
+              <StudentNavItem
+                active={isActive(pathname, "/estudantes/conquistas")}
+                icon={Trophy}
+                label="Conquistas"
+                href="/estudantes/conquistas"
+              />
+              <StudentNavItem
+                active={isActive(pathname, "/estudantes/personagens")}
+                icon={UserRound}
+                label="Personagens"
+                href="/estudantes/personagens"
+              />
+              <StudentNavItem
+                active={isActive(pathname, "/estudantes/loja")}
+                icon={ShoppingBag}
+                label="Loja"
+                href="/estudantes/loja"
+              />
+            </nav>
+          </div>
+        </div>
       </header>
 
       <div className="relative mx-auto max-w-[1740px] px-4 py-5 sm:px-5 lg:px-8 lg:py-6">
@@ -278,17 +326,17 @@ export function StudentShell({ children }: StudentShellProps) {
               <Sparkles aria-hidden="true" className="size-5" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="font-black text-[#101044]">Desafio iniciado!</p>
+              <p className="font-bold text-[#101044]">Desafio iniciado!</p>
               <p className="truncate text-sm font-medium text-[#5d5a89]">
                 Sua partida com{" "}
                 {activeChallenge.challenger?.id === meQuery.data?.id
                   ? (activeChallenge.challenged?.name ?? "um colega")
                   : (activeChallenge.challenger?.name ?? "um colega")}{" "}
-                esta em andamento.
+                está em andamento.
               </p>
             </div>
             <Link
-              className="inline-flex min-h-11 items-center justify-center rounded-[12px] bg-[#6d2ee8] px-5 text-sm font-black text-white transition hover:bg-[#5b22ca]"
+              className={buttonVariants({ variant: "primary" })}
               href="/estudantes/desafios"
             >
               Entrar
@@ -304,7 +352,7 @@ export function StudentShell({ children }: StudentShellProps) {
                 <Sparkles aria-hidden="true" className="size-5" />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="font-black text-[#101044]">
+                <p className="font-bold text-[#101044]">
                   Você recebeu um desafio!
                 </p>
                 <p className="truncate text-sm font-medium text-[#5d5a89]">
@@ -313,7 +361,7 @@ export function StudentShell({ children }: StudentShellProps) {
                 </p>
               </div>
               <Link
-                className="inline-flex min-h-11 items-center justify-center rounded-[12px] bg-[#6d2ee8] px-5 text-sm font-black text-white transition hover:bg-[#5b22ca]"
+                className={buttonVariants({ variant: "primary" })}
                 href="/estudantes/desafios"
               >
                 Ver convite
@@ -342,12 +390,12 @@ function StudentNavItem({
   return (
     <Link
       href={href}
-      className={`flex min-h-12 items-center gap-2 rounded-full px-3 text-sm font-semibold transition xl:gap-3 xl:px-4 xl:text-base ${
+      className={`flex min-h-12 items-center gap-1.5 rounded-full px-2.5 text-sm font-semibold transition min-[1536px]:gap-2 min-[1536px]:px-3 min-[1680px]:gap-3 min-[1680px]:px-4 min-[1680px]:text-base ${
         active ? "bg-[#4f20b5]/60 shadow-inner" : "hover:bg-white/10"
       }`}
     >
-      <Icon aria-hidden="true" className="size-6" />
-      {label}
+      <Icon aria-hidden="true" className="size-6 shrink-0" />
+      <span>{label}</span>
     </Link>
   );
 }

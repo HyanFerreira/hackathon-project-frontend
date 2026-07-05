@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { AuthGuard } from "@/components/guard/AuthGuard";
+import { SystemRouteSkeleton } from "@/components/ui/layout/SystemRouteSkeleton";
 import { SystemShell } from "@/components/ui/layout/SystemShell";
 
 type SistemaLayoutProps = {
@@ -8,8 +9,16 @@ type SistemaLayoutProps = {
 
 export default function SistemaLayout({ children }: SistemaLayoutProps) {
   return (
-    <AuthGuard>
-      <SystemShell>{children}</SystemShell>
+    <AuthGuard
+      loadingFallback={
+        <SystemShell routeSkeleton={<SystemRouteSkeleton />}>
+          <SystemRouteSkeleton />
+        </SystemShell>
+      }
+    >
+      <SystemShell routeSkeleton={<SystemRouteSkeleton />}>
+        {children}
+      </SystemShell>
     </AuthGuard>
   );
 }

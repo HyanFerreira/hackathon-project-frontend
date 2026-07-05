@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Menu } from "lucide-react";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/buttons";
 import { StatusPage } from "@/components/feedback/StatusPage";
 import {
@@ -20,14 +20,42 @@ import { canAccessRoute } from "@/utils/auth/routeAccess";
 
 type SystemShellProps = {
   children: ReactNode;
+  routeSkeleton?: ReactNode;
 };
+
+const SYSTEM_ROUTE_SKELETON_VISIBLE_MS = 800;
+const visitedSystemSkeletonRoutes = new Set<string>();
 
 const BASE_USER_MENU_ITEMS: UserMenuItem[] = [
   { key: "settings", label: "Configurações", icon: "settings" },
   { key: "logout", label: "Sair", icon: "logout", danger: true },
 ];
 
-export function SystemShell({ children }: SystemShellProps) {
+function useSystemRouteSkeleton(pathname: string, enabled: boolean) {
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    if (!enabled || visitedSystemSkeletonRoutes.has(pathname)) {
+      setIsVisible(false);
+      return;
+    }
+
+    visitedSystemSkeletonRoutes.add(pathname);
+    setIsVisible(true);
+
+    const timeoutId = window.setTimeout(() => {
+      setIsVisible(false);
+    }, SYSTEM_ROUTE_SKELETON_VISIBLE_MS);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [enabled, pathname]);
+
+  return isVisible;
+}
+
+export function SystemShell({ children, routeSkeleton }: SystemShellProps) {
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -48,6 +76,12 @@ export function SystemShell({ children }: SystemShellProps) {
       : undefined;
 
   const canAccessCurrentRoute = canAccessRoute(pathname, role, actor);
+  const showInitialRouteSkeleton = useSystemRouteSkeleton(
+    pathname,
+    Boolean(routeSkeleton),
+  );
+  const showRouteSkeleton =
+    Boolean(routeSkeleton) && (showInitialRouteSkeleton || meQuery.isPending);
   const userMenuItems: UserMenuItem[] = isImpersonating()
     ? [
         {
@@ -91,13 +125,15 @@ export function SystemShell({ children }: SystemShellProps) {
         </Button>
 
         <main className="min-w-0 px-4 pt-20 pb-6 sm:px-5 lg:px-8 lg:pt-8 lg:pb-8">
-          {canAccessCurrentRoute ? (
+          {showRouteSkeleton ? (
+            routeSkeleton
+          ) : canAccessCurrentRoute ? (
             children
           ) : (
             <StatusPage
               eyebrow="403"
-              title="Acesso nao autorizado"
-              message="Seu perfil nao tem permissao para acessar esta area."
+              title="Acesso não autorizado"
+              message="Seu perfil não tem permissão para acessar esta área."
               actionHref="/dashboard"
               actionLabel="Ir para dashboard"
             />
