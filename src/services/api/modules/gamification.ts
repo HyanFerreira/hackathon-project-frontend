@@ -448,6 +448,82 @@ export type DashboardSummary =
       posicao_turma?: number | null;
     };
 
+export type DesempenhoResumo = {
+  turmas: number;
+  alunos: number;
+  alunos_ativos: number;
+  respostas: number;
+  acertos: number;
+  taxa_acerto: number;
+  professores?: number;
+  questoes_criadas?: number;
+};
+
+export type DesempenhoTurma = {
+  turma_id: number;
+  nome: string;
+  alunos: number;
+  respostas: number;
+  taxa_acerto: number;
+};
+
+export type DesempenhoHabilidade = {
+  codigo: string;
+  descricao: string;
+  disciplina: string;
+  respostas: number;
+  acertos: number;
+  taxa_acerto: number;
+};
+
+export type DesempenhoDisciplina = {
+  id: number;
+  nome: string;
+  respostas: number;
+  taxa_acerto: number;
+};
+
+export type AlunoComDificuldade = {
+  id: number;
+  nome: string;
+  respostas: number;
+  taxa_acerto: number;
+};
+
+export type ProfessorDesempenho = {
+  resumo: DesempenhoResumo;
+  por_turma: DesempenhoTurma[];
+  habilidades_dificeis: DesempenhoHabilidade[];
+  disciplinas: DesempenhoDisciplina[];
+  questoes_mais_erradas: Array<{
+    id: number;
+    enunciado: string;
+    respostas: number;
+    acertos: number;
+    taxa_acerto: number;
+  }>;
+  alunos_com_dificuldade: AlunoComDificuldade[];
+};
+
+export type GestorDesempenho = {
+  resumo: DesempenhoResumo;
+  por_turma: DesempenhoTurma[];
+  habilidades_dificeis: DesempenhoHabilidade[];
+  disciplinas: DesempenhoDisciplina[];
+  professores_ativos: Array<{
+    id: number;
+    nome: string;
+    questoes: number;
+  }>;
+  top_alunos: Array<{
+    id: number;
+    nome: string;
+    pontuacao: number;
+    nivel: number;
+  }>;
+  alunos_com_dificuldade: AlunoComDificuldade[];
+};
+
 export type CreateTurmaPayload = {
   nome: string;
   ano?: string;
@@ -995,6 +1071,22 @@ export const gamificationApi = {
     );
 
     return { kind: "professor", ...data } as DashboardSummary;
+  },
+
+  async professorDesempenho(): Promise<ProfessorDesempenho> {
+    const { data } = await api.get<ProfessorDesempenho>(
+      gamificationEndpoints.professorDesempenho,
+    );
+
+    return data;
+  },
+
+  async gestorDesempenho(): Promise<GestorDesempenho> {
+    const { data } = await api.get<GestorDesempenho>(
+      gamificationEndpoints.gestorDesempenho,
+    );
+
+    return data;
   },
 
   async professorTurmas(): Promise<Turma[]> {

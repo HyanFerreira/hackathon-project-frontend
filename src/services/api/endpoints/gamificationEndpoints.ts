@@ -30,7 +30,9 @@ export const gamificationEndpoints = {
 
   adminDashboard: "/admin/dashboard",
   gestorDashboard: "/gestor/dashboard",
+  gestorDesempenho: "/gestor/desempenho",
   professorDashboard: "/professor/dashboard",
+  professorDesempenho: "/professor/desempenho",
 
   gestorTurmas: "/gestor/turmas",
   gestorTurma: (id: number) => `/gestor/turmas/${id}`,

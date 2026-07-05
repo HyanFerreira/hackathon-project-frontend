@@ -19,6 +19,7 @@ import {
 import { getAuthActor } from "@/services/api/tokenStorage";
 import type { Aluno } from "@/types/aluno";
 import type { User } from "@/types/user";
+import { PerformanceDashboard } from "./PerformanceDashboard";
 
 type StatCardProps = {
   label: string;
@@ -217,13 +218,17 @@ export function DashboardHome() {
         </p>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {renderStats(dashboardQuery.data, dashboardQuery.isPending, {
-          count: professorTurmasQuery.data?.length,
-          isError: professorTurmasQuery.isError,
-          isLoading: professorTurmasQuery.isPending,
-        })}
-      </section>
+      {role === "gestor" || role === "professor" ? (
+        <PerformanceDashboard role={role} />
+      ) : (
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {renderStats(dashboardQuery.data, dashboardQuery.isPending, {
+            count: professorTurmasQuery.data?.length,
+            isError: professorTurmasQuery.isError,
+            isLoading: professorTurmasQuery.isPending,
+          })}
+        </section>
+      )}
 
       {role === "professor" &&
         professorTurmasQuery.isSuccess &&
