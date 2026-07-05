@@ -146,7 +146,7 @@ export function Toast({
         className={`mt-0.5 size-5 shrink-0 ${tone.iconClassName}`}
       />
       <div className="min-w-0 flex-1">
-        <p className="font-semibold">{title ?? tone.title}</p>
+        <p className="font-bold">{title ?? tone.title}</p>
         <p className="mt-1 text-sm">{message}</p>
       </div>
       <Button

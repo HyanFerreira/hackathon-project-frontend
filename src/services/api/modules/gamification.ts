@@ -21,6 +21,7 @@ import type {
   SessaoAoVivoQuestao,
   SessaoAoVivoRankingItem,
   SessaoAoVivoResumo,
+  SessaoAoVivoResumoAluno,
   SessaoAoVivoStatus,
 } from "@/types/aluno";
 import type {
@@ -345,6 +346,40 @@ type SessaoAoVivoAlunoEstadoApi = {
     respondido_em?: string | null;
   } | null;
   ranking: SessaoAoVivoRankingItemApi[];
+};
+
+type SessaoAoVivoResumoAlunoApi = {
+  resumo: {
+    sessoes_concluidas: number;
+    xp_ganho: number;
+    melhor_pontuacao: number;
+    melhor_sessao?: {
+      id: number;
+      titulo?: string | null;
+      data?: string | null;
+    } | null;
+  };
+  historico: Array<{
+    id: number;
+    titulo?: string | null;
+    data?: string | null;
+    participou: boolean;
+    pontos: number;
+    xp: number;
+    acertos: number;
+    erros: number;
+    respostas: number;
+    questoes_total: number;
+    turma?: {
+      id?: number | null;
+      nome?: string | null;
+      ano?: string | null;
+    } | null;
+    professor?: {
+      id?: number | null;
+      nome?: string | null;
+    } | null;
+  }>;
 };
 
 type DesafioParticipanteApi = {
@@ -964,6 +999,50 @@ function normalizeSessaoAlunoEstado(
   };
 }
 
+function normalizeSessaoResumoAluno(
+  data: SessaoAoVivoResumoAlunoApi,
+): SessaoAoVivoResumoAluno {
+  return {
+    summary: {
+      completedSessions: data.resumo.sessoes_concluidas,
+      earnedXp: data.resumo.xp_ganho,
+      bestScore: data.resumo.melhor_pontuacao,
+      bestSession: data.resumo.melhor_sessao
+        ? {
+            id: data.resumo.melhor_sessao.id,
+            title: data.resumo.melhor_sessao.titulo,
+            date: data.resumo.melhor_sessao.data,
+          }
+        : null,
+    },
+    history: data.historico.map((item) => ({
+      id: item.id,
+      title: item.titulo,
+      date: item.data,
+      participated: item.participou,
+      points: item.pontos,
+      xp: item.xp,
+      correct: item.acertos,
+      errors: item.erros,
+      answers: item.respostas,
+      totalQuestions: item.questoes_total,
+      turma: item.turma
+        ? {
+            id: item.turma.id,
+            name: item.turma.nome,
+            year: item.turma.ano,
+          }
+        : null,
+      professor: item.professor
+        ? {
+            id: item.professor.id,
+            name: item.professor.nome,
+          }
+        : null,
+    })),
+  };
+}
+
 function normalizeDesafioParticipante(
   participante?: DesafioParticipanteApi | null,
 ): DesafioParticipante | null {
@@ -1504,11 +1583,11 @@ export const gamificationApi = {
     const personagem = unwrapResource(data.personagem ?? undefined);
 
     if (correctAlternativeId === undefined) {
-      throw new Error("A resposta da API nao informou o gabarito da questao.");
+      throw new Error("A resposta da API não informou o gabarito da questão.");
     }
 
     if (!perfil) {
-      throw new Error("A resposta da API nao informou o perfil atualizado.");
+      throw new Error("A resposta da API não informou o perfil atualizado.");
     }
 
     return {
@@ -1696,7 +1775,7 @@ export const gamificationApi = {
     const perfil = unwrapResource(data.perfil);
 
     if (!perfil) {
-      throw new Error("A resposta da API nao informou o perfil atualizado.");
+      throw new Error("A resposta da API não informou o perfil atualizado.");
     }
 
     return {
@@ -1721,6 +1800,17 @@ export const gamificationApi = {
       message: data.message,
       inventario: data.inventario.data.map(normalizeAlunoPersonagem),
     };
+  },
+
+  async sessoesAoVivoResumo(
+    period: "30-days" | "all" | "year" = "all",
+  ): Promise<SessaoAoVivoResumoAluno> {
+    const { data } = await api.get<SessaoAoVivoResumoAlunoApi>(
+      gamificationEndpoints.alunoSessoesAoVivoResumo,
+      { params: { periodo: period } },
+    );
+
+    return normalizeSessaoResumoAluno(data);
   },
 
   async sessaoAoVivoAtiva(): Promise<SessaoAoVivoAlunoEstado | null> {

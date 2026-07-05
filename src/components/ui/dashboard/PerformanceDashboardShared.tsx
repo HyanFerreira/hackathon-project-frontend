@@ -55,7 +55,7 @@ export function DashboardSummaryCard({
           <Icon aria-hidden="true" className="size-7" />
         </span>
         <div className="min-w-0">
-          <p className="text-xs font-semibold text-slate-600">{label}</p>
+          <p className="text-xs font-bold text-slate-600">{label}</p>
           <p className="mt-1 text-3xl font-bold text-slate-900">{value}</p>
           <p className="mt-1 truncate text-xs text-text-secondary">{detail}</p>
         </div>

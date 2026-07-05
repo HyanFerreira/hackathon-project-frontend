@@ -78,7 +78,7 @@ export function TurmaLinksWorkspace({ turmaId }: Props) {
       <section>
         <Link
           href="/turmas"
-          className="inline-flex items-center gap-2 text-sm font-semibold text-brand-primary"
+          className="inline-flex items-center gap-2 text-sm font-bold text-brand-primary"
         >
           <ArrowLeft className="size-4" />
           Voltar para turmas
@@ -115,7 +115,7 @@ export function TurmaLinksWorkspace({ turmaId }: Props) {
                   key={teacher.id}
                   className="flex items-center justify-between rounded-system border border-slate-200 px-3 py-2"
                 >
-                  <span className="font-semibold text-text-primary">
+                  <span className="font-bold text-text-primary">
                     {teacher.name}
                   </span>
                   <Button
@@ -151,7 +151,7 @@ export function TurmaLinksWorkspace({ turmaId }: Props) {
                   key={student.id}
                   className="flex items-center justify-between rounded-system border border-slate-200 px-3 py-2"
                 >
-                  <span className="font-semibold text-text-primary">
+                  <span className="font-bold text-text-primary">
                     {student.name}
                   </span>
                   <Button

@@ -12,6 +12,7 @@ import {
   useState,
 } from "react";
 import { twMerge } from "tailwind-merge";
+import { Button } from "@/components/buttons";
 
 export type SelectOption = {
   label: string;
@@ -22,6 +23,7 @@ export type SelectOption = {
 type SelectBaseProps = {
   buttonClassName?: string;
   className?: string;
+  clearable?: boolean;
   disabled?: boolean;
   emptyMessage?: string;
   error?: string;
@@ -76,6 +78,7 @@ function normalizeText(value: string) {
 export function Select({
   buttonClassName,
   className,
+  clearable = true,
   disabled,
   emptyMessage = "Nenhuma opcao encontrada.",
   error,
@@ -229,12 +232,22 @@ export function Select({
   function selectOption(option: SelectOption) {
     if (option.disabled) return;
 
+    const selected = isSelected(option.value);
+
+    if (selected && clearable) {
+      if (props.multiple) {
+        props.onChange(props.value.filter((value) => value !== option.value));
+      } else {
+        props.onChange("");
+        setIsOpen(false);
+      }
+      return;
+    }
+
     if (props.multiple) {
-      props.onChange(
-        isSelected(option.value)
-          ? props.value.filter((value) => value !== option.value)
-          : [...props.value, option.value],
-      );
+      if (!selected) {
+        props.onChange([...props.value, option.value]);
+      }
       return;
     }
 
@@ -249,7 +262,7 @@ export function Select({
       {label && (
         <label
           htmlFor={selectId}
-          className="block text-sm font-semibold text-text-primary"
+          className="block text-sm font-bold text-text-primary"
         >
           {label}
         </label>
@@ -265,7 +278,7 @@ export function Select({
             <input type="hidden" name={name} value={props.value ?? ""} />
           ))}
 
-        <button
+        <Button
           ref={triggerRef}
           id={selectId}
           type="button"
@@ -277,37 +290,41 @@ export function Select({
           disabled={disabled}
           onClick={() => setIsOpen((current) => !current)}
           className={twMerge(
-            "min-h-11 w-full rounded-system border border-input-border bg-white px-3 py-2.5 pr-16 text-left text-sm text-text-primary outline-0 transition focus:border-transparent focus:outline-2 focus:outline-offset-1 focus:outline-input-border-focus focus-visible:border-transparent focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-input-border-focus disabled:cursor-default disabled:bg-input-disabled",
+            "inline-flex h-11 w-full items-center justify-between rounded-lg border border-input-border bg-white px-3 py-2.5 pr-10 text-left text-sm font-normal text-text-primary shadow-sm shadow-slate-200/50 outline-0 transition-none placeholder:font-normal placeholder:text-placeholder focus:border-transparent focus:outline-2 focus:outline-offset-1 focus:outline-input-border-focus focus:ring-0 focus:ring-offset-0 focus-visible:border-transparent focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-input-border-focus focus-visible:ring-0 focus-visible:ring-offset-0 disabled:cursor-default disabled:bg-input-disabled disabled:opacity-70",
             error &&
               "border-red-500 focus:outline-red-600 focus-visible:outline-red-600",
             buttonClassName,
           )}
         >
-          <span className="flex min-w-0 items-center gap-2">
+          <span className="flex min-w-0 flex-1 items-center gap-2 text-sm font-normal">
             {hasValue ? (
               props.multiple ? (
                 <span className="flex min-w-0 flex-wrap gap-1.5">
                   {selectedOptions.map((option) => (
                     <span
                       key={option.value}
-                      className="rounded-full bg-brand-primary-soft px-2.5 py-0.5 text-xs font-semibold text-brand-primary"
+                      className="rounded-full bg-brand-primary-soft px-2.5 py-0.5 text-xs font-bold text-brand-primary"
                     >
                       {option.label}
                     </span>
                   ))}
                 </span>
               ) : (
-                <span className="truncate">{selectedOptions[0]?.label}</span>
+                <span className="truncate text-sm font-normal">
+                  {selectedOptions[0]?.label}
+                </span>
               )
             ) : (
-              <span className="text-placeholder">{placeholder}</span>
+              <span className="text-sm font-normal text-placeholder">
+                {placeholder}
+              </span>
             )}
           </span>
-        </button>
+        </Button>
 
         <span className="-translate-y-1/2 absolute top-1/2 right-2 flex items-center gap-1">
-          {hasValue && !disabled && (
-            <button
+          {hasValue && !disabled && clearable && (
+            <Button
               type="button"
               aria-label="Limpar selecao"
               onClick={() => {
@@ -317,10 +334,10 @@ export function Select({
                   props.onChange("");
                 }
               }}
-              className="inline-flex size-7 items-center justify-center rounded-system text-text-secondary transition hover:bg-slate-100 hover:text-text-primary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-input-border-focus"
+              className="inline-flex size-7 items-center justify-center rounded-system text-text-secondary transition hover:text-red-700 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-input-border-focus"
             >
               <X aria-hidden="true" className="size-4" />
-            </button>
+            </Button>
           )}
           <ChevronDown
             aria-hidden="true"
@@ -353,7 +370,7 @@ export function Select({
                     value={searchTerm}
                     placeholder="Buscar..."
                     onChange={(event) => setSearchTerm(event.target.value)}
-                    className="h-10 w-full rounded-system border border-input-border bg-white pr-3 pl-9 text-sm text-text-primary outline-0 placeholder:text-placeholder focus:border-transparent focus:outline-2 focus:outline-offset-1 focus:outline-input-border-focus"
+                    className="h-11 w-full rounded-lg border border-input-border bg-white pr-3 pl-9 text-sm font-normal text-text-primary outline-0 placeholder:font-normal placeholder:text-placeholder focus:border-transparent focus:outline-2 focus:outline-offset-1 focus:outline-input-border-focus"
                   />
                 </div>
               </div>
@@ -374,9 +391,10 @@ export function Select({
 
               {filteredOptions.map((option) => {
                 const selected = isSelected(option.value);
+                const canClearSelected = selected && clearable;
 
                 return (
-                  <button
+                  <Button
                     key={option.value}
                     type="button"
                     role="option"
@@ -384,19 +402,27 @@ export function Select({
                     disabled={option.disabled}
                     onClick={() => selectOption(option)}
                     className={twMerge(
-                      "flex min-h-10 w-full items-center justify-between gap-3 rounded-system px-3 py-2 text-left text-sm transition",
-                      selected
-                        ? "bg-brand-primary-soft font-semibold text-brand-primary"
-                        : "text-text-primary hover:bg-slate-50",
+                      "group flex min-h-11 w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm font-normal transition",
+                      selected && "bg-brand-primary-soft text-brand-primary",
+                      canClearSelected && "hover:bg-red-50 hover:text-red-700",
+                      !selected && "text-text-primary hover:bg-slate-50",
                       option.disabled &&
                         "cursor-default opacity-50 hover:bg-transparent",
                     )}
                   >
-                    <span className="min-w-0 truncate">{option.label}</span>
-                    {selected && (
-                      <Check aria-hidden="true" className="size-4 shrink-0" />
-                    )}
-                  </button>
+                    <span className="min-w-0 truncate text-sm font-normal">
+                      {option.label}
+                    </span>
+                    {selected &&
+                      (clearable ? (
+                        <X
+                          aria-hidden="true"
+                          className="size-4 shrink-0 group-hover:text-red-700"
+                        />
+                      ) : (
+                        <Check aria-hidden="true" className="size-4 shrink-0" />
+                      ))}
+                  </Button>
                 );
               })}
             </div>

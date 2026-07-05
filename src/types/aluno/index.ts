@@ -21,10 +21,12 @@ export type {
   PersonagemLoja,
   RankingItem,
   SessaoAoVivoAlunoEstado,
+  SessaoAoVivoHistoricoItem,
   SessaoAoVivoPerformance,
   SessaoAoVivoProfessorEstado,
   SessaoAoVivoQuestao,
   SessaoAoVivoRankingItem,
   SessaoAoVivoResumo,
+  SessaoAoVivoResumoAluno,
   SessaoAoVivoStatus,
 } from "./aluno";

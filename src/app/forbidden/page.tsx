@@ -5,8 +5,8 @@ export default function ForbiddenPage() {
     <main className="min-h-screen bg-slate-100 px-5 py-8 text-text-primary">
       <StatusPage
         eyebrow="403"
-        title="Acesso nao autorizado"
-        message="Seu perfil nao tem permissao para acessar esta area."
+        title="Acesso não autorizado"
+        message="Seu perfil não tem permissão para acessar esta área."
         actionHref="/dashboard"
         actionLabel="Ir para dashboard"
       />

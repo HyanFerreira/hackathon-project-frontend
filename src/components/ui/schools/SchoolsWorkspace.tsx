@@ -115,7 +115,7 @@ export function SchoolsWorkspace() {
               <p>
                 {schoolsQuery.error
                   ? getApiErrorMessage(schoolsQuery.error)
-                  : "Nao foi possivel carregar os gestores."}
+                  : "Não foi possível carregar os gestores."}
               </p>
             </div>
           )}
@@ -126,11 +126,11 @@ export function SchoolsWorkspace() {
                 aria-hidden="true"
                 className="mx-auto mb-3 size-10 text-brand-primary"
               />
-              <p className="font-semibold text-text-primary">
+              <p className="font-bold text-text-primary">
                 Nenhuma escola cadastrada
               </p>
               <p className="mt-1 text-sm text-text-secondary">
-                Clique em nova escola para comecar.
+                Clique em nova escola para começar.
               </p>
             </div>
           )}
@@ -157,7 +157,7 @@ export function SchoolsWorkspace() {
                         className="border-slate-100 border-b last:border-0 hover:bg-slate-50"
                       >
                         <td className="px-3 py-3">
-                          <p className="font-semibold text-text-primary">
+                          <p className="font-bold text-text-primary">
                             {school.name}
                           </p>
                         </td>
@@ -167,7 +167,7 @@ export function SchoolsWorkspace() {
                             .join(" - ") || "-"}
                         </td>
                         <td className="px-3 py-3">
-                          <span className="rounded-full bg-brand-primary-soft px-2.5 py-0.5 text-xs font-semibold text-brand-primary">
+                          <span className="rounded-full bg-brand-primary-soft px-2.5 py-0.5 text-xs font-bold text-brand-primary">
                             {school.status === "inativa" ? "Inativa" : "Ativa"}
                           </span>
                         </td>
@@ -221,7 +221,7 @@ export function SchoolsWorkspace() {
       <ConfirmDialog
         isOpen={Boolean(schoolToDelete)}
         title="Excluir escola"
-        message={`Tem certeza que deseja excluir "${schoolToDelete?.name}"? Esta acao nao pode ser desfeita.`}
+        message={`Tem certeza que deseja excluir "${schoolToDelete?.name}"? Esta ação não pode ser desfeita.`}
         confirmLabel="Excluir"
         isLoading={deleteMutation.isPending}
         onConfirm={() => {

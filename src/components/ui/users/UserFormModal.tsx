@@ -226,7 +226,7 @@ export function UserFormModal({ isOpen, user, onClose }: UserFormModalProps) {
         />
 
         <fieldset className="space-y-2">
-          <legend className="text-sm font-semibold text-text-primary">
+          <legend className="text-sm font-bold text-text-primary">
             Perfil
           </legend>
 
@@ -272,7 +272,7 @@ export function UserFormModal({ isOpen, user, onClose }: UserFormModalProps) {
 
             {schoolsQuery.isError && (
               <p className="text-sm text-red-600">
-                NÃ£o foi possÃ­vel carregar as escolas.
+                Não foi possível carregar as escolas.
               </p>
             )}
 

@@ -89,7 +89,7 @@ const sidebarItems: SidebarItem[] = [
   },
   {
     key: "usuarios",
-    label: "Usuarios",
+    label: "Usuários",
     icon: Users,
     href: "/usuarios",
   },
@@ -113,7 +113,7 @@ const sidebarItems: SidebarItem[] = [
   },
   {
     key: "questoes",
-    label: "Questoes",
+    label: "Questões",
     icon: ClipboardList,
     href: "/questoes",
   },
@@ -358,7 +358,7 @@ export function AppSidebar({
   return (
     <>
       {isMobileOpen && (
-        <button
+        <Button
           aria-label="Fechar menu"
           className="fixed inset-0 z-40 bg-slate-950/45 backdrop-blur-[2px] lg:hidden"
           onClick={onCloseMobile}
@@ -528,7 +528,7 @@ export function AppSidebar({
                       <Skeleton className="h-4 w-28 bg-white/30" />
                     ) : (
                       <>
-                        <span className="block truncate text-sm font-semibold">
+                        <span className="block truncate text-sm font-bold">
                           {userName}
                         </span>
                         <span

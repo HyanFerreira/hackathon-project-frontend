@@ -40,7 +40,7 @@ export function StatusPage({
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link
             href={actionHref}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-system bg-brand-primary px-5 py-2.5 font-semibold text-white transition hover:bg-brand-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-input-border-focus"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-system bg-brand-primary px-5 py-2.5 font-bold text-white transition hover:bg-brand-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-input-border-focus"
           >
             <LayoutDashboard aria-hidden="true" className="size-5" />
             {actionLabel}
@@ -49,7 +49,7 @@ export function StatusPage({
           {secondaryHref && secondaryLabel && (
             <Link
               href={secondaryHref}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-system border border-slate-200 bg-white px-5 py-2.5 font-semibold text-text-primary transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-input-border-focus"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-system border border-slate-200 bg-white px-5 py-2.5 font-bold text-text-primary transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-input-border-focus"
             >
               <ArrowLeft aria-hidden="true" className="size-5" />
               {secondaryLabel}

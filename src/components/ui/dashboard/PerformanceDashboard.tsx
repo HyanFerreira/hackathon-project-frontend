@@ -32,7 +32,7 @@ function Metric({ icon: Icon, label, value, detail }: MetricProps) {
     <article className="rounded-system border border-slate-200 bg-white p-5 shadow-[0_10px_30px_rgba(0,0,0,0.06)]">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-text-secondary">{label}</p>
+          <p className="text-sm font-bold text-text-secondary">{label}</p>
           <p className="mt-2 text-3xl font-bold text-text-primary">{value}</p>
           <p className="mt-1 text-xs text-text-secondary">{detail}</p>
         </div>
@@ -88,7 +88,7 @@ function PercentageBars({
         <div key={item.id}>
           <div className="mb-1.5 flex items-end justify-between gap-4 text-sm">
             <div className="min-w-0">
-              <p className="truncate font-semibold text-text-primary">
+              <p className="truncate font-bold text-text-primary">
                 {item.label}
               </p>
               {item.detail && (
@@ -142,7 +142,7 @@ function RankingList({
             {index + 1}
           </span>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-text-primary">
+            <p className="truncate text-sm font-bold text-text-primary">
               {item.name}
             </p>
             {item.detail && (
@@ -336,7 +336,7 @@ function PerformanceContent({
                           className="mt-0.5 size-5 shrink-0 text-brand-primary"
                         />
                         <div>
-                          <p className="line-clamp-2 text-sm font-semibold text-text-primary">
+                          <p className="line-clamp-2 text-sm font-bold text-text-primary">
                             {questao.enunciado}
                           </p>
                           <p className="mt-2 text-xs text-text-secondary">

@@ -37,9 +37,9 @@ const EMPTY_FORM: FormState = {
 };
 
 const DIFFICULTY_OPTIONS = [
-  { label: "Facil", value: "facil" },
-  { label: "Media", value: "media" },
-  { label: "Dificil", value: "dificil" },
+  { label: "Fácil", value: "facil" },
+  { label: "Média", value: "media" },
+  { label: "Difícil", value: "dificil" },
 ];
 
 const STATUS_OPTIONS = [
@@ -148,9 +148,9 @@ export function QuestionsWorkspace() {
     <div className="space-y-6">
       <section className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-brand-primary">Questoes</h1>
+          <h1 className="text-3xl font-bold text-brand-primary">Questões</h1>
           <p className="mt-1 text-base text-text-secondary">
-            Crie questoes por habilidade BNCC com uma alternativa correta.
+            Crie questões por habilidade BNCC com uma alternativa correta.
           </p>
         </div>
         <Button
@@ -162,7 +162,7 @@ export function QuestionsWorkspace() {
           className="min-h-11 self-start bg-brand-primary px-5 py-3 text-white hover:bg-brand-primary-hover"
         >
           <Plus aria-hidden="true" className="size-5" />
-          Nova questao
+          Nova questão
         </Button>
       </section>
 
@@ -196,7 +196,7 @@ export function QuestionsWorkspace() {
                     key={question.id}
                     className="border-slate-100 border-b last:border-0 hover:bg-slate-50"
                   >
-                    <td className="max-w-xl px-3 py-3 font-semibold text-text-primary">
+                    <td className="max-w-xl px-3 py-3 font-bold text-text-primary">
                       {question.statement}
                     </td>
                     <td className="px-3 py-3 text-text-secondary">
@@ -209,7 +209,7 @@ export function QuestionsWorkspace() {
                       <div className="flex justify-end gap-2">
                         <Button
                           type="button"
-                          aria-label="Editar questao"
+                          aria-label="Editar questão"
                           onClick={() => {
                             setEditingQuestion(question);
                             setIsFormOpen(true);
@@ -220,7 +220,7 @@ export function QuestionsWorkspace() {
                         </Button>
                         <Button
                           type="button"
-                          aria-label="Excluir questao"
+                          aria-label="Excluir questão"
                           onClick={() => setQuestionToDelete(question)}
                           className="size-9 border border-red-200 bg-white p-0 text-red-600 hover:bg-red-50"
                         >
@@ -236,8 +236,8 @@ export function QuestionsWorkspace() {
         ) : (
           questionsQuery.isSuccess && (
             <div className="rounded-system border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
-              <p className="font-semibold text-text-primary">
-                Nenhuma questao criada
+              <p className="font-bold text-text-primary">
+                Nenhuma questão criada
               </p>
             </div>
           )
@@ -247,7 +247,7 @@ export function QuestionsWorkspace() {
       <Modal
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
-        title={editingQuestion ? "Editar questao" : "Nova questao"}
+        title={editingQuestion ? "Editar questão" : "Nova questão"}
         className="max-w-3xl"
         footer={
           <>
@@ -331,7 +331,7 @@ export function QuestionsWorkspace() {
           />
 
           <fieldset className="space-y-3">
-            <legend className="text-sm font-semibold text-text-primary">
+            <legend className="text-sm font-bold text-text-primary">
               Alternativas
             </legend>
             {form.alternatives.map((alternative, index) => (
@@ -352,7 +352,7 @@ export function QuestionsWorkspace() {
                     }))
                   }
                 />
-                <label className="mb-3 flex items-center gap-2 text-sm font-semibold text-text-primary">
+                <label className="mb-3 flex items-center gap-2 text-sm font-bold text-text-primary">
                   <input
                     type="checkbox"
                     checked={alternative.correct}
@@ -377,8 +377,8 @@ export function QuestionsWorkspace() {
 
       <ConfirmDialog
         isOpen={Boolean(questionToDelete)}
-        title="Excluir questao"
-        message="Tem certeza que deseja excluir esta questao?"
+        title="Excluir questão"
+        message="Tem certeza que deseja excluir esta questão?"
         confirmLabel="Excluir"
         isLoading={deleteMutation.isPending}
         onConfirm={() => {

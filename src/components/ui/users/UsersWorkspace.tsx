@@ -146,7 +146,7 @@ export function UsersWorkspace() {
                 aria-hidden="true"
                 className="mx-auto mb-3 size-10 text-brand-primary"
               />
-              <p className="font-semibold text-text-primary">
+              <p className="font-bold text-text-primary">
                 Nenhum usuário cadastrado
               </p>
               <p className="mt-1 text-sm text-text-secondary">
@@ -180,7 +180,7 @@ export function UsersWorkspace() {
                         key={user.id}
                         className="border-slate-100 border-b last:border-0 hover:bg-slate-50"
                       >
-                        <td className="px-3 py-3 font-semibold text-text-primary">
+                        <td className="px-3 py-3 font-bold text-text-primary">
                           {user.name}
                         </td>
                         <td className="px-3 py-3 text-text-secondary">
@@ -195,7 +195,7 @@ export function UsersWorkspace() {
                               user.roles.map((role) => (
                                 <span
                                   key={role.id}
-                                  className="rounded-full bg-brand-primary-soft px-2.5 py-0.5 text-xs font-semibold text-brand-primary"
+                                  className="rounded-full bg-brand-primary-soft px-2.5 py-0.5 text-xs font-bold text-brand-primary"
                                 >
                                   {role.name}
                                 </span>
@@ -212,7 +212,7 @@ export function UsersWorkspace() {
                               aria-label={`Impersonar ${user.name}`}
                               title={
                                 isCurrentUser
-                                  ? "Nao e possivel impersonar seu proprio usuario"
+                                  ? "Não é possível impersonar seu próprio usuário"
                                   : "Impersonar"
                               }
                               disabled={isImpersonateDisabled}

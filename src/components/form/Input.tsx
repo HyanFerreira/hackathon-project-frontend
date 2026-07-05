@@ -27,7 +27,7 @@ export function Input({
       {label && (
         <label
           htmlFor={inputId}
-          className="block text-sm font-semibold text-text-primary"
+          className="block text-sm font-bold text-text-primary"
         >
           {label}
         </label>
@@ -45,7 +45,7 @@ export function Input({
           aria-describedby={errorId}
           aria-invalid={Boolean(error)}
           className={twMerge(
-            "h-11 w-full rounded-system border border-input-border px-3 py-2.5 text-sm font-light text-text-primary outline-0 placeholder:text-placeholder focus:border-transparent focus:outline-2 focus:outline-offset-1 focus:outline-input-border-focus disabled:cursor-default disabled:bg-input-disabled",
+            "h-11 w-full rounded-lg border border-input-border px-3 py-2.5 text-sm font-normal text-text-primary outline-0 placeholder:font-normal placeholder:text-placeholder focus:border-transparent focus:outline-2 focus:outline-offset-1 focus:outline-input-border-focus disabled:cursor-default disabled:bg-input-disabled",
             icon && "pl-10",
             rightElement && "pr-12",
             error && "border-red-500 focus:outline-red-600",

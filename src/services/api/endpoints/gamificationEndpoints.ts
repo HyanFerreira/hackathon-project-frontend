@@ -21,6 +21,7 @@ export const gamificationEndpoints = {
   alunoComprarPersonagem: (id: number) => `/aluno/loja/${id}/comprar`,
   alunoPersonagens: "/aluno/personagens",
   alunoEquiparPersonagem: (id: number) => `/aluno/personagens/${id}/equipar`,
+  alunoSessoesAoVivoResumo: "/aluno/sessoes-ao-vivo/resumo",
   alunoSessaoAoVivoAtiva: "/aluno/sessoes-ao-vivo/ativa",
   alunoEntrarSessaoAoVivo: (id: number) =>
     `/aluno/sessoes-ao-vivo/${id}/entrar`,

@@ -351,7 +351,7 @@ export function ManagerResourcesWorkspace({ kind }: Props) {
                         key={item.id}
                         className="border-slate-100 border-b last:border-0 hover:bg-slate-50"
                       >
-                        <td className="px-3 py-3 font-semibold text-text-primary">
+                        <td className="px-3 py-3 font-bold text-text-primary">
                           {getItemName(item)}
                         </td>
 
@@ -377,13 +377,13 @@ export function ManagerResourcesWorkspace({ kind }: Props) {
                                   {visibleTeacherClasses.map((className) => (
                                     <span
                                       key={className}
-                                      className="max-w-[110px] truncate rounded-full bg-brand-primary-soft px-2.5 py-0.5 text-xs font-semibold text-brand-primary"
+                                      className="max-w-[110px] truncate rounded-full bg-brand-primary-soft px-2.5 py-0.5 text-xs font-bold text-brand-primary"
                                     >
                                       {className}
                                     </span>
                                   ))}
                                   {hiddenTeacherClassesCount > 0 && (
-                                    <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-text-secondary">
+                                    <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-text-secondary">
                                       +{hiddenTeacherClassesCount}
                                     </span>
                                   )}
@@ -395,7 +395,7 @@ export function ManagerResourcesWorkspace({ kind }: Props) {
                           </>
                         ) : aluno ? (
                           <>
-                            <td className="px-3 py-3 font-semibold text-brand-primary">
+                            <td className="px-3 py-3 font-bold text-brand-primary">
                               {aluno.code}
                             </td>
                             <td className="px-3 py-3 text-text-secondary">
@@ -407,7 +407,7 @@ export function ManagerResourcesWorkspace({ kind }: Props) {
                           <td className="px-3 py-3 text-text-secondary">
                             {kind === "turmas" &&
                               `${(item as Turma).year ?? "-"} - ${
-                                (item as Turma).shift ?? "turno nao informado"
+                                (item as Turma).shift ?? "turno não informado"
                               }`}
                           </td>
                         )}
@@ -454,7 +454,7 @@ export function ManagerResourcesWorkspace({ kind }: Props) {
           ) : (
             listQuery.isSuccess && (
               <div className="rounded-system border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
-                <p className="font-semibold text-text-primary">
+                <p className="font-bold text-text-primary">
                   Nenhum registro encontrado
                 </p>
               </div>
@@ -626,7 +626,7 @@ export function ManagerResourcesWorkspace({ kind }: Props) {
               <p className="text-xs font-bold uppercase tracking-wide text-text-secondary">
                 Nome
               </p>
-              <p className="mt-1 font-semibold text-text-primary">
+              <p className="mt-1 font-bold text-text-primary">
                 {teacherToView.name}
               </p>
             </div>
@@ -663,7 +663,7 @@ export function ManagerResourcesWorkspace({ kind }: Props) {
                         key={turma.id}
                         className="rounded-system border border-slate-200 px-3 py-2"
                       >
-                        <p className="font-semibold text-text-primary">
+                        <p className="font-bold text-text-primary">
                           {turma.name}
                         </p>
                         <p className="text-sm text-text-secondary">

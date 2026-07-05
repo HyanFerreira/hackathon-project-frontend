@@ -103,7 +103,7 @@ export function LiveSessionsWorkspace() {
 
   const actionMutation = useMutation({
     mutationFn: async (action: "start" | "pause" | "resume" | "finish") => {
-      if (!sessionId) throw new Error("Selecione uma sessao.");
+      if (!sessionId) throw new Error("Selecione uma sessão.");
 
       if (action === "start")
         return gamificationApi.iniciarSessaoAoVivo(sessionId);
@@ -152,7 +152,7 @@ export function LiveSessionsWorkspace() {
   const sessionOptions = useMemo(
     () =>
       sessions.map((session) => ({
-        label: `${session.title ?? "Sessao"} - ${session.turma?.name ?? `Turma ${session.turma?.id ?? ""}`} (${getStatusLabel(session.status)})`,
+        label: `${session.title ?? "Sessão"} - ${session.turma?.name ?? `Turma ${session.turma?.id ?? ""}`} (${getStatusLabel(session.status)})`,
         value: String(session.id),
       })),
     [sessions],
@@ -176,7 +176,7 @@ export function LiveSessionsWorkspace() {
     <div className="space-y-6">
       <section>
         <h1 className="text-3xl font-bold text-brand-primary">
-          Sessoes ao vivo
+          Sessões ao vivo
         </h1>
         <p className="mt-1 text-base text-text-secondary">
           Inicie uma atividade em tempo real e acompanhe as respostas da turma.
@@ -189,13 +189,13 @@ export function LiveSessionsWorkspace() {
             <div className="flex items-center gap-3">
               <Radio className="size-5 text-brand-primary" />
               <h2 className="text-lg font-bold text-text-primary">
-                Nova sessao
+                Nova sessão
               </h2>
             </div>
 
             <div className="mt-5 space-y-4">
               <Input
-                label="Titulo"
+                label="Título"
                 placeholder="Aula de revisao"
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
@@ -221,7 +221,7 @@ export function LiveSessionsWorkspace() {
                 onClick={() => createMutation.mutate()}
                 className="min-h-11 w-full bg-brand-primary px-4 text-white hover:bg-brand-primary-hover"
               >
-                Criar sessao
+                Criar sessão
               </Button>
               {createMutation.isError && (
                 <ErrorNotice error={createMutation.error} />
@@ -231,7 +231,7 @@ export function LiveSessionsWorkspace() {
 
           <div className="rounded-system border border-slate-200 bg-white p-5 shadow-[0_10px_30px_rgba(0,0,0,0.08)]">
             <h2 className="text-lg font-bold text-text-primary">
-              Sessoes recentes
+              Sessões recentes
             </h2>
             <div className="mt-4">
               {sessionsQuery.isPending && <Skeleton className="h-11" />}
@@ -240,12 +240,12 @@ export function LiveSessionsWorkspace() {
                   value={sessionId ? String(sessionId) : ""}
                   onChange={(value) => setSelectedSessionId(Number(value))}
                   options={sessionOptions}
-                  placeholder="Selecione uma sessao"
+                  placeholder="Selecione uma sessão"
                 />
               )}
               {!sessionsQuery.isPending && sessionOptions.length === 0 && (
                 <p className="text-sm text-text-secondary">
-                  Nenhuma sessao criada ainda.
+                  Nenhuma sessão criada ainda.
                 </p>
               )}
             </div>
@@ -264,8 +264,8 @@ export function LiveSessionsWorkspace() {
           {!sessionId && (
             <div className="flex min-h-[420px] flex-col items-center justify-center text-center">
               <Radio className="mb-3 size-12 text-brand-primary" />
-              <p className="font-semibold text-text-primary">
-                Crie uma sessao para comecar.
+              <p className="font-bold text-text-primary">
+                Crie uma sessão para começar.
               </p>
             </div>
           )}
@@ -278,11 +278,11 @@ export function LiveSessionsWorkspace() {
                     {getStatusLabel(state.session.status)}
                   </p>
                   <h2 className="mt-1 text-2xl font-bold text-text-primary">
-                    {state.session.title ?? "Sessao ao vivo"}
+                    {state.session.title ?? "Sessão ao vivo"}
                   </h2>
                   <p className="mt-1 text-sm text-text-secondary">
                     {state.session.turma?.name ?? "Turma"} -{" "}
-                    {state.session.totalQuestions} questoes
+                    {state.session.totalQuestions} questões
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -334,7 +334,7 @@ export function LiveSessionsWorkspace() {
 
               {state.session.status === "aguardando" && (
                 <div className="rounded-system border border-brand-primary/20 bg-brand-primary-soft p-4">
-                  <p className="font-semibold text-text-primary">
+                  <p className="font-bold text-text-primary">
                     Aguardando o início da sessão
                   </p>
                   <p className="mt-1 text-sm text-text-secondary">
@@ -441,15 +441,15 @@ export function LiveSessionsWorkspace() {
 
               <div className="rounded-system border border-slate-200 p-5">
                 <h3 className="text-lg font-bold text-text-primary">
-                  Questao atual
+                  Questão atual
                 </h3>
                 {currentQuestion ? (
                   <div className="mt-3">
                     <p className="text-xs font-bold uppercase text-brand-primary">
-                      Questao {currentQuestion.order} -{" "}
+                      Questão {currentQuestion.order} -{" "}
                       {currentQuestion.question.points} pontos
                     </p>
-                    <p className="mt-2 text-xl font-semibold text-text-primary">
+                    <p className="mt-2 text-xl font-bold text-text-primary">
                       {currentQuestion.question.statement}
                     </p>
                     <div className="mt-4 grid gap-2">
@@ -457,7 +457,7 @@ export function LiveSessionsWorkspace() {
                         (alternative) => (
                           <div
                             key={alternative.id}
-                            className="rounded-system border border-slate-200 px-4 py-3 text-sm font-semibold"
+                            className="rounded-system border border-slate-200 px-4 py-3 text-sm font-bold"
                           >
                             {alternative.text}
                           </div>
@@ -467,7 +467,7 @@ export function LiveSessionsWorkspace() {
                   </div>
                 ) : (
                   <p className="mt-3 text-sm text-text-secondary">
-                    Nenhuma questao enviada ainda.
+                    Nenhuma questão enviada ainda.
                   </p>
                 )}
               </div>
@@ -486,7 +486,7 @@ export function LiveSessionsWorkspace() {
                     className="grid min-w-[580px] grid-cols-[64px_1fr_100px_100px_100px] border-slate-200 border-t px-4 py-3 text-sm"
                   >
                     <span className="font-bold">{item.position}</span>
-                    <span className="font-semibold">{item.aluno.name}</span>
+                    <span className="font-bold">{item.aluno.name}</span>
                     <span>{item.answers}</span>
                     <span>{item.correct}</span>
                     <span className="font-bold">{item.points}</span>
@@ -514,7 +514,7 @@ function MetricCard({
     <div className="rounded-system border border-slate-200 bg-slate-50 p-4">
       <Icon className="size-5 text-brand-primary" />
       <p className="mt-3 text-2xl font-bold text-text-primary">{value}</p>
-      <p className="text-sm font-semibold text-text-secondary">{label}</p>
+      <p className="text-sm font-bold text-text-secondary">{label}</p>
     </div>
   );
 }

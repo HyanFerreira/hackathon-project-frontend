@@ -36,7 +36,7 @@ function StatCard({ label, value, isLoading, icon: Icon }: StatCardProps) {
         <Icon aria-hidden="true" className="size-6" />
       </div>
       <div>
-        <p className="text-sm font-semibold text-text-secondary">{label}</p>
+        <p className="text-sm font-bold text-text-secondary">{label}</p>
         {isLoading ? (
           <Skeleton className="mt-1 h-8 w-16" />
         ) : (
@@ -138,7 +138,7 @@ function renderStats(
           icon={Users}
         />
         <StatCard
-          label="Questoes"
+          label="Questões"
           value={data.questoes}
           isLoading={isLoading}
           icon={BookOpenCheck}
@@ -156,7 +156,7 @@ function renderStats(
         icon={Trophy}
       />
       <StatCard
-        label="Nivel"
+        label="Nível"
         value={data.perfil.nivel}
         isLoading={isLoading}
         icon={GraduationCap}
@@ -169,7 +169,7 @@ function renderStats(
       />
       <StatCard
         label="Ranking da turma"
-        value={data.posicao_turma ? `${data.posicao_turma}o` : "-"}
+        value={data.posicao_turma ? `${data.posicao_turma}º` : "-"}
         isLoading={isLoading}
         icon={Trophy}
       />
@@ -253,7 +253,6 @@ export function DashboardHome() {
           Não foi possível carregar suas turmas.
         </p>
       )}
-
     </div>
   );
 }

@@ -57,6 +57,23 @@ import achievement13 from "@/assets/images/conquistas/ac13.svg";
 
 const avatarImages: Record<string, StaticImageData> = {};
 const avatarProfileImages: Record<string, StaticImageData> = {};
+const avatarEvolutionImages: Record<string, StaticImageData[]> = {
+  drako: [drakoLevel1, drakoLevel2, drakoLevel3],
+  elyra: [elyraLevel1, elyraLevel2, elyraLevel3],
+  fenro: [fenroLevel1, fenroLevel2, fenroLevel3],
+  grunt_chibi: [gruntLevel1, gruntLevel2, gruntLevel3],
+  kitsune: [kitsuneLevel1, kitsuneLevel2, kitsuneLevel3],
+  leafy: [leafyLevel1, leafyLevel2, leafyLevel3],
+  leo: [leoLevel1, leoLevel2, leoLevel3],
+  leo_juv: [leoLevel1, leoLevel2, leoLevel3],
+  lumi: [lumiLevel1],
+  lumi_juv: [lumiLevel1],
+  luna: [lunaLevel1, lunaLevel2, lunaLevel3],
+  luna_juv: [lunaLevel1, lunaLevel2, lunaLevel3],
+  nox: [noxLevel1, noxLevel2, noxLevel3],
+  pip: [pipLevel1, pipLevel2, pipLevel3],
+  pip_chibi_v2: [pipLevel1, pipLevel2, pipLevel3],
+};
 
 function registerAvatar(
   key: string,
@@ -161,6 +178,17 @@ export function getAvatarImage(image?: string) {
     avatarImages[`${fileName}_level_1.svg`] ??
     lumiLevel1
   );
+}
+
+export function getAvatarEvolutionImage(
+  key: string,
+  image: string,
+  level: number,
+) {
+  const normalizedKey = key.trim().toLowerCase();
+  const evolutionImage = avatarEvolutionImages[normalizedKey]?.[level - 1];
+
+  return evolutionImage ?? getAvatarImage(image);
 }
 
 export function getAvatarProfileImage(avatar?: string, fallbackImage?: string) {

@@ -39,7 +39,7 @@ function unwrapData<T extends object>(
   resourceName: string,
 ): T {
   if (!resource) {
-    throw new Error(`Resposta de impersonacao sem ${resourceName}.`);
+    throw new Error(`Resposta de impersonação sem ${resourceName}.`);
   }
 
   return "data" in resource ? resource.data : resource;

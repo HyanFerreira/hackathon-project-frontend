@@ -5,18 +5,17 @@ import {
   ArrowRight,
   LoaderCircle,
   ShieldCheck,
-  Trophy,
-  Users,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { FormEvent, ReactNode } from "react";
+import type { FormEvent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import loginBorda from "@/assets/images/login-borda.png";
 import loginMascot from "@/assets/images/login-mascot-v2.png";
 import paideiaLogoPurple from "@/assets/images/logotipo/paideia_roxo.svg";
-import { Button } from "@/components/buttons";
+import { Button, buttonVariants } from "@/components/buttons";
+import { Checkbox } from "@/components/form/Checkbox";
 import { CpfInput } from "@/components/form/CpfInput";
 import { Input } from "@/components/form/Input";
 import { PasswordInput } from "@/components/form/PasswordInput";
@@ -44,6 +43,11 @@ type LoginScreenProps = {
   initialCodigo?: string;
 };
 
+const rememberedIdentifierKeys = {
+  aluno: "paideia_remembered_student_code",
+  user: "paideia_remembered_cpf",
+} as const;
+
 export function LoginScreen({
   mode = "user",
   initialCodigo,
@@ -56,6 +60,7 @@ export function LoginScreen({
   const [error, setError] = useState<string>();
   const [fieldErrors, setFieldErrors] = useState<LoginFieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [rememberUser, setRememberUser] = useState(false);
 
   useEffect(() => {
     if (getAuthToken()) {
@@ -63,8 +68,39 @@ export function LoginScreen({
     }
   }, [mode, router]);
 
+  useEffect(() => {
+    const rememberedIdentifier = window.localStorage.getItem(
+      rememberedIdentifierKeys[mode],
+    );
+
+    if (!rememberedIdentifier) return;
+
+    setRememberUser(true);
+
+    if (mode === "aluno") {
+      if (!initialCodigo) {
+        setCodigo(rememberedIdentifier.toUpperCase());
+      }
+    } else {
+      setCpf(rememberedIdentifier);
+    }
+  }, [initialCodigo, mode]);
+
+  const persistRememberedIdentifier = useCallback(
+    (identifier: string) => {
+      const storageKey = rememberedIdentifierKeys[mode];
+
+      if (rememberUser) {
+        window.localStorage.setItem(storageKey, identifier);
+      } else {
+        window.localStorage.removeItem(storageKey);
+      }
+    },
+    [mode, rememberUser],
+  );
+
   const doAlunoLogin = useCallback(
-    async (rawCodigo: string) => {
+    async (rawCodigo: string, persistIdentifier = true) => {
       const codigoValue = rawCodigo.trim().toUpperCase();
 
       if (!codigoValue) {
@@ -80,6 +116,9 @@ export function LoginScreen({
 
         setAuthToken(response.token, false);
         setAuthActor("aluno", false);
+        if (persistIdentifier) {
+          persistRememberedIdentifier(codigoValue);
+        }
         if (response.streak?.updated && response.streak.message) {
           window.sessionStorage.setItem(
             "student_login_streak_reward",
@@ -99,7 +138,7 @@ export function LoginScreen({
         setIsSubmitting(false);
       }
     },
-    [router],
+    [persistRememberedIdentifier, router],
   );
 
   // Auto-login quando o codigo chega pela URL (QR code do cartao de acesso).
@@ -110,7 +149,7 @@ export function LoginScreen({
 
     if (mode === "aluno" && initialCodigo && !getAuthToken()) {
       autoLoginDone.current = true;
-      void doAlunoLogin(initialCodigo);
+      void doAlunoLogin(initialCodigo, false);
     }
   }, [mode, initialCodigo, doAlunoLogin]);
 
@@ -182,6 +221,7 @@ export function LoginScreen({
 
       setAuthToken(response.token, false);
       setAuthActor("user", false);
+      persistRememberedIdentifier(onlyCpfDigits(cpf));
       router.replace("/dashboard");
     } catch (requestError) {
       const validationErrors = getApiValidationErrors(requestError);
@@ -201,7 +241,7 @@ export function LoginScreen({
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-palette-60-50 text-text-primary">
+    <main className="relative min-h-dvh overflow-x-hidden bg-palette-60-50 text-text-primary lg:h-dvh lg:overflow-hidden">
       <div className="pointer-events-none absolute right-0 bottom-0">
         <Image
           src={loginBorda}
@@ -212,63 +252,43 @@ export function LoginScreen({
         />
       </div>
 
-      <section className="relative z-10 grid min-h-screen gap-6 px-4 py-5 sm:px-8 sm:py-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(380px,0.9fr)] lg:items-center lg:px-12 xl:px-20">
-        <div className="order-2 flex flex-col justify-end lg:order-1">
-          <div className="relative flex flex-1 items-end justify-center pb-6 lg:items-center lg:pb-10">
-            <Image
-              src={loginMascot}
-              alt="Mascote Paideia"
-              priority
-              sizes="(min-width: 1024px) 50vw, 90vw"
-              className="relative z-10 w-full max-w-[520px] object-contain xl:max-w-[620px]"
-            />
-          </div>
-
-          <div className="hidden gap-4 rounded-[18px] border border-white/80 bg-white/90 p-5 shadow-2xl shadow-brand-primary-dark/10 backdrop-blur sm:grid-cols-3 lg:grid">
-            <LoginBenefit
-              icon={<ShieldCheck aria-hidden="true" className="size-8" />}
-              title="Ambiente seguro"
-              description="Seus dados protegidos com seguranca."
-            />
-            <LoginBenefit
-              icon={<Users aria-hidden="true" className="size-8" />}
-              title="Acesso inteligente"
-              description="Para Admin, Gestor e Professor."
-            />
-            <LoginBenefit
-              icon={<Trophy aria-hidden="true" className="size-8" />}
-              title="Educacao que transforma"
-              description="Ferramentas para ensinar e inspirar."
-            />
-          </div>
+      <section className="relative z-10 mx-auto grid min-h-dvh w-full max-w-[1760px] grid-cols-[minmax(0,1fr)] gap-6 px-4 py-5 sm:px-8 sm:py-8 lg:h-full lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_minmax(420px,520px)] lg:items-center lg:gap-x-12 lg:px-12 xl:px-20">
+        <div className="order-2 hidden min-h-0 items-center justify-center lg:order-1 lg:flex">
+          <Image
+            src={loginMascot}
+            alt="Mascote Paideia"
+            priority
+            sizes="(min-width: 1024px) 50vw, 90vw"
+            className="relative z-10 max-h-[800px] w-full max-w-[800px] object-contain"
+          />
         </div>
 
-        <div className="order-1 flex items-center justify-center lg:order-2">
-          <section className="w-full max-w-[520px] rounded-[24px] border border-slate-200/80 bg-white/95 px-5 py-7 shadow-2xl shadow-brand-primary-dark/12 backdrop-blur sm:px-9 sm:py-9 lg:px-10">
-            <div className="mb-7 text-center">
+        <div className="order-1 flex min-w-0 items-center justify-center lg:order-2">
+          <section className="min-w-0 w-full max-w-[520px] rounded-[24px] border border-slate-200/80 bg-white/95 px-5 py-6 shadow-2xl shadow-brand-primary-dark/12 backdrop-blur sm:px-9 sm:py-7 lg:px-10">
+            <div className="mb-6 text-center">
               <Image
                 alt="Paideia"
-                className="mx-auto mb-7 h-12 w-auto max-w-[220px] object-contain sm:h-14"
+                className="mx-auto mb-5 h-11 w-auto max-w-[200px] object-contain"
                 priority
                 src={paideiaLogoPurple}
               />
-              <h1 className="text-3xl font-black tracking-normal text-slate-950 sm:text-4xl">
+              <h1 className="text-3xl font-bold tracking-normal text-slate-950">
                 Bem-vindo de volta!
               </h1>
-              <span className="mx-auto mt-5 block h-1 w-12 rounded-full bg-palette-10-yellow" />
-              <p className="mt-6 text-base font-medium text-text-secondary">
+              <span className="mx-auto mt-4 block h-1 w-12 rounded-full bg-palette-10-yellow" />
+              <p className="mt-5 text-base font-medium text-text-secondary">
                 {mode === "aluno"
                   ? "Acesse com o codigo gerado pela escola"
                   : "Acesse como equipe escolar"}
               </p>
             </div>
 
-            <form className="space-y-6" onSubmit={handleSubmit}>
+            <form className="space-y-5" onSubmit={handleSubmit}>
               {mode === "user" ? (
                 <>
                   <CpfInput
                     error={fieldErrors.cpf}
-                    inputClassName="h-14 rounded-[14px] text-base font-medium shadow-sm shadow-slate-200/50"
+                    inputClassName="shadow-sm shadow-slate-200/50"
                     label="CPF"
                     name="cpf"
                     onChange={(value) => {
@@ -280,7 +300,7 @@ export function LoginScreen({
 
                   <PasswordInput
                     error={fieldErrors.password}
-                    inputClassName="h-14 rounded-[14px] text-base font-medium shadow-sm shadow-slate-200/50"
+                    inputClassName="shadow-sm shadow-slate-200/50"
                     label="Senha"
                     name="password"
                     onChange={(event) => {
@@ -293,7 +313,7 @@ export function LoginScreen({
               ) : (
                 <Input
                   error={fieldErrors.codigo}
-                  inputClassName="h-14 rounded-[14px] text-base font-medium uppercase shadow-sm shadow-slate-200/50"
+                  inputClassName="uppercase shadow-sm shadow-slate-200/50"
                   label="Codigo de acesso"
                   name="codigo"
                   placeholder="Ex.: ALU12345"
@@ -304,6 +324,22 @@ export function LoginScreen({
                   }}
                 />
               )}
+
+              <Checkbox
+                checked={rememberUser}
+                id={`remember-${mode}`}
+                label="Lembrar usuário"
+                onChange={(event) => {
+                  const checked = event.target.checked;
+                  setRememberUser(checked);
+
+                  if (!checked) {
+                    window.localStorage.removeItem(
+                      rememberedIdentifierKeys[mode],
+                    );
+                  }
+                }}
+              />
 
               {error && (
                 <div
@@ -321,7 +357,8 @@ export function LoginScreen({
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="min-h-14 w-full justify-between rounded-[14px] bg-brand-primary px-6 text-lg font-black text-white shadow-xl shadow-brand-primary/25 hover:bg-brand-primary-hover"
+                variant="primary"
+                className="w-full justify-between"
               >
                 <span className="flex-1 text-center">
                   {isSubmitting ? "Entrando..." : "Entrar"}
@@ -329,20 +366,20 @@ export function LoginScreen({
                 {isSubmitting ? (
                   <LoaderCircle
                     aria-hidden="true"
-                    className="size-6 animate-spin"
+                    className="size-5 animate-spin"
                   />
                 ) : (
-                  <ArrowRight aria-hidden="true" className="size-7" />
+                  <ArrowRight aria-hidden="true" className="size-5" />
                 )}
               </Button>
             </form>
 
-            <div className="mt-8 border-t border-slate-200 pt-6">
-              <div className="flex items-center gap-5">
-                <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-brand-primary-soft text-brand-primary">
-                  <ShieldCheck aria-hidden="true" className="size-7" />
+            <div className="mt-6 border-t border-slate-200 pt-5">
+              <div className="flex items-center gap-4">
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-primary-soft text-brand-primary">
+                  <ShieldCheck aria-hidden="true" className="size-6" />
                 </span>
-                <p className="text-base leading-7 text-text-secondary">
+                <p className="text-sm leading-6 text-text-secondary">
                   Plataforma educacional desenvolvida{" "}
                   <strong className="font-bold text-text-primary">
                     para apoiar escolas e educadores.
@@ -351,7 +388,10 @@ export function LoginScreen({
               </div>
               <Link
                 href={mode === "aluno" ? "/login" : "/login/estudante"}
-                className="mt-6 inline-flex min-h-11 w-full items-center justify-center rounded-[14px] border border-slate-200 bg-white px-4 text-sm font-bold text-brand-primary transition hover:bg-brand-primary-soft"
+                className={buttonVariants({
+                  className: "mt-5 w-full",
+                  variant: "secondary",
+                })}
               >
                 {mode === "aluno"
                   ? "Entrar como equipe escolar"
@@ -362,29 +402,5 @@ export function LoginScreen({
         </div>
       </section>
     </main>
-  );
-}
-
-type LoginBenefitProps = {
-  description: string;
-  icon: ReactNode;
-  title: string;
-};
-
-function LoginBenefit({ description, icon, title }: LoginBenefitProps) {
-  return (
-    <div className="flex gap-4 sm:border-r sm:border-slate-200 sm:pr-4 last:sm:border-r-0 last:sm:pr-0">
-      <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-brand-primary-soft text-brand-primary">
-        {icon}
-      </span>
-      <div>
-        <h2 className="text-sm font-black leading-5 text-text-primary">
-          {title}
-        </h2>
-        <p className="mt-1 text-xs font-medium leading-5 text-text-secondary">
-          {description}
-        </p>
-      </div>
-    </div>
   );
 }

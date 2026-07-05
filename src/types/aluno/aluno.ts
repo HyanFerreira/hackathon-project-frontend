@@ -288,6 +288,42 @@ export type SessaoAoVivoAlunoEstado = {
   ranking: SessaoAoVivoRankingItem[];
 };
 
+export type SessaoAoVivoHistoricoItem = {
+  id: number;
+  title?: string | null;
+  date?: string | null;
+  participated: boolean;
+  points: number;
+  xp: number;
+  correct: number;
+  errors: number;
+  answers: number;
+  totalQuestions: number;
+  turma?: {
+    id?: number | null;
+    name?: string | null;
+    year?: string | null;
+  } | null;
+  professor?: {
+    id?: number | null;
+    name?: string | null;
+  } | null;
+};
+
+export type SessaoAoVivoResumoAluno = {
+  summary: {
+    completedSessions: number;
+    earnedXp: number;
+    bestScore: number;
+    bestSession?: {
+      id: number;
+      title?: string | null;
+      date?: string | null;
+    } | null;
+  };
+  history: SessaoAoVivoHistoricoItem[];
+};
+
 export type CriarSessaoAoVivoPayload = {
   turmaId: number;
   title: string;

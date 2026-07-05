@@ -14,6 +14,7 @@ type ModalProps = {
   children: ReactNode;
   footer?: ReactNode;
   className?: string;
+  contentClassName?: string;
 };
 
 export function Modal({
@@ -24,9 +25,13 @@ export function Modal({
   children,
   footer,
   className,
+  contentClassName,
 }: ModalProps) {
   useEffect(() => {
     if (!isOpen) return;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
 
     function handleEscape(event: KeyboardEvent) {
       if (event.key === "Escape") {
@@ -36,7 +41,10 @@ export function Modal({
 
     document.addEventListener("keydown", handleEscape);
 
-    return () => document.removeEventListener("keydown", handleEscape);
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.removeEventListener("keydown", handleEscape);
+    };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
@@ -48,7 +56,7 @@ export function Modal({
       aria-modal="true"
       aria-label={title}
     >
-      <button
+      <Button
         type="button"
         aria-label="Fechar modal"
         className="absolute inset-0 bg-slate-950/50"
@@ -79,7 +87,14 @@ export function Modal({
           </Button>
         </div>
 
-        <div className="max-h-[70vh] overflow-y-auto p-5">{children}</div>
+        <div
+          className={twMerge(
+            "max-h-[70vh] overflow-y-auto p-5",
+            contentClassName,
+          )}
+        >
+          {children}
+        </div>
 
         {footer && (
           <div className="flex justify-end gap-3 border-slate-200 border-t bg-slate-50 p-5">

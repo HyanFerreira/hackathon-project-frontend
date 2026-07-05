@@ -27,10 +27,35 @@
 
 :root {
   color-scheme: light;
+  --scrollbar-track: #f4effc;
+  --scrollbar-thumb: #7c35e8;
+  --scrollbar-thumb-hover: #6827d9;
 }
 
 * {
   box-sizing: border-box;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+*::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: var(--scrollbar-track);
+}
+
+*::-webkit-scrollbar-thumb {
+  min-width: 40px;
+  min-height: 40px;
+  border: 2px solid var(--scrollbar-track);
+  border-radius: 999px;
+  background: var(--scrollbar-thumb);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 body {
@@ -48,8 +73,9 @@ button {
   font: inherit;
 }
 
-button:not(:disabled),
-input[type="checkbox"]:not(:disabled) {
+:where(a[href], button, select, input[type="checkbox"], [role="button"]):not(
+  :disabled
+):not([aria-disabled="true"]) {
   cursor: pointer;
 }
 
