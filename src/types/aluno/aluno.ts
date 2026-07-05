@@ -5,6 +5,8 @@ export type Aluno = {
   code: string;
 };
 
+export type ColegaAluno = Pick<Aluno, "id" | "name" | "code">;
+
 export type PerfilAluno = {
   points: number;
   totalPoints: number;
@@ -95,3 +97,81 @@ export type DisciplinaProgresso = {
   answered: number;
   available: number;
 };
+
+export type DesafioStatus =
+  | "pendente"
+  | "em_andamento"
+  | "finalizado"
+  | "recusado"
+  | "expirado";
+
+export type DesafioTipo = "amistoso" | "valendo";
+
+export type DesafioParticipante = {
+  id: number;
+  name: string;
+  code: string;
+};
+
+export type Desafio = {
+  id: number;
+  type: DesafioTipo;
+  status: DesafioStatus;
+  disciplinaId?: number | null;
+  totalQuestions: number;
+  currentQuestion: number;
+  winnerId?: number | null;
+  startedAt?: string | null;
+  finishedAt?: string | null;
+  challenger?: DesafioParticipante | null;
+  challenged?: DesafioParticipante | null;
+};
+
+export type CriarDesafioPayload = {
+  challengedId: number;
+  disciplinaId?: number;
+  type?: DesafioTipo;
+  totalQuestions?: number;
+};
+
+export type DesafioQuestaoAtual = {
+  challengeId: number;
+  status: "em_andamento";
+  order: number;
+  total: number;
+  seconds: number;
+  startedAt?: string | null;
+  expiresAt?: string | null;
+  question: {
+    id: number;
+    statement: string;
+    difficulty: "facil" | "media" | "dificil";
+    alternatives: Array<{
+      id: number;
+      text: string;
+    }>;
+  };
+  answeredByMe?: boolean;
+  answeredByOpponent?: boolean;
+};
+
+export type DesafioResultado = {
+  challengeId: number;
+  status: Exclude<DesafioStatus, "em_andamento">;
+  winnerId?: number | null;
+  draw: boolean;
+  scoreboard: {
+    challenger: {
+      alunoId: number;
+      correct: number;
+      totalTimeMs: number;
+    };
+    challenged: {
+      alunoId: number;
+      correct: number;
+      totalTimeMs: number;
+    };
+  };
+};
+
+export type DesafioEstado = DesafioQuestaoAtual | DesafioResultado;

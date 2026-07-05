@@ -1,7 +1,12 @@
 import type {
   Aluno,
   AlunoPersonagem,
+  ColegaAluno,
   ConquistaProgresso,
+  CriarDesafioPayload,
+  Desafio,
+  DesafioEstado,
+  DesafioParticipante,
   DisciplinaProgresso,
   MissaoProgresso,
   PerfilAluno,
@@ -113,6 +118,40 @@ type RespostaAlunoApi = {
   enunciado?: string;
 };
 
+type ResponderQuestaoApi = {
+  correta?: boolean;
+  mensagem?: string;
+  gabarito?: {
+    id?: number;
+    alternativa_id?: number;
+    texto?: string;
+    text?: string;
+  } | null;
+  alternativa_correta?: {
+    id?: number;
+    alternativa_id?: number;
+    texto?: string;
+    text?: string;
+  } | null;
+  alternativa_correta_id?: number;
+  pontos_ganhos?: number;
+  xp_ganho?: number;
+  energia_gasta?: number;
+  conquistas_desbloqueadas?:
+    | Collection<SimpleConquistaApi>
+    | SimpleConquistaApi[];
+  missoes_concluidas?: Collection<SimpleMissaoApi> | SimpleMissaoApi[];
+  personagem?: PersonagemFeedbackApi | Resource<PersonagemFeedbackApi> | null;
+  perfil?: Resource<PerfilAlunoApi> | PerfilAlunoApi;
+};
+
+type ComprarPersonagemApi = {
+  message?: string;
+  mensagem?: string;
+  perfil?: Resource<PerfilAlunoApi> | PerfilAlunoApi;
+  inventario?: Collection<AlunoPersonagemApi> | AlunoPersonagemApi[];
+};
+
 type ConquistaProgressoApi = {
   id: number;
   nome: string;
@@ -174,6 +213,66 @@ type PersonagemFeedbackApi = {
   subiu_nivel: boolean;
   imagem: string;
 };
+
+type DesafioParticipanteApi = {
+  id: number;
+  nome: string;
+  codigo: string;
+};
+
+type DesafioApi = {
+  id: number;
+  tipo: "amistoso" | "valendo";
+  status: "pendente" | "em_andamento" | "finalizado" | "recusado" | "expirado";
+  disciplina_id?: number | null;
+  quantidade_questoes: number;
+  questao_atual: number;
+  vencedor_id?: number | null;
+  iniciado_em?: string | null;
+  finalizado_em?: string | null;
+  desafiante?: DesafioParticipanteApi | null;
+  desafiado?: DesafioParticipanteApi | null;
+};
+
+type DesafioEstadoApi =
+  | {
+      desafio_id: number;
+      status: "em_andamento";
+      ordem: number;
+      total: number;
+      segundos: number;
+      iniciada_em?: string | null;
+      expira_em?: string | null;
+      questao: {
+        id: number;
+        enunciado: string;
+        dificuldade: "facil" | "media" | "dificil";
+        alternativas: Array<{
+          id: number;
+          texto: string;
+        }>;
+      };
+      eu_respondi?: boolean;
+      oponente_respondeu?: boolean;
+    }
+  | {
+      desafio_id: number;
+      status: "pendente" | "finalizado" | "recusado" | "expirado";
+      vencedor_id?: number | null;
+      empate: boolean;
+      placar: {
+        desafiante: {
+          aluno_id: number;
+          acertos: number;
+          tempo_total_ms: number;
+        };
+        desafiado: {
+          aluno_id: number;
+          acertos: number;
+          tempo_total_ms: number;
+        };
+      };
+    };
 
 type SimpleConquistaApi = {
   id: number;
@@ -265,6 +364,14 @@ export function normalizeAluno(aluno: AlunoApi): Aluno {
   return {
     id: aluno.id,
     schoolId: aluno.escola_id,
+    name: aluno.nome,
+    code: aluno.codigo,
+  };
+}
+
+function normalizeColega(aluno: AlunoApi): ColegaAluno {
+  return {
+    id: aluno.id,
     name: aluno.nome,
     code: aluno.codigo,
   };
@@ -375,6 +482,22 @@ function normalizeResposta(resposta: RespostaAlunoApi): RespostaAluno {
   };
 }
 
+function unwrapCollection<T>(value?: Collection<T> | T[]) {
+  if (!value) return [];
+
+  return Array.isArray(value) ? value : value.data;
+}
+
+function isResource<T>(value: Resource<T> | T): value is Resource<T> {
+  return typeof value === "object" && value !== null && "data" in value;
+}
+
+function unwrapResource<T>(value?: Resource<T> | T): T | undefined {
+  if (!value) return undefined;
+
+  return isResource(value) ? value.data : value;
+}
+
 function normalizeConquista(
   conquista: ConquistaProgressoApi,
 ): ConquistaProgresso {
@@ -452,6 +575,78 @@ function normalizePersonagemFeedback(
     level: personagem.nivel,
     leveledUp: personagem.subiu_nivel,
     image: personagem.imagem,
+  };
+}
+
+function normalizeDesafioParticipante(
+  participante?: DesafioParticipanteApi | null,
+): DesafioParticipante | null {
+  if (!participante) return null;
+
+  return {
+    id: participante.id,
+    name: participante.nome,
+    code: participante.codigo,
+  };
+}
+
+function normalizeDesafio(desafio: DesafioApi): Desafio {
+  return {
+    id: desafio.id,
+    type: desafio.tipo,
+    status: desafio.status,
+    disciplinaId: desafio.disciplina_id,
+    totalQuestions: desafio.quantidade_questoes,
+    currentQuestion: desafio.questao_atual,
+    winnerId: desafio.vencedor_id,
+    startedAt: desafio.iniciado_em,
+    finishedAt: desafio.finalizado_em,
+    challenger: normalizeDesafioParticipante(desafio.desafiante),
+    challenged: normalizeDesafioParticipante(desafio.desafiado),
+  };
+}
+
+function normalizeDesafioEstado(estado: DesafioEstadoApi): DesafioEstado {
+  if (estado.status === "em_andamento") {
+    return {
+      challengeId: estado.desafio_id,
+      status: estado.status,
+      order: estado.ordem,
+      total: estado.total,
+      seconds: estado.segundos,
+      startedAt: estado.iniciada_em,
+      expiresAt: estado.expira_em,
+      question: {
+        id: estado.questao.id,
+        statement: estado.questao.enunciado,
+        difficulty: estado.questao.dificuldade,
+        alternatives: estado.questao.alternativas.map((alternativa) => ({
+          id: alternativa.id,
+          text: alternativa.texto,
+        })),
+      },
+      answeredByMe: estado.eu_respondi,
+      answeredByOpponent: estado.oponente_respondeu,
+    };
+  }
+
+  return {
+    challengeId: estado.desafio_id,
+    status: estado.status,
+    winnerId: estado.vencedor_id,
+    draw: estado.empate,
+    scoreboard: {
+      challenger: {
+        alunoId: estado.placar.desafiante.aluno_id,
+        correct: estado.placar.desafiante.acertos,
+        totalTimeMs: estado.placar.desafiante.tempo_total_ms,
+      },
+      challenged: {
+        alunoId: estado.placar.desafiado.aluno_id,
+        correct: estado.placar.desafiado.acertos,
+        totalTimeMs: estado.placar.desafiado.tempo_total_ms,
+      },
+    },
   };
 }
 
@@ -760,34 +955,47 @@ export const gamificationApi = {
     personagem?: PersonagemFeedback | null;
     perfil: PerfilAluno;
   }> {
-    const { data } = await api.post<{
-      correta: boolean;
-      mensagem: string;
-      gabarito: { id: number; texto: string };
-      pontos_ganhos: number;
-      xp_ganho: number;
-      energia_gasta: number;
-      conquistas_desbloqueadas: Collection<SimpleConquistaApi>;
-      missoes_concluidas: Collection<SimpleMissaoApi>;
-      personagem?: PersonagemFeedbackApi | null;
-      perfil: Resource<PerfilAlunoApi>;
-    }>(gamificationEndpoints.alunoResponder(questaoId), {
-      alternativa_id: alternativaId,
-    });
+    const { data } = await api.post<ResponderQuestaoApi>(
+      gamificationEndpoints.alunoResponder(questaoId),
+      {
+        alternativa_id: alternativaId,
+      },
+    );
+
+    const gabarito = data.gabarito ?? data.alternativa_correta;
+    const correctAlternativeId =
+      gabarito?.id ?? gabarito?.alternativa_id ?? data.alternativa_correta_id;
+    const perfil = unwrapResource(data.perfil);
+    const personagem = unwrapResource(data.personagem ?? undefined);
+
+    if (correctAlternativeId === undefined) {
+      throw new Error("A resposta da API nao informou o gabarito da questao.");
+    }
+
+    if (!perfil) {
+      throw new Error("A resposta da API nao informou o perfil atualizado.");
+    }
 
     return {
-      ...data,
-      gabarito: { id: data.gabarito.id, text: data.gabarito.texto },
-      conquistas_desbloqueadas: data.conquistas_desbloqueadas.data.map(
-        normalizeSimpleConquista,
-      ),
-      missoes_concluidas: data.missoes_concluidas.data.map(
+      correta: Boolean(data.correta),
+      mensagem:
+        data.mensagem ??
+        (data.correta ? "Resposta correta!" : "Resposta incorreta."),
+      gabarito: {
+        id: correctAlternativeId,
+        text: gabarito?.texto ?? gabarito?.text ?? "Alternativa correta",
+      },
+      pontos_ganhos: data.pontos_ganhos ?? 0,
+      xp_ganho: data.xp_ganho ?? 0,
+      energia_gasta: data.energia_gasta ?? 0,
+      conquistas_desbloqueadas: unwrapCollection(
+        data.conquistas_desbloqueadas,
+      ).map(normalizeSimpleConquista),
+      missoes_concluidas: unwrapCollection(data.missoes_concluidas).map(
         normalizeSimpleMissao,
       ),
-      personagem: data.personagem
-        ? normalizePersonagemFeedback(data.personagem)
-        : null,
-      perfil: normalizePerfil(data.perfil.data),
+      personagem: personagem ? normalizePersonagemFeedback(personagem) : null,
+      perfil: normalizePerfil(perfil),
     };
   },
 
@@ -855,6 +1063,76 @@ export const gamificationApi = {
     return data.data.map(normalizeMissao);
   },
 
+  async colegas(): Promise<ColegaAluno[]> {
+    const { data } = await api.get<Collection<AlunoApi>>(
+      gamificationEndpoints.alunoColegas,
+    );
+
+    return data.data.map(normalizeColega);
+  },
+
+  async desafios(): Promise<Desafio[]> {
+    const { data } = await api.get<Collection<DesafioApi>>(
+      gamificationEndpoints.alunoDesafios,
+    );
+
+    return data.data.map(normalizeDesafio);
+  },
+
+  async criarDesafio(payload: CriarDesafioPayload): Promise<Desafio> {
+    const { data } = await api.post<Resource<DesafioApi>>(
+      gamificationEndpoints.alunoDesafios,
+      {
+        desafiado_id: payload.challengedId,
+        ...(payload.disciplinaId
+          ? { disciplina_id: payload.disciplinaId }
+          : {}),
+        ...(payload.type ? { tipo: payload.type } : {}),
+        ...(payload.totalQuestions
+          ? { quantidade_questoes: payload.totalQuestions }
+          : {}),
+      },
+    );
+
+    return normalizeDesafio(data.data);
+  },
+
+  async aceitarDesafio(id: number): Promise<Desafio> {
+    const { data } = await api.post<Resource<DesafioApi>>(
+      gamificationEndpoints.alunoAceitarDesafio(id),
+    );
+
+    return normalizeDesafio(data.data);
+  },
+
+  async recusarDesafio(id: number): Promise<Desafio> {
+    const { data } = await api.post<Resource<DesafioApi>>(
+      gamificationEndpoints.alunoRecusarDesafio(id),
+    );
+
+    return normalizeDesafio(data.data);
+  },
+
+  async desafioAtual(id: number): Promise<DesafioEstado> {
+    const { data } = await api.get<DesafioEstadoApi>(
+      gamificationEndpoints.alunoDesafioAtual(id),
+    );
+
+    return normalizeDesafioEstado(data);
+  },
+
+  async responderDesafio(
+    id: number,
+    alternativaId: number,
+  ): Promise<DesafioEstado> {
+    const { data } = await api.post<DesafioEstadoApi>(
+      gamificationEndpoints.alunoResponderDesafio(id),
+      { alternativa_id: alternativaId },
+    );
+
+    return normalizeDesafioEstado(data);
+  },
+
   async loja(): Promise<PersonagemLoja[]> {
     const { data } = await api.get<Collection<PersonagemLojaApi>>(
       gamificationEndpoints.alunoLoja,
@@ -876,16 +1154,22 @@ export const gamificationApi = {
     perfil: PerfilAluno;
     inventario: AlunoPersonagem[];
   }> {
-    const { data } = await api.post<{
-      message: string;
-      perfil: Resource<PerfilAlunoApi>;
-      inventario: Collection<AlunoPersonagemApi>;
-    }>(gamificationEndpoints.alunoComprarPersonagem(id));
+    const { data } = await api.post<ComprarPersonagemApi>(
+      gamificationEndpoints.alunoComprarPersonagem(id),
+    );
+
+    const perfil = unwrapResource(data.perfil);
+
+    if (!perfil) {
+      throw new Error("A resposta da API nao informou o perfil atualizado.");
+    }
 
     return {
-      message: data.message,
-      perfil: normalizePerfil(data.perfil.data),
-      inventario: data.inventario.data.map(normalizeAlunoPersonagem),
+      message: data.message ?? data.mensagem ?? "Personagem comprado.",
+      perfil: normalizePerfil(perfil),
+      inventario: unwrapCollection(data.inventario).map(
+        normalizeAlunoPersonagem,
+      ),
     };
   },
 

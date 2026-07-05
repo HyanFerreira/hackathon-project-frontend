@@ -23,15 +23,14 @@ import Link from "next/link";
 import mascotEstudante from "@/assets/images/mascot-estudante.png";
 import { gamificationApi } from "@/services/api/modules/gamification";
 import type { ConquistaProgresso } from "@/types/aluno";
+import {
+  markEquippedCharacter,
+  readStoredEquippedCharacterId,
+  resolveEquippedCharacterId,
+} from "@/utils/student/equippedCharacter";
 import { getAchievementImage, getAvatarImage } from "./studentVisualAssets";
 
-const subjectThemes = [
-  { color: "bg-[#7c35e8]", icon: Sigma, bar: "bg-[#7c35e8]" },
-  { color: "bg-[#55bf45]", icon: BookOpen, bar: "bg-[#55bf45]" },
-  { color: "bg-[#50aaf4]", icon: FlaskConical, bar: "bg-[#50aaf4]" },
-  { color: "bg-[#f5aa00]", icon: Landmark, bar: "bg-[#f5aa00]" },
-  { color: "bg-[#50bec8]", icon: Globe2, bar: "bg-[#50bec8]" },
-];
+const subjectColor = "bg-[#7c35e8]";
 const subjectSkeletonKeys = [
   "math",
   "language",
@@ -63,6 +62,43 @@ function formatAchievementDate(value?: string) {
   if (!value) return "";
 
   return new Intl.DateTimeFormat("pt-BR").format(new Date(value));
+}
+
+function normalizeText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function getSubjectIcon(name: string, acronym?: string) {
+  const subject = normalizeText(`${name} ${acronym ?? ""}`);
+
+  if (subject.includes("matematica") || subject.includes("mat")) {
+    return Sigma;
+  }
+
+  if (
+    subject.includes("lingua") ||
+    subject.includes("portugues") ||
+    subject.includes("por")
+  ) {
+    return BookOpen;
+  }
+
+  if (subject.includes("ciencia") || subject.includes("cie")) {
+    return FlaskConical;
+  }
+
+  if (subject.includes("historia") || subject.includes("his")) {
+    return Landmark;
+  }
+
+  if (subject.includes("geografia") || subject.includes("geo")) {
+    return Globe2;
+  }
+
+  return BookOpen;
 }
 
 export function StudentLobby() {
@@ -113,7 +149,14 @@ export function StudentLobby() {
     dashboardQuery.data?.kind === "aluno"
       ? dashboardQuery.data.posicao_turma
       : null;
-  const equippedCharacter = personagensQuery.data?.find(
+  const personagens = markEquippedCharacter(
+    personagensQuery.data,
+    resolveEquippedCharacterId(
+      personagensQuery.data,
+      readStoredEquippedCharacterId(),
+    ),
+  );
+  const equippedCharacter = personagens?.find(
     (personagem) => personagem.equipped,
   );
   const challengeDiscipline =
@@ -304,20 +347,20 @@ export function StudentLobby() {
               </div>
             )}
 
-            {disciplinasQuery.data?.map((disciplina, index) => {
-              const theme = subjectThemes[index % subjectThemes.length];
-
+            {disciplinasQuery.data?.map((disciplina) => {
               return (
                 <SubjectCard
                   key={disciplina.id}
+                  bar={subjectColor}
+                  color={subjectColor}
                   href={`/estudantes/responder?disciplina=${disciplina.id}`}
+                  icon={getSubjectIcon(disciplina.name, disciplina.acronym)}
                   name={disciplina.name}
                   detail={disciplina.area ?? disciplina.acronym}
                   progress={`${disciplina.answered} / ${disciplina.total}`}
                   width={`${Math.round(
                     (disciplina.answered / Math.max(disciplina.total, 1)) * 100,
                   )}%`}
-                  {...theme}
                 />
               );
             })}

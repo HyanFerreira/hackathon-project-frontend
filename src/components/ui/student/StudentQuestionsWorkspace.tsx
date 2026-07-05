@@ -26,6 +26,7 @@ import type { Questao } from "@/types/pedagogico";
 
 type Feedback = {
   questionId: number;
+  selectedAlternativeId: number;
   correct: boolean;
   correctAlternativeId?: number;
   message: string;
@@ -92,11 +93,24 @@ export function StudentQuestionsWorkspace() {
         selectedAlternativeId,
       );
     },
-    onSuccess: async (result, question) => {
+    onSuccess: (result, question) => {
+      const answeredAlternativeId = selectedAlternativeId;
+      const correctAlternativeId =
+        result.gabarito.id ??
+        question.alternatives?.find((alternative) => alternative.correct)?.id;
+
+      if (
+        answeredAlternativeId === undefined ||
+        correctAlternativeId === undefined
+      ) {
+        throw new Error("Nao foi possivel identificar o gabarito da questao.");
+      }
+
       setFeedback({
         questionId: question.id,
+        selectedAlternativeId: answeredAlternativeId,
         correct: result.correta,
-        correctAlternativeId: result.gabarito.id,
+        correctAlternativeId,
         message: result.mensagem,
         answer: result.gabarito.text,
         points: result.pontos_ganhos,
@@ -106,9 +120,14 @@ export function StudentQuestionsWorkspace() {
         personagem: result.personagem,
       });
 
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["aluno", "perfil"] }),
+      queryClient.setQueryData(["aluno", "perfil"], result.perfil);
+
+      void Promise.all([
         queryClient.invalidateQueries({ queryKey: ["dashboard", "aluno"] }),
+        queryClient.invalidateQueries({ queryKey: ["aluno", "personagens"] }),
+        queryClient.invalidateQueries({ queryKey: ["aluno", "missoes"] }),
+        queryClient.invalidateQueries({ queryKey: ["aluno", "conquistas"] }),
+        queryClient.invalidateQueries({ queryKey: ["aluno", "respostas"] }),
       ]);
     },
   });
@@ -208,7 +227,9 @@ export function StudentQuestionsWorkspace() {
                   hasAnsweredCurrent &&
                   alternativeId === feedback.correctAlternativeId;
                 const isWrongSelection =
-                  hasAnsweredCurrent && isSelected && !feedback.correct;
+                  hasAnsweredCurrent &&
+                  alternativeId === feedback.selectedAlternativeId &&
+                  !feedback.correct;
 
                 return (
                   <button
@@ -299,6 +320,16 @@ export function StudentQuestionsWorkspace() {
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+
+            {answerMutation.isError && !hasAnsweredCurrent && (
+              <div
+                role="alert"
+                className="mt-5 flex gap-3 rounded-system border border-red-200 bg-red-50 p-4 text-red-700"
+              >
+                <AlertCircle className="mt-0.5 size-5 shrink-0" />
+                <p>{getApiErrorMessage(answerMutation.error)}</p>
               </div>
             )}
 
