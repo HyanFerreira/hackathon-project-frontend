@@ -1,15 +1,17 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { Menu } from "lucide-react";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { useState } from "react";
+import { Button } from "@/components/buttons";
 import { StatusPage } from "@/components/feedback/StatusPage";
-import { AppHeader, type UserMenuItem } from "@/components/ui/layout/AppHeader";
 import {
   AppSidebar,
   SIDEBAR_COLLAPSED_WIDTH,
   SIDEBAR_EXPANDED_WIDTH,
+  type UserMenuItem,
 } from "@/components/ui/layout/AppSidebar";
 import { authApi } from "@/services/api/modules/auth";
 import { getAuthActor, isImpersonating } from "@/services/api/tokenStorage";
@@ -50,7 +52,7 @@ export function SystemShell({ children }: SystemShellProps) {
     ? [
         {
           key: "stop-impersonation",
-          label: "Encerrar impersonacao",
+          label: "Desconectar",
           icon: "return",
         },
         ...BASE_USER_MENU_ITEMS,
@@ -66,6 +68,9 @@ export function SystemShell({ children }: SystemShellProps) {
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
         onToggle={() => setIsSidebarOpen((current) => !current)}
         role={role}
+        userName={meQuery.data?.name ?? "Usuário"}
+        isLoadingUser={meQuery.isPending}
+        userMenuItems={userMenuItems}
       />
 
       <div
@@ -76,15 +81,16 @@ export function SystemShell({ children }: SystemShellProps) {
           } as React.CSSProperties
         }
       >
-        <AppHeader
-          onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
-          sidebarWidth={sidebarWidth}
-          userName={meQuery.data?.name ?? "Usuário"}
-          isLoadingUser={meQuery.isPending}
-          userMenuItems={userMenuItems}
-        />
+        <Button
+          aria-label="Abrir menu"
+          className="fixed top-4 left-4 z-30 size-11 bg-brand-primary p-0 text-white shadow-lg hover:bg-brand-primary-hover lg:hidden"
+          onClick={() => setIsMobileSidebarOpen(true)}
+          type="button"
+        >
+          <Menu aria-hidden="true" className="size-5" />
+        </Button>
 
-        <main className="min-w-0 px-4 pt-24 pb-6 sm:px-5 lg:px-8 lg:pt-32 lg:pb-8">
+        <main className="min-w-0 px-4 pt-20 pb-6 sm:px-5 lg:px-8 lg:pt-8 lg:pb-8">
           {canAccessCurrentRoute ? (
             children
           ) : (

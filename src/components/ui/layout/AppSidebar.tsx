@@ -1,23 +1,31 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import type { LucideIcon } from "lucide-react";
 import {
   Building2,
   ChevronDown,
+  ChevronRight,
   ChevronUp,
   ClipboardList,
   LayoutDashboard,
+  LogOut,
   Menu,
   Radio,
+  RotateCcw,
   School,
+  Settings,
   Trophy,
+  User,
   UserRound,
   Users,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
+  type PointerEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
   useCallback,
   useEffect,
@@ -27,6 +35,14 @@ import {
 import { twMerge } from "tailwind-merge";
 import paideiaLogoWhite from "@/assets/images/logotipo/paideia-branco.svg";
 import { Button } from "@/components/buttons";
+import { Skeleton } from "@/components/loading";
+import { authApi } from "@/services/api/modules/auth";
+import { impersonateApi } from "@/services/api/modules/impersonate";
+import {
+  getAuthActor,
+  removeAuthToken,
+  restoreOriginalAuth,
+} from "@/services/api/tokenStorage";
 import { canShowNavigationItem } from "@/utils/auth/routeAccess";
 
 export const SIDEBAR_COLLAPSED_WIDTH = 80;
@@ -46,6 +62,16 @@ type AppSidebarProps = {
   onToggle: () => void;
   role?: string;
   actor?: "user" | "aluno";
+  isLoadingUser?: boolean;
+  userMenuItems: UserMenuItem[];
+  userName: string;
+};
+
+export type UserMenuItem = {
+  danger?: boolean;
+  icon?: "profile" | "settings" | "logout" | "return";
+  key: string;
+  label: string;
 };
 
 const sidebarItems: SidebarItem[] = [
@@ -148,21 +174,43 @@ function SidebarRow({ icon: Icon, isOpen, label, rightSlot }: SidebarRowProps) {
   );
 }
 
+function getMenuIcon(icon?: UserMenuItem["icon"]) {
+  switch (icon) {
+    case "profile":
+      return <User aria-hidden="true" className="size-4" />;
+    case "settings":
+      return <Settings aria-hidden="true" className="size-4" />;
+    case "logout":
+      return <LogOut aria-hidden="true" className="size-4" />;
+    case "return":
+      return <RotateCcw aria-hidden="true" className="size-4" />;
+    default:
+      return null;
+  }
+}
+
 export function AppSidebar({
   actor,
   isOpen,
+  isLoadingUser = false,
   isMobileOpen = false,
   onCloseMobile,
   onToggle,
   role,
+  userMenuItems,
+  userName,
 }: AppSidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const [hasNavOverflow, setHasNavOverflow] = useState(false);
   const [navAction, setNavAction] = useState<"down" | "up">("down");
   const [showTopFade, setShowTopFade] = useState(false);
   const [showBottomFade, setShowBottomFade] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   const navViewportRef = useRef<HTMLDivElement | null>(null);
+  const userMenuRef = useRef<HTMLDivElement | null>(null);
 
   const updateScrollState = useCallback(() => {
     const viewport = navViewportRef.current;
@@ -209,6 +257,26 @@ export function AppSidebar({
     };
   }, [updateScrollState]);
 
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (!userMenuRef.current?.contains(event.target as Node)) {
+        setIsUserMenuOpen(false);
+      }
+    }
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setIsUserMenuOpen(false);
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
+
   function moveNav() {
     const viewport = navViewportRef.current;
 
@@ -219,6 +287,66 @@ export function AppSidebar({
       top: navAction === "down" ? viewport.scrollHeight : 0,
     });
   }
+
+  function toggleUserMenu() {
+    setIsUserMenuOpen((current) => !current);
+  }
+
+  function handleUserButtonPointerDown(event: PointerEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    toggleUserMenu();
+  }
+
+  function handleUserButtonKeyDown(
+    event: ReactKeyboardEvent<HTMLButtonElement>,
+  ) {
+    if (event.key !== "Enter" && event.key !== " ") return;
+
+    event.preventDefault();
+    toggleUserMenu();
+  }
+
+  async function handleUserMenuAction(key: string) {
+    setIsUserMenuOpen(false);
+
+    if (key === "stop-impersonation") {
+      try {
+        await impersonateApi.stop();
+      } finally {
+        restoreOriginalAuth();
+        queryClient.clear();
+        router.replace("/dashboard");
+        router.refresh();
+      }
+      return;
+    }
+
+    if (key !== "logout") {
+      if (key === "profile") router.push("/dashboard");
+      return;
+    }
+
+    const loginRoute =
+      getAuthActor() === "aluno" ? "/login/estudante" : "/login";
+
+    try {
+      await authApi.logout();
+    } finally {
+      removeAuthToken();
+      queryClient.clear();
+      router.replace(loginRoute);
+    }
+  }
+
+  const sidebarIsExpanded = isMobileOpen || isOpen;
+  const userInitials = userName
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
 
   const itemBaseClass =
     "flex h-12 w-full items-center justify-start rounded-system px-4 text-left transition";
@@ -353,6 +481,124 @@ export function AppSidebar({
                 </Button>
               </div>
             )}
+          </div>
+
+          <div className="mt-4 border-t border-white/20 px-4 pt-4">
+            <div className="relative" ref={userMenuRef}>
+              <Button
+                type="button"
+                onPointerDown={handleUserButtonPointerDown}
+                onKeyDown={handleUserButtonKeyDown}
+                className={twMerge(
+                  "relative h-12 w-full justify-start bg-transparent px-1 text-white transition-colors duration-300 ease-in-out hover:bg-white/10 focus-visible:bg-white/10 focus-visible:outline-white",
+                  isUserMenuOpen &&
+                    "bg-white text-brand-primary hover:bg-white",
+                )}
+                aria-haspopup="menu"
+                aria-expanded={isUserMenuOpen}
+                title={sidebarIsExpanded ? undefined : userName}
+              >
+                <span
+                  className={twMerge(
+                    "flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-bold transition-colors duration-300 ease-in-out",
+                    isUserMenuOpen
+                      ? "bg-brand-primary text-white"
+                      : "bg-white text-brand-primary",
+                  )}
+                >
+                  {isLoadingUser ? (
+                    <Skeleton className="size-10 rounded-full bg-white/30" />
+                  ) : (
+                    userInitials || (
+                      <User aria-hidden="true" className="size-5" />
+                    )
+                  )}
+                </span>
+
+                <span
+                  className={twMerge(
+                    "pointer-events-none absolute inset-y-0 left-14 right-2 flex min-w-0 items-center gap-2 overflow-hidden transition-all duration-300 ease-in-out",
+                    sidebarIsExpanded
+                      ? "translate-x-0 opacity-100"
+                      : "-translate-x-2 opacity-0",
+                  )}
+                >
+                  <span className="min-w-0 flex-1 overflow-hidden text-left">
+                    {isLoadingUser ? (
+                      <Skeleton className="h-4 w-28 bg-white/30" />
+                    ) : (
+                      <>
+                        <span className="block truncate text-sm font-semibold">
+                          {userName}
+                        </span>
+                        <span
+                          className={twMerge(
+                            "block truncate text-xs capitalize transition-colors duration-300 ease-in-out",
+                            isUserMenuOpen
+                              ? "text-text-secondary"
+                              : "text-white/70",
+                          )}
+                        >
+                          {role ?? "Conta"}
+                        </span>
+                      </>
+                    )}
+                  </span>
+
+                  <ChevronRight
+                    aria-hidden="true"
+                    className={twMerge(
+                      "size-4 shrink-0 transition-transform duration-300 ease-in-out",
+                      isUserMenuOpen && "translate-x-0.5",
+                    )}
+                  />
+                </span>
+              </Button>
+
+              {isUserMenuOpen && (
+                <div
+                  className={twMerge(
+                    "absolute bottom-0 z-50 min-w-60 overflow-hidden rounded-system border border-slate-200 bg-white py-2 text-text-primary shadow-[0_18px_40px_rgba(0,0,0,0.18)]",
+                    sidebarIsExpanded
+                      ? "left-[calc(100%+32px)]"
+                      : "left-[calc(100%+16px)]",
+                  )}
+                  role="menu"
+                >
+                  <div className="border-b border-slate-100 px-4 py-3">
+                    <p className="truncate text-sm font-bold">{userName}</p>
+                    <p className="mt-0.5 text-xs text-text-secondary">
+                      Gerencie sua sessão
+                    </p>
+                  </div>
+                  <div className="py-1">
+                    {userMenuItems.map((item) => (
+                      <Button
+                        key={item.key}
+                        type="button"
+                        onPointerDown={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          void handleUserMenuAction(item.key);
+                        }}
+                        className={twMerge(
+                          "w-full justify-start rounded-none bg-white px-4 py-3 text-left text-sm font-normal",
+                          item.danger
+                            ? "text-red-600 hover:bg-red-50 focus-visible:bg-red-50 focus-visible:outline-red-600"
+                            : "text-slate-700 hover:bg-slate-50 focus-visible:bg-slate-50",
+                        )}
+                        role="menuitem"
+                      >
+                        <span className="shrink-0">
+                          {getMenuIcon(item.icon)}
+                        </span>
+                        <span>{item.label}</span>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </aside>
