@@ -4,25 +4,30 @@ import { useQuery } from "@tanstack/react-query";
 import {
   AlertCircle,
   BookOpen,
+  Calculator,
   ChevronRight,
-  CircleDotDashed,
+  Drama,
+  Dumbbell,
+  Eye,
   FlaskConical,
   Globe2,
   Landmark,
+  Languages,
+  type LucideIcon,
   Medal,
   MoreVertical,
   Shuffle,
-  Sigma,
   Sparkles,
   Target,
   Trophy,
+  Type,
   Zap,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import mascotEstudante from "@/assets/images/mascot-estudante.png";
 import { gamificationApi } from "@/services/api/modules/gamification";
-import type { ConquistaProgresso } from "@/types/aluno";
+import type { ConquistaProgresso, RankingItem } from "@/types/aluno";
 import {
   markEquippedCharacter,
   readStoredEquippedCharacterId,
@@ -32,11 +37,19 @@ import { getAchievementImage, getAvatarImage } from "./studentVisualAssets";
 
 const subjectColor = "bg-[#7c35e8]";
 const subjectSkeletonKeys = [
-  "math",
-  "language",
-  "science",
-  "history",
-  "geography",
+  "disciplina-skeleton-1",
+  "disciplina-skeleton-2",
+  "disciplina-skeleton-3",
+  "disciplina-skeleton-4",
+  "disciplina-skeleton-5",
+  "disciplina-skeleton-6",
+];
+const rankingSkeletonKeys = [
+  "ranking-skeleton-1",
+  "ranking-skeleton-2",
+  "ranking-skeleton-3",
+  "ranking-skeleton-4",
+  "ranking-skeleton-5",
 ];
 
 function ProgressBar({
@@ -74,8 +87,16 @@ function normalizeText(value: string) {
 function getSubjectIcon(name: string, acronym?: string) {
   const subject = normalizeText(`${name} ${acronym ?? ""}`);
 
+  if (subject.includes("arte")) {
+    return Drama;
+  }
+
   if (subject.includes("matematica") || subject.includes("mat")) {
-    return Sigma;
+    return Calculator;
+  }
+
+  if (subject.includes("ingles") || subject.includes("ing")) {
+    return Languages;
   }
 
   if (
@@ -83,11 +104,19 @@ function getSubjectIcon(name: string, acronym?: string) {
     subject.includes("portugues") ||
     subject.includes("por")
   ) {
-    return BookOpen;
+    return Type;
   }
 
   if (subject.includes("ciencia") || subject.includes("cie")) {
     return FlaskConical;
+  }
+
+  if (subject.includes("educacao fisica") || subject.includes("fisica")) {
+    return Dumbbell;
+  }
+
+  if (subject.includes("religioso") || subject.includes("religiao")) {
+    return Eye;
   }
 
   if (subject.includes("historia") || subject.includes("his")) {
@@ -115,6 +144,14 @@ export function StudentLobby() {
   const disciplinasQuery = useQuery({
     queryKey: ["aluno", "disciplinas"],
     queryFn: gamificationApi.alunoDisciplinas,
+  });
+  const allDisciplinasQuery = useQuery({
+    queryKey: ["disciplinas"],
+    queryFn: gamificationApi.disciplinas,
+  });
+  const rankingQuery = useQuery({
+    queryKey: ["aluno", "ranking", "turma", "top-5"],
+    queryFn: gamificationApi.rankingAlunoTurma,
   });
   const perfilQuery = useQuery({
     queryKey: ["aluno", "perfil"],
@@ -159,9 +196,28 @@ export function StudentLobby() {
   const equippedCharacter = personagens?.find(
     (personagem) => personagem.equipped,
   );
+  const disciplineItems =
+    allDisciplinasQuery.data?.map((disciplina) => {
+      const progress = disciplinasQuery.data?.find(
+        (item) => item.id === disciplina.id,
+      );
+
+      return {
+        ...disciplina,
+        total: progress?.total ?? 0,
+        answered: progress?.answered ?? 0,
+        available: progress?.available ?? 0,
+      };
+    }) ??
+    disciplinasQuery.data ??
+    [];
+  const isDisciplinesPending =
+    allDisciplinasQuery.isPending && disciplineItems.length === 0;
+  const isDisciplinesError =
+    allDisciplinasQuery.isError && disciplinasQuery.isError;
   const challengeDiscipline =
-    disciplinasQuery.data?.find((disciplina) => disciplina.available > 0) ??
-    disciplinasQuery.data?.[0];
+    disciplineItems.find((disciplina) => disciplina.available > 0) ??
+    disciplineItems[0];
   const challengeHref = challengeDiscipline
     ? `/estudantes/responder?disciplina=${challengeDiscipline.id}`
     : "/estudantes/responder";
@@ -185,6 +241,7 @@ export function StudentLobby() {
         return dateB - dateA;
       })
       .slice(0, 3) ?? [];
+  const topRanking = rankingQuery.data?.slice(0, 5) ?? [];
 
   return (
     <div className="grid gap-5">
@@ -325,29 +382,29 @@ export function StudentLobby() {
         </div>
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[1.15fr_0.9fr]">
+      <section className="grid gap-5 xl:grid-cols-[1.15fr_0.9fr] xl:items-start">
         <div className="rounded-[18px] border border-[#e3d9f8] bg-white p-7 shadow-[0_18px_50px_rgba(72,35,137,0.08)]">
           <div className="flex items-center gap-3">
-            <CircleDotDashed className="size-7 text-[#7c35e8]" />
+            <BookOpen className="size-7 text-[#7c35e8]" />
             <h2 className="text-xl font-black">Disciplinas (BNCC)</h2>
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-5">
-            {disciplinasQuery.isPending &&
+          <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {isDisciplinesPending &&
               subjectSkeletonKeys.map((key) => (
                 <div
-                  key={`disciplina-skeleton-${key}`}
+                  key={key}
                   className="min-h-[150px] animate-pulse rounded-[12px] border border-[#e3d9f8] bg-[#f7f2ff]"
                 />
               ))}
 
-            {disciplinasQuery.isError && (
+            {isDisciplinesError && (
               <div className="col-span-full flex min-h-[110px] items-center gap-3 rounded-[12px] border border-red-200 bg-red-50 px-4 text-sm font-semibold text-red-700">
                 <AlertCircle aria-hidden="true" className="size-5" />
                 Nao foi possivel carregar as disciplinas.
               </div>
             )}
 
-            {disciplinasQuery.data?.map((disciplina) => {
+            {disciplineItems.map((disciplina) => {
               return (
                 <SubjectCard
                   key={disciplina.id}
@@ -367,37 +424,86 @@ export function StudentLobby() {
           </div>
         </div>
 
-        <div className="rounded-[18px] border border-[#e3d9f8] bg-white p-7 shadow-[0_18px_50px_rgba(72,35,137,0.08)]">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <Trophy className="size-7 text-[#7c35e8]" />
-              <h2 className="text-xl font-black">Conquistas recentes</h2>
+        <div className="space-y-5">
+          <div className="rounded-[18px] border border-[#e3d9f8] bg-white p-7 shadow-[0_18px_50px_rgba(72,35,137,0.08)]">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <Medal className="size-7 text-[#7c35e8]" />
+                <h2 className="text-xl font-black">Top 5 da turma</h2>
+              </div>
+              <Link
+                href="/estudantes/ranking"
+                className="text-sm font-black text-[#7c35e8] underline"
+              >
+                Ver ranking
+              </Link>
             </div>
-            <Link
-              href="/estudantes/conquistas"
-              className="text-sm font-black text-[#7c35e8] underline"
-            >
-              Ver todas
-            </Link>
+            <div className="mt-4 overflow-hidden rounded-[12px] border border-[#e3d9f8]">
+              {rankingQuery.isPending &&
+                rankingSkeletonKeys.map((key) => (
+                  <div
+                    key={key}
+                    className="h-[64px] animate-pulse border-[#e3d9f8] border-b bg-[#f7f2ff] last:border-b-0"
+                  />
+                ))}
+
+              {rankingQuery.isError && (
+                <div className="flex min-h-[96px] items-center gap-3 px-4 text-sm font-semibold text-red-700">
+                  <AlertCircle aria-hidden="true" className="size-5" />
+                  Nao foi possivel carregar o ranking.
+                </div>
+              )}
+
+              {!rankingQuery.isPending &&
+                !rankingQuery.isError &&
+                topRanking.length === 0 && (
+                  <div className="px-4 py-6 text-sm font-semibold text-[#5d5a89]">
+                    O ranking da turma aparece aqui.
+                  </div>
+                )}
+
+              {topRanking.map((item) => (
+                <RankingTopRow key={item.aluno.id} item={item} />
+              ))}
+            </div>
           </div>
-          <div className="mt-4 overflow-hidden rounded-[12px] border border-[#e3d9f8]">
-            {conquistasQuery.isPending &&
-              [1, 2, 3].map((item) => (
-                <div
-                  key={`achievement-skeleton-${item}`}
-                  className="h-[74px] animate-pulse border-[#e3d9f8] border-b bg-[#f7f2ff] last:border-b-0"
+
+          <div className="rounded-[18px] border border-[#e3d9f8] bg-white p-7 shadow-[0_18px_50px_rgba(72,35,137,0.08)]">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <Trophy className="size-7 text-[#7c35e8]" />
+                <h2 className="text-xl font-black">Conquistas recentes</h2>
+              </div>
+              <Link
+                href="/estudantes/conquistas"
+                className="text-sm font-black text-[#7c35e8] underline"
+              >
+                Ver todas
+              </Link>
+            </div>
+            <div className="mt-4 overflow-hidden rounded-[12px] border border-[#e3d9f8]">
+              {conquistasQuery.isPending &&
+                [1, 2, 3].map((item) => (
+                  <div
+                    key={`achievement-skeleton-${item}`}
+                    className="h-[74px] animate-pulse border-[#e3d9f8] border-b bg-[#f7f2ff] last:border-b-0"
+                  />
+                ))}
+
+              {!conquistasQuery.isPending &&
+                recentAchievements.length === 0 && (
+                  <div className="px-4 py-6 text-sm font-semibold text-[#5d5a89]">
+                    Suas conquistas desbloqueadas aparecem aqui.
+                  </div>
+                )}
+
+              {recentAchievements.map((achievement) => (
+                <AchievementRow
+                  key={achievement.id}
+                  achievement={achievement}
                 />
               ))}
-
-            {!conquistasQuery.isPending && recentAchievements.length === 0 && (
-              <div className="px-4 py-6 text-sm font-semibold text-[#5d5a89]">
-                Suas conquistas desbloqueadas aparecem aqui.
-              </div>
-            )}
-
-            {recentAchievements.map((achievement) => (
-              <AchievementRow key={achievement.id} achievement={achievement} />
-            ))}
+            </div>
           </div>
         </div>
       </section>
@@ -529,12 +635,51 @@ function AchievementRow({ achievement }: { achievement: ConquistaProgresso }) {
   );
 }
 
+function RankingTopRow({ item }: { item: RankingItem }) {
+  return (
+    <Link
+      href="/estudantes/ranking"
+      className="grid min-h-[66px] grid-cols-[42px_48px_1fr_auto] items-center gap-3 border-[#e3d9f8] border-b px-4 py-3 transition last:border-b-0 hover:bg-[#fbf7ff]"
+    >
+      <span
+        className={`flex size-9 items-center justify-center rounded-full text-sm font-black ${
+          item.position === 1
+            ? "bg-[#fff0b8] text-[#d98300]"
+            : item.position === 2
+              ? "bg-[#eef0f4] text-[#707889]"
+              : item.position === 3
+                ? "bg-[#ffe5d3] text-[#b85d20]"
+                : "bg-[#efe7ff] text-[#7c35e8]"
+        }`}
+      >
+        {item.position}
+      </span>
+      <Image
+        src={getAvatarImage("lumi_free.svg")}
+        alt=""
+        aria-hidden="true"
+        className="size-11 object-contain"
+      />
+      <div className="min-w-0">
+        <p className="truncate font-black text-[#101044]">{item.aluno.name}</p>
+        <p className="truncate text-sm font-semibold text-[#5d5a89]">
+          Nivel {item.level}
+        </p>
+      </div>
+      <span className="flex items-center gap-1 whitespace-nowrap text-sm font-black text-[#101044]">
+        {item.points.toLocaleString("pt-BR")}
+        <span className="text-[#ffb000]">★</span>
+      </span>
+    </Link>
+  );
+}
+
 type SubjectCardProps = {
   bar: string;
   color: string;
   detail?: string;
   href: string;
-  icon: typeof Sigma;
+  icon: LucideIcon;
   name: string;
   progress: string;
   width: string;
