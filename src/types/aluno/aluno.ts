@@ -8,6 +8,20 @@ export type Aluno = {
 
 export type ColegaAluno = Pick<Aluno, "id" | "name" | "code">;
 
+export type LoginStreak = {
+  currentDays: number;
+  longestDays: number;
+  lastLoginAt?: string | null;
+  daysUntilNextBonus: number;
+};
+
+export type LoginStreakReward = LoginStreak & {
+  updated: boolean;
+  pointsEarned: number;
+  weeklyBonus: boolean;
+  message?: string | null;
+};
+
 export type PerfilAluno = {
   points: number;
   totalPoints: number;
@@ -16,6 +30,7 @@ export type PerfilAluno = {
   xpToNextLevel?: number;
   energy: number;
   maxEnergy: number;
+  streak: LoginStreak;
   aluno?: Aluno;
 };
 
@@ -204,6 +219,7 @@ export type SessaoAoVivoResumo = {
     name?: string | null;
   } | null;
   totalQuestions: number;
+  questionIds: number[];
   startedAt?: string | null;
   pausedAt?: string | null;
   finishedAt?: string | null;
@@ -274,6 +290,5 @@ export type SessaoAoVivoAlunoEstado = {
 
 export type CriarSessaoAoVivoPayload = {
   turmaId: number;
-  title?: string;
-  questionIds: number[];
+  title: string;
 };

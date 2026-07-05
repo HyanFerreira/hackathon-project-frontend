@@ -9,6 +9,7 @@ import type {
   DesafioEstado,
   DesafioParticipante,
   DisciplinaProgresso,
+  LoginStreakReward,
   MissaoProgresso,
   PerfilAluno,
   PersonagemFeedback,
@@ -104,6 +105,12 @@ type PerfilAlunoApi = {
   xp_para_proximo_nivel?: number;
   energia: number;
   energia_maxima: number;
+  streak?: {
+    dias_seguidos: number;
+    maior_dias_seguidos: number;
+    ultimo_login_em?: string | null;
+    proximo_bonus_em_dias: number;
+  };
   aluno?: AlunoApi;
 };
 
@@ -247,6 +254,7 @@ type SessaoAoVivoResumoApi = {
     nome?: string | null;
   } | null;
   questoes_total?: number;
+  questao_ids?: number[];
   iniciada_em?: string | null;
   pausada_em?: string | null;
   finalizada_em?: string | null;
@@ -430,6 +438,12 @@ export type DashboardSummary =
         nivel: number;
         energia: number;
         energia_maxima: number;
+        streak?: {
+          dias_seguidos: number;
+          maior_dias_seguidos: number;
+          ultimo_login_em?: string | null;
+          proximo_bonus_em_dias: number;
+        };
       };
       posicao_turma?: number | null;
     };
@@ -556,6 +570,12 @@ export function normalizePerfil(perfil: PerfilAlunoApi): PerfilAluno {
     xpToNextLevel: perfil.xp_para_proximo_nivel,
     energy: perfil.energia,
     maxEnergy: perfil.energia_maxima,
+    streak: {
+      currentDays: perfil.streak?.dias_seguidos ?? 0,
+      longestDays: perfil.streak?.maior_dias_seguidos ?? 0,
+      lastLoginAt: perfil.streak?.ultimo_login_em,
+      daysUntilNextBonus: perfil.streak?.proximo_bonus_em_dias ?? 7,
+    },
     aluno: perfil.aluno ? normalizeAluno(perfil.aluno) : undefined,
   };
 }
@@ -707,6 +727,7 @@ function normalizeSessaoResumo(
         }
       : null,
     totalQuestions: sessao.questoes_total ?? 0,
+    questionIds: sessao.questao_ids ?? [],
     startedAt: sessao.iniciada_em,
     pausedAt: sessao.pausada_em,
     finishedAt: sessao.finalizada_em,
@@ -906,15 +927,42 @@ function normalizeSimpleMissao(missao: SimpleMissaoApi): MissaoProgresso {
 }
 
 export const gamificationApi = {
-  async loginAluno(codigo: string): Promise<{ aluno: Aluno; token: string }> {
+  async loginAluno(
+    codigo: string,
+  ): Promise<{ aluno: Aluno; token: string; streak?: LoginStreakReward }> {
     const { data } = await api.post<{
       aluno: Resource<AlunoApi> | AlunoApi;
       token: string;
+      streak?: {
+        dias_seguidos: number;
+        maior_dias_seguidos: number;
+        ultimo_login_em?: string | null;
+        atualizado: boolean;
+        pontos_ganhos: number;
+        bonus_semanal: boolean;
+        proximo_bonus_em_dias: number;
+        mensagem?: string | null;
+      };
     }>(gamificationEndpoints.alunoLogin, { codigo });
 
     const aluno = "data" in data.aluno ? data.aluno.data : data.aluno;
 
-    return { aluno: normalizeAluno(aluno), token: data.token };
+    return {
+      aluno: normalizeAluno(aluno),
+      token: data.token,
+      streak: data.streak
+        ? {
+            currentDays: data.streak.dias_seguidos,
+            longestDays: data.streak.maior_dias_seguidos,
+            lastLoginAt: data.streak.ultimo_login_em,
+            daysUntilNextBonus: data.streak.proximo_bonus_em_dias,
+            updated: data.streak.atualizado,
+            pointsEarned: data.streak.pontos_ganhos,
+            weeklyBonus: data.streak.bonus_semanal,
+            message: data.streak.mensagem,
+          }
+        : undefined,
+    };
   },
 
   async alunoMe(): Promise<Aluno> {
@@ -1149,7 +1197,6 @@ export const gamificationApi = {
       {
         turma_id: payload.turmaId,
         titulo: payload.title,
-        questoes: payload.questionIds,
       },
     );
 
@@ -1220,12 +1267,12 @@ export const gamificationApi = {
 
   async enviarQuestaoSessaoAoVivo(
     sessionId: number,
-    sessionQuestionId: number,
+    questionId: number,
   ): Promise<SessaoAoVivoProfessorEstado> {
     const { data } = await api.post<SessaoAoVivoProfessorEstadoApi>(
       gamificationEndpoints.professorEnviarQuestaoSessaoAoVivo(
         sessionId,
-        sessionQuestionId,
+        questionId,
       ),
     );
 

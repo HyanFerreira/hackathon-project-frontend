@@ -2,6 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { LogOut, Menu, RotateCcw, Settings, User } from "lucide-react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   type CSSProperties,
@@ -11,6 +12,7 @@ import {
   useRef,
   useState,
 } from "react";
+import paideiaLogoIcon from "@/assets/images/paideiaLogoIcon.svg";
 import { Button } from "@/components/buttons";
 import { Skeleton } from "@/components/loading";
 import { authApi } from "@/services/api/modules/auth";
@@ -142,7 +144,7 @@ export function AppHeader({
 
   return (
     <header
-      className="fixed top-0 right-0 left-0 z-30 flex h-24 items-center justify-between bg-white px-5 shadow-[0_4px_18px_rgba(0,0,0,0.08)] transition-[left] duration-300 ease-in-out lg:left-[var(--header-left)] lg:px-8"
+      className="fixed top-0 right-0 left-0 z-30 flex h-20 items-center justify-between bg-white px-4 shadow-[0_4px_18px_rgba(0,0,0,0.08)] transition-[left] duration-300 ease-in-out sm:px-5 lg:left-[var(--header-left)] lg:h-24 lg:px-8"
       style={
         {
           "--header-left": `${sidebarWidth}px`,
@@ -157,6 +159,13 @@ export function AppHeader({
       >
         <Menu aria-hidden="true" className="size-5" />
       </Button>
+
+      <Image
+        alt="Paideia"
+        className="ml-3 h-8 w-auto max-w-[130px] object-contain sm:h-9 lg:ml-0 lg:h-10 lg:max-w-[180px]"
+        priority
+        src={paideiaLogoIcon}
+      />
 
       <div className="ml-auto" ref={userDropdownRef}>
         <div className="relative z-30 flex items-center">

@@ -9,13 +9,13 @@ import {
   Drama,
   Dumbbell,
   Eye,
+  Flame,
   FlaskConical,
   Globe2,
   Landmark,
   Languages,
   type LucideIcon,
   Medal,
-  MoreVertical,
   Radio,
   Shuffle,
   Sparkles,
@@ -26,9 +26,15 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import mascotEstudante from "@/assets/images/mascot-estudante.png";
+import { Toast } from "@/components/feedback";
 import { gamificationApi } from "@/services/api/modules/gamification";
-import type { ConquistaProgresso, RankingItem } from "@/types/aluno";
+import type {
+  ConquistaProgresso,
+  LoginStreakReward,
+  RankingItem,
+} from "@/types/aluno";
 import {
   markEquippedCharacter,
   readStoredEquippedCharacterId,
@@ -136,6 +142,23 @@ function getSubjectIcon(name: string, acronym?: string) {
 }
 
 export function StudentLobby() {
+  const [loginStreakReward, setLoginStreakReward] =
+    useState<LoginStreakReward>();
+
+  useEffect(() => {
+    const storedReward = window.sessionStorage.getItem(
+      "student_login_streak_reward",
+    );
+    window.sessionStorage.removeItem("student_login_streak_reward");
+
+    if (!storedReward) return;
+
+    try {
+      setLoginStreakReward(JSON.parse(storedReward) as LoginStreakReward);
+    } catch {
+      setLoginStreakReward(undefined);
+    }
+  }, []);
   const meQuery = useQuery({
     queryKey: ["auth", "me", "aluno"],
     queryFn: gamificationApi.alunoMe,
@@ -190,6 +213,12 @@ export function StudentLobby() {
   const energy = perfilQuery.data?.energy ?? profile?.energia ?? 0;
   const maxEnergy =
     perfilQuery.data?.maxEnergy ?? profile?.energia_maxima ?? 10;
+  const streak = perfilQuery.data?.streak ?? {
+    currentDays: profile?.streak?.dias_seguidos ?? 0,
+    longestDays: profile?.streak?.maior_dias_seguidos ?? 0,
+    lastLoginAt: profile?.streak?.ultimo_login_em,
+    daysUntilNextBonus: profile?.streak?.proximo_bonus_em_dias ?? 7,
+  };
   const xpInLevel = xp % 100;
   const xpToNextLevel = perfilQuery.data?.xpToNextLevel ?? 100 - xpInLevel;
   const rank =
@@ -262,6 +291,20 @@ export function StudentLobby() {
 
   return (
     <div className="grid gap-5">
+      {loginStreakReward?.message && (
+        <Toast
+          variant="success"
+          title={
+            loginStreakReward.weeklyBonus
+              ? "Bônus semanal!"
+              : "Sequência mantida!"
+          }
+          message={loginStreakReward.message}
+          duration={7000}
+          onClose={() => setLoginStreakReward(undefined)}
+        />
+      )}
+
       {liveSessionQuery.data &&
         liveSessionQuery.data.session.status !== "finalizada" && (
           <section className="flex flex-col gap-4 rounded-[18px] border border-[#cdb8ff] bg-[#f7f2ff] p-5 shadow-[0_18px_50px_rgba(72,35,137,0.08)] sm:flex-row sm:items-center sm:justify-between">
@@ -294,9 +337,9 @@ export function StudentLobby() {
         )}
 
       <section className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
-        <div className="rounded-[18px] border border-[#e3d9f8] bg-white p-6 shadow-[0_18px_50px_rgba(72,35,137,0.08)]">
+        <div className="rounded-[18px] border border-[#e3d9f8] bg-white p-5 shadow-[0_18px_50px_rgba(72,35,137,0.08)]">
           <div className="grid gap-5 sm:grid-cols-[210px_1fr]">
-            <div className="relative flex items-end justify-center">
+            <div className="relative flex items-center justify-center">
               <Image
                 src={getAvatarImage(equippedCharacter?.image)}
                 alt={
@@ -304,7 +347,7 @@ export function StudentLobby() {
                     ? `Personagem ${equippedCharacter.name}`
                     : "Avatar do estudante"
                 }
-                className="h-[250px] w-auto object-contain"
+                className="h-[220px] w-auto origin-center scale-[1.45] object-contain"
                 priority
               />
             </div>
@@ -342,36 +385,44 @@ export function StudentLobby() {
                   {xpToNextLevel} XP para o Nivel {level + 1}
                 </span>
               </div>
-
-              <div className="mt-6 grid rounded-[14px] border border-[#e3d9f8] bg-white py-4 sm:grid-cols-3">
-                <StudentMetric
-                  icon={<Zap className="size-9 fill-[#7c35e8]" />}
-                  label="Energia"
-                  value={`${energy} / ${maxEnergy}`}
-                />
-                <StudentMetric
-                  icon={<Trophy className="size-9 fill-[#ff6b12]" />}
-                  label="Pontuacao"
-                  value={totalPoints.toLocaleString("pt-BR")}
-                />
-                <StudentMetric
-                  icon={<Medal className="size-9" />}
-                  label="Ranking"
-                  value={rank ? `Top ${rank}` : "Top 12"}
-                />
-              </div>
             </div>
           </div>
+
+          <div className="mt-4 grid w-full rounded-[14px] border border-[#e3d9f8] bg-white py-3 sm:grid-cols-4">
+            <StudentMetric
+              icon={<Zap className="size-9 fill-[#7c35e8]" />}
+              label="Energia"
+              value={`${energy} / ${maxEnergy}`}
+            />
+            <StudentMetric
+              icon={<Trophy className="size-9 fill-[#ff6b12]" />}
+              label="Pontuacao"
+              value={totalPoints.toLocaleString("pt-BR")}
+            />
+            <StudentMetric
+              icon={<Medal className="size-9" />}
+              label="Ranking"
+              value={rank ? `Top ${rank}` : "—"}
+            />
+            <StudentMetric
+              icon={<Flame className="size-9 fill-[#ff7a1a] text-[#ff7a1a]" />}
+              label="Sequência"
+              value={`${streak.currentDays} dia${streak.currentDays === 1 ? "" : "s"}`}
+            />
+          </div>
+          <p className="mt-2 text-center text-xs font-semibold text-[#5d5a89]">
+            Recorde: {streak.longestDays} dia(s) · Próximo bônus em{" "}
+            {streak.daysUntilNextBonus} dia(s)
+          </p>
         </div>
 
-        <div className="relative overflow-hidden rounded-[18px] border border-[#e3d9f8] bg-white p-8 shadow-[0_18px_50px_rgba(72,35,137,0.08)]">
-          <MoreVertical className="absolute right-8 top-7 size-6 text-[#5f5a89]" />
-          <div className="relative z-10 max-w-[58%]">
+        <div className="relative overflow-hidden rounded-[18px] border border-[#e3d9f8] bg-white p-6 shadow-[0_18px_50px_rgba(72,35,137,0.08)]">
+          <div className="z-10 max-w-[58%] xl:mt-5">
             <div className="flex items-center gap-4">
               <BookOpen className="size-8 text-[#7c35e8]" />
               <h2 className="text-lg font-black">Continue praticando</h2>
             </div>
-            <p className="mt-8 text-2xl font-black">
+            <p className="mt-5 text-2xl font-black">
               {challengeDiscipline?.name ?? "Questoes"}
             </p>
             <p className="mt-2 text-lg text-[#4f4b80]">
@@ -379,7 +430,7 @@ export function StudentLobby() {
                 challengeDiscipline?.acronym ??
                 "Pratica geral"}
             </p>
-            <p className="mt-8 text-sm font-medium text-[#5d5a89]">Progresso</p>
+            <p className="mt-5 text-sm font-medium text-[#5d5a89]">Progresso</p>
             <div className="mt-3 grid grid-cols-[minmax(0,1fr)_max-content] items-center gap-5">
               <ProgressBar
                 style={{ width: `${challengeProgressPercent}%` }}
@@ -391,7 +442,7 @@ export function StudentLobby() {
             </div>
             <Link
               href={challengeHref}
-              className="mt-8 inline-flex min-h-14 w-full max-w-[285px] items-center justify-center gap-8 rounded-[8px] bg-gradient-to-r from-[#7c35e8] to-[#833af0] text-lg font-black text-white shadow-[0_14px_24px_rgba(124,53,232,0.25)]"
+              className="mt-5 inline-flex min-h-12 w-full max-w-[285px] items-center justify-center gap-8 rounded-[8px] bg-gradient-to-r from-[#7c35e8] to-[#833af0] text-lg font-black text-white shadow-[0_14px_24px_rgba(124,53,232,0.25)] xl:absolute xl:bottom-11 xl:left-6 xl:mt-0"
             >
               Continuar
               <ChevronRight aria-hidden="true" className="size-7" />
@@ -400,7 +451,7 @@ export function StudentLobby() {
           <Image
             src={mascotEstudante}
             alt="Mascote Edu lendo"
-            className="absolute bottom-4 right-8 h-[250px] w-auto object-contain"
+            className="absolute bottom-11 right-6 h-[220px] w-auto object-contain"
             priority
           />
         </div>
@@ -434,7 +485,7 @@ export function StudentLobby() {
         <div className="rounded-[18px] border border-[#e3d9f8] bg-white p-7 shadow-[0_18px_50px_rgba(72,35,137,0.08)]">
           <div className="flex items-center gap-3">
             <BookOpen className="size-7 text-[#7c35e8]" />
-            <h2 className="text-xl font-black">Disciplinas (BNCC)</h2>
+            <h2 className="text-xl font-black">Disciplinas</h2>
           </div>
           <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {isDisciplinesPending &&

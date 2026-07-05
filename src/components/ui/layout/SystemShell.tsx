@@ -28,6 +28,7 @@ const BASE_USER_MENU_ITEMS: UserMenuItem[] = [
 export function SystemShell({ children }: SystemShellProps) {
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const sidebarWidth = isSidebarOpen
     ? SIDEBAR_EXPANDED_WIDTH
     : SIDEBAR_COLLAPSED_WIDTH;
@@ -61,6 +62,8 @@ export function SystemShell({ children }: SystemShellProps) {
       <AppSidebar
         actor={actor}
         isOpen={isSidebarOpen}
+        isMobileOpen={isMobileSidebarOpen}
+        onCloseMobile={() => setIsMobileSidebarOpen(false)}
         onToggle={() => setIsSidebarOpen((current) => !current)}
         role={role}
       />
@@ -74,13 +77,14 @@ export function SystemShell({ children }: SystemShellProps) {
         }
       >
         <AppHeader
+          onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
           sidebarWidth={sidebarWidth}
           userName={meQuery.data?.name ?? "Usuário"}
           isLoadingUser={meQuery.isPending}
           userMenuItems={userMenuItems}
         />
 
-        <main className="px-5 pt-32 pb-8 lg:px-8">
+        <main className="min-w-0 px-4 pt-24 pb-6 sm:px-5 lg:px-8 lg:pt-32 lg:pb-8">
           {canAccessCurrentRoute ? (
             children
           ) : (

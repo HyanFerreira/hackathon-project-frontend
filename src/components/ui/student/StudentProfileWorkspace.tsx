@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   CircleX,
   Clock,
+  Flame,
   Gift,
   Grid2X2,
   History,
@@ -366,6 +367,7 @@ export function StudentProfileWorkspace({
           maxEnergy={perfilQuery.data?.maxEnergy ?? 0}
           level={perfilQuery.data?.level ?? 1}
           xp={perfilQuery.data?.xp ?? 0}
+          streak={perfilQuery.data?.streak}
           equippedCharacter={equippedCharacter}
           respostasQuery={respostasQuery}
         />
@@ -422,6 +424,7 @@ function ResumoTab({
   points,
   totalPoints,
   respostasQuery,
+  streak,
   xp,
 }: {
   equippedCharacter?: AlunoPersonagem;
@@ -432,11 +435,12 @@ function ResumoTab({
   points: number;
   totalPoints: number;
   respostasQuery: ReturnType<typeof useQuery>;
+  streak?: PerfilAluno["streak"];
   xp: number;
 }) {
   return (
     <>
-      <section className="grid gap-4 md:grid-cols-4">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <MetricCard
           icon={Trophy}
           label="Pontuacao"
@@ -456,6 +460,13 @@ function ResumoTab({
           isPending={isPerfilPending}
           value={`Nivel ${level}`}
           detail={`${xp.toLocaleString("pt-BR")} XP`}
+        />
+        <MetricCard
+          icon={Flame}
+          label="Sequência diária"
+          isPending={isPerfilPending}
+          value={`${streak?.currentDays ?? 0} dia(s)`}
+          detail={`Recorde: ${streak?.longestDays ?? 0} · Bônus em ${streak?.daysUntilNextBonus ?? 7} dia(s)`}
         />
         <div className="rounded-system border border-slate-200 bg-white p-5 shadow-[0_10px_30px_rgba(0,0,0,0.08)]">
           <div className="flex items-center gap-3 text-brand-primary">

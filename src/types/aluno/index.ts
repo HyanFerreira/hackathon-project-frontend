@@ -13,6 +13,8 @@ export type {
   DesafioStatus,
   DesafioTipo,
   DisciplinaProgresso,
+  LoginStreak,
+  LoginStreakReward,
   MissaoProgresso,
   PerfilAluno,
   PersonagemFeedback,

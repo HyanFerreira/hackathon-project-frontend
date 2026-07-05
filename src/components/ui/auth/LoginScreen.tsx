@@ -14,7 +14,8 @@ import { useRouter } from "next/navigation";
 import type { FormEvent, ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import loginBorda from "@/assets/images/login-borda.png";
-import loginMascot from "@/assets/images/login-mascot.png";
+import loginMascot from "@/assets/images/login-mascot-v2.png";
+import paideiaLogoIcon from "@/assets/images/paideiaLogoIcon.svg";
 import { Button } from "@/components/buttons";
 import { CpfInput } from "@/components/form/CpfInput";
 import { Input } from "@/components/form/Input";
@@ -79,6 +80,12 @@ export function LoginScreen({
 
         setAuthToken(response.token, false);
         setAuthActor("aluno", false);
+        if (response.streak?.updated && response.streak.message) {
+          window.sessionStorage.setItem(
+            "student_login_streak_reward",
+            JSON.stringify(response.streak),
+          );
+        }
         router.replace("/estudantes");
       } catch (requestError) {
         const validationErrors = getApiValidationErrors(requestError);
@@ -205,19 +212,19 @@ export function LoginScreen({
         />
       </div>
 
-      <section className="relative z-10 grid min-h-screen gap-8 px-5 py-8 sm:px-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(420px,0.9fr)] lg:items-stretch lg:px-16 xl:px-20">
-        <div className="order-2 flex min-h-[52vh] flex-col justify-end lg:order-1 lg:min-h-[calc(100vh-4rem)]">
+      <section className="relative z-10 grid min-h-screen gap-6 px-4 py-5 sm:px-8 sm:py-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(380px,0.9fr)] lg:items-center lg:px-12 xl:px-20">
+        <div className="order-2 flex flex-col justify-end lg:order-1">
           <div className="relative flex flex-1 items-end justify-center pb-6 lg:items-center lg:pb-10">
             <Image
               src={loginMascot}
-              alt="Mascote educacional roxo com elementos de estudo"
+              alt="Mascote Paideia"
               priority
               sizes="(min-width: 1024px) 50vw, 90vw"
-              className="relative z-10 w-full max-w-[680px] object-contain"
+              className="relative z-10 w-full max-w-[520px] object-contain xl:max-w-[620px]"
             />
           </div>
 
-          <div className="grid gap-4 rounded-[18px] border border-white/80 bg-white/90 p-5 shadow-2xl shadow-brand-primary-dark/10 backdrop-blur sm:grid-cols-3">
+          <div className="hidden gap-4 rounded-[18px] border border-white/80 bg-white/90 p-5 shadow-2xl shadow-brand-primary-dark/10 backdrop-blur sm:grid-cols-3 lg:grid">
             <LoginBenefit
               icon={<ShieldCheck aria-hidden="true" className="size-8" />}
               title="Ambiente seguro"
@@ -236,12 +243,15 @@ export function LoginScreen({
           </div>
         </div>
 
-        <div className="order-1 flex items-end justify-center lg:order-2 lg:min-h-[calc(100vh-4rem)]">
-          <section className="w-full max-w-[550px] rounded-[28px] border border-slate-200/80 bg-white/95 px-6 py-10 shadow-2xl shadow-brand-primary-dark/12 backdrop-blur sm:px-10 lg:px-12 lg:py-14">
-            <div className="mb-10 text-center">
-              <p className="mb-10 bg-gradient-to-r from-brand-primary to-palette-30-700 bg-clip-text text-4xl font-black tracking-normal text-transparent">
-                LOGO
-              </p>
+        <div className="order-1 flex items-center justify-center lg:order-2">
+          <section className="w-full max-w-[520px] rounded-[24px] border border-slate-200/80 bg-white/95 px-5 py-7 shadow-2xl shadow-brand-primary-dark/12 backdrop-blur sm:px-9 sm:py-9 lg:px-10">
+            <div className="mb-7 text-center">
+              <Image
+                alt="Paideia"
+                className="mx-auto mb-7 h-12 w-auto max-w-[220px] object-contain sm:h-14"
+                priority
+                src={paideiaLogoIcon}
+              />
               <h1 className="text-3xl font-black tracking-normal text-slate-950 sm:text-4xl">
                 Bem-vindo de volta!
               </h1>
@@ -327,7 +337,7 @@ export function LoginScreen({
               </Button>
             </form>
 
-            <div className="mt-14 border-t border-slate-200 pt-8">
+            <div className="mt-8 border-t border-slate-200 pt-6">
               <div className="flex items-center gap-5">
                 <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-brand-primary-soft text-brand-primary">
                   <ShieldCheck aria-hidden="true" className="size-7" />

@@ -14,6 +14,7 @@ import {
   UserRound,
   Users,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -24,6 +25,7 @@ import {
   useState,
 } from "react";
 import { twMerge } from "tailwind-merge";
+import paideiaLogoIconWhite from "@/assets/images/paideiaLogoIconWhite.svg";
 import { Button } from "@/components/buttons";
 import { canShowNavigationItem } from "@/utils/auth/routeAccess";
 
@@ -39,6 +41,8 @@ type SidebarItem = {
 
 type AppSidebarProps = {
   isOpen: boolean;
+  isMobileOpen?: boolean;
+  onCloseMobile?: () => void;
   onToggle: () => void;
   role?: string;
   actor?: "user" | "aluno";
@@ -144,7 +148,14 @@ function SidebarRow({ icon: Icon, isOpen, label, rightSlot }: SidebarRowProps) {
   );
 }
 
-export function AppSidebar({ actor, isOpen, onToggle, role }: AppSidebarProps) {
+export function AppSidebar({
+  actor,
+  isOpen,
+  isMobileOpen = false,
+  onCloseMobile,
+  onToggle,
+  role,
+}: AppSidebarProps) {
   const pathname = usePathname();
   const [hasNavOverflow, setHasNavOverflow] = useState(false);
   const [navAction, setNavAction] = useState<"down" | "up">("down");
@@ -217,111 +228,134 @@ export function AppSidebar({ actor, isOpen, onToggle, role }: AppSidebarProps) {
     "bg-transparent text-white hover:bg-white/10 focus-visible:bg-white/10 focus-visible:outline-white";
 
   return (
-    <aside
-      className="fixed top-0 left-0 z-40 hidden h-screen bg-brand-primary text-white shadow-[0_12px_30px_rgba(0,0,0,0.18)] transition-[width] duration-300 ease-in-out lg:block"
-      style={{
-        width: isOpen ? SIDEBAR_EXPANDED_WIDTH : SIDEBAR_COLLAPSED_WIDTH,
-      }}
-    >
-      <div className="flex h-full flex-col py-4">
-        <div className="flex items-center px-4">
-          <Button
-            type="button"
-            onClick={onToggle}
-            className="size-12 shrink-0 bg-transparent p-0 text-white hover:bg-white/10 focus-visible:bg-white/10 focus-visible:outline-white"
-            aria-label={isOpen ? "Fechar menu" : "Abrir menu"}
-          >
-            <Menu aria-hidden="true" className="size-5" />
-          </Button>
+    <>
+      {isMobileOpen && (
+        <button
+          aria-label="Fechar menu"
+          className="fixed inset-0 z-40 bg-slate-950/45 backdrop-blur-[2px] lg:hidden"
+          onClick={onCloseMobile}
+          type="button"
+        />
+      )}
+      <aside
+        className={twMerge(
+          "fixed top-0 left-0 z-50 h-screen bg-brand-primary text-white shadow-[0_12px_30px_rgba(0,0,0,0.18)] transition-[width,transform] duration-300 ease-in-out",
+          isMobileOpen ? "translate-x-0" : "-translate-x-full",
+          "lg:z-40 lg:translate-x-0",
+        )}
+        style={{
+          width:
+            isMobileOpen || isOpen
+              ? SIDEBAR_EXPANDED_WIDTH
+              : SIDEBAR_COLLAPSED_WIDTH,
+        }}
+      >
+        <div className="flex h-full flex-col py-4">
+          <div className="flex items-center px-4">
+            <Button
+              type="button"
+              onClick={isMobileOpen ? onCloseMobile : onToggle}
+              className="size-12 shrink-0 bg-transparent p-0 text-white hover:bg-white/10 focus-visible:bg-white/10 focus-visible:outline-white"
+              aria-label={isMobileOpen || isOpen ? "Fechar menu" : "Abrir menu"}
+            >
+              <Menu aria-hidden="true" className="size-5" />
+            </Button>
 
-          <span
-            className={twMerge(
-              "ml-3 overflow-hidden whitespace-nowrap text-sm font-semibold uppercase tracking-[0.2em] text-white/80 transition-all duration-300",
-              isOpen
-                ? "max-w-[140px] translate-x-0 opacity-100"
-                : "max-w-0 -translate-x-2 opacity-0",
-            )}
-          >
-            Sistema
-          </span>
-        </div>
-
-        <div className="my-4 h-px w-full bg-white/20" />
-
-        <div className="flex min-h-0 flex-1 flex-col">
-          <div className="min-h-0 flex-1">
-            <div className="relative h-full">
-              <div
-                ref={navViewportRef}
-                className="flex h-full flex-col gap-2 overflow-y-auto px-4 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-              >
-                {sidebarItems
-                  .filter((item) => canShowNavigationItem(item, role, actor))
-                  .map((item) => {
-                    const isItemActive = isPathActive(pathname, item.href);
-                    const itemLabel = item.label;
-
-                    return (
-                      <Link
-                        className={twMerge(
-                          itemBaseClass,
-                          isItemActive
-                            ? sidebarActiveClass
-                            : sidebarInactiveClass,
-                        )}
-                        href={item.href}
-                        key={item.key}
-                        title={isOpen ? undefined : itemLabel}
-                      >
-                        <SidebarRow
-                          icon={item.icon}
-                          label={itemLabel}
-                          isOpen={isOpen}
-                          rightSlot={<span className="size-4 opacity-0" />}
-                        />
-                      </Link>
-                    );
-                  })}
-              </div>
-
-              <div
-                className={twMerge(
-                  "pointer-events-none absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-brand-primary to-transparent transition-opacity duration-200",
-                  showTopFade ? "opacity-100" : "opacity-0",
-                )}
+            <span
+              className={twMerge(
+                "ml-3 overflow-hidden transition-all duration-300",
+                isMobileOpen || isOpen
+                  ? "max-w-[140px] translate-x-0 opacity-100"
+                  : "max-w-0 -translate-x-2 opacity-0",
+              )}
+            >
+              <Image
+                alt="Paideia"
+                className="h-9 w-auto max-w-[140px] object-contain"
+                priority
+                src={paideiaLogoIconWhite}
               />
-
-              <div
-                className={twMerge(
-                  "pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-brand-primary to-transparent transition-opacity duration-200",
-                  showBottomFade ? "opacity-100" : "opacity-0",
-                )}
-              />
-            </div>
+            </span>
           </div>
 
-          {hasNavOverflow && (
-            <div className="mt-4 px-4">
-              <Button
-                type="button"
-                onClick={moveNav}
-                className="h-12 w-full border border-white/20 bg-transparent p-0 text-white hover:bg-white/10 focus-visible:bg-white/10 focus-visible:outline-white"
-                aria-label={
-                  navAction === "down"
-                    ? "Mover menu para baixo"
-                    : "Mover menu para cima"
-                }
-              >
-                {navAction === "down" ? (
-                  <ChevronDown aria-hidden="true" className="size-[18px]" />
-                ) : (
-                  <ChevronUp aria-hidden="true" className="size-[18px]" />
-                )}
-              </Button>
+          <div className="my-4 h-px w-full bg-white/20" />
+
+          <div className="flex min-h-0 flex-1 flex-col">
+            <div className="min-h-0 flex-1">
+              <div className="relative h-full">
+                <div
+                  ref={navViewportRef}
+                  className="flex h-full flex-col gap-2 overflow-y-auto px-4 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                >
+                  {sidebarItems
+                    .filter((item) => canShowNavigationItem(item, role, actor))
+                    .map((item) => {
+                      const isItemActive = isPathActive(pathname, item.href);
+                      const itemLabel = item.label;
+
+                      return (
+                        <Link
+                          className={twMerge(
+                            itemBaseClass,
+                            isItemActive
+                              ? sidebarActiveClass
+                              : sidebarInactiveClass,
+                          )}
+                          href={item.href}
+                          key={item.key}
+                          onClick={onCloseMobile}
+                          title={isMobileOpen || isOpen ? undefined : itemLabel}
+                        >
+                          <SidebarRow
+                            icon={item.icon}
+                            label={itemLabel}
+                            isOpen={isMobileOpen || isOpen}
+                            rightSlot={<span className="size-4 opacity-0" />}
+                          />
+                        </Link>
+                      );
+                    })}
+                </div>
+
+                <div
+                  className={twMerge(
+                    "pointer-events-none absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-brand-primary to-transparent transition-opacity duration-200",
+                    showTopFade ? "opacity-100" : "opacity-0",
+                  )}
+                />
+
+                <div
+                  className={twMerge(
+                    "pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-brand-primary to-transparent transition-opacity duration-200",
+                    showBottomFade ? "opacity-100" : "opacity-0",
+                  )}
+                />
+              </div>
             </div>
-          )}
+
+            {hasNavOverflow && (
+              <div className="mt-4 px-4">
+                <Button
+                  type="button"
+                  onClick={moveNav}
+                  className="h-12 w-full border border-white/20 bg-transparent p-0 text-white hover:bg-white/10 focus-visible:bg-white/10 focus-visible:outline-white"
+                  aria-label={
+                    navAction === "down"
+                      ? "Mover menu para baixo"
+                      : "Mover menu para cima"
+                  }
+                >
+                  {navAction === "down" ? (
+                    <ChevronDown aria-hidden="true" className="size-[18px]" />
+                  ) : (
+                    <ChevronUp aria-hidden="true" className="size-[18px]" />
+                  )}
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 }

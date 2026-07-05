@@ -42,7 +42,7 @@ export function LiveSessionsWorkspace() {
   const [selectedSessionId, setSelectedSessionId] = useState<number>();
   const [title, setTitle] = useState("");
   const [turmaId, setTurmaId] = useState("");
-  const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([]);
+  const [selectedQuestionId, setSelectedQuestionId] = useState("");
 
   const sessionsQuery = useQuery({
     queryKey: ["professor", "sessoes-ao-vivo"],
@@ -52,6 +52,10 @@ export function LiveSessionsWorkspace() {
   const questionsQuery = useQuery({
     queryKey: ["professor", "questoes"],
     queryFn: gamificationApi.professorQuestoes,
+  });
+  const turmasQuery = useQuery({
+    queryKey: ["professor", "turmas"],
+    queryFn: gamificationApi.professorTurmas,
   });
 
   const sessions = sessionsQuery.data ?? [];
@@ -88,21 +92,17 @@ export function LiveSessionsWorkspace() {
     mutationFn: () =>
       gamificationApi.criarSessaoAoVivo({
         turmaId: Number(turmaId),
-        title: title.trim() || undefined,
-        questionIds: selectedQuestionIds.map(Number),
+        title: title.trim(),
       }),
     onSuccess: (state) => {
       setSessionState(state);
       setTitle("");
       setTurmaId("");
-      setSelectedQuestionIds([]);
     },
   });
 
   const actionMutation = useMutation({
-    mutationFn: async (
-      action: "start" | "pause" | "resume" | "finish" | "next",
-    ) => {
+    mutationFn: async (action: "start" | "pause" | "resume" | "finish") => {
       if (!sessionId) throw new Error("Selecione uma sessao.");
 
       if (action === "start")
@@ -114,19 +114,41 @@ export function LiveSessionsWorkspace() {
       if (action === "finish")
         return gamificationApi.encerrarSessaoAoVivo(sessionId);
 
-      return gamificationApi.proximaQuestaoSessaoAoVivo(sessionId);
+      throw new Error("Ação inválida.");
     },
     onSuccess: setSessionState,
   });
 
-  const questionOptions = useMemo(
-    () =>
-      (questionsQuery.data ?? []).map((question) => ({
+  const sendQuestionMutation = useMutation({
+    mutationFn: () => {
+      if (!sessionId || !selectedQuestionId) {
+        throw new Error("Selecione uma questão.");
+      }
+
+      return gamificationApi.enviarQuestaoSessaoAoVivo(
+        sessionId,
+        Number(selectedQuestionId),
+      );
+    },
+    onSuccess: (state) => {
+      setSelectedQuestionId("");
+      setSessionState(state);
+    },
+  });
+
+  const state = stateQuery.data;
+  const currentQuestion = state?.currentQuestion;
+  const performance = state?.performance;
+  const questionOptions = useMemo(() => {
+    const usedQuestionIds = new Set(state?.session.questionIds ?? []);
+
+    return (questionsQuery.data ?? [])
+      .filter((question) => !usedQuestionIds.has(question.id))
+      .map((question) => ({
         label: `${question.id} - ${question.statement}`,
         value: String(question.id),
-      })),
-    [questionsQuery.data],
-  );
+      }));
+  }, [questionsQuery.data, state?.session.questionIds]);
   const sessionOptions = useMemo(
     () =>
       sessions.map((session) => ({
@@ -136,27 +158,19 @@ export function LiveSessionsWorkspace() {
     [sessions],
   );
   const turmaOptions = useMemo(() => {
-    const turmas = new Map<string, string>();
+    return (
+      turmasQuery.data?.map((turma) => ({
+        label: turma.name,
+        value: String(turma.id),
+      })) ?? []
+    );
+  }, [turmasQuery.data]);
 
-    for (const session of sessions) {
-      if (session.turma?.id) {
-        turmas.set(
-          String(session.turma.id),
-          session.turma.name ?? `Turma ${session.turma.id}`,
-        );
-      }
-    }
-
-    return Array.from(turmas.entries()).map(([value, label]) => ({
-      label,
-      value,
-    }));
-  }, [sessions]);
-
-  const state = stateQuery.data;
-  const currentQuestion = state?.currentQuestion;
-  const performance = state?.performance;
-  const canCreate = Number(turmaId) > 0 && selectedQuestionIds.length > 0;
+  const canCreate = title.trim().length > 0 && Number(turmaId) > 0;
+  const canSelectQuestion =
+    state?.session.status === "em_andamento" &&
+    (performance?.participants ?? 0) > 0 &&
+    (!currentQuestion || performance?.currentQuestion.pending === 0);
 
   return (
     <div className="space-y-6">
@@ -186,7 +200,9 @@ export function LiveSessionsWorkspace() {
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
               />
-              {turmaOptions.length > 0 ? (
+              {turmasQuery.isPending ? (
+                <Skeleton className="h-11" />
+              ) : turmasQuery.isSuccess && turmaOptions.length > 0 ? (
                 <Select
                   label="Turma"
                   value={turmaId}
@@ -194,24 +210,12 @@ export function LiveSessionsWorkspace() {
                   options={turmaOptions}
                   placeholder="Selecione uma turma"
                 />
-              ) : (
-                <Input
-                  label="ID da turma"
-                  inputMode="numeric"
-                  placeholder="Ex.: 1"
-                  value={turmaId}
-                  onChange={(event) => setTurmaId(event.target.value)}
-                />
-              )}
-              <Select
-                multiple
-                searchable
-                label="Questoes"
-                value={selectedQuestionIds}
-                onChange={setSelectedQuestionIds}
-                options={questionOptions}
-                placeholder="Selecione as questoes"
-              />
+              ) : turmasQuery.isSuccess ? (
+                <p className="rounded-system border border-dashed border-slate-300 bg-slate-50 p-3 text-sm text-text-secondary">
+                  Nenhuma turma vinculada ao seu usuário.
+                </p>
+              ) : null}
+              {turmasQuery.isError && <ErrorNotice error={turmasQuery.error} />}
               <Button
                 disabled={!canCreate || createMutation.isPending}
                 onClick={() => createMutation.mutate()}
@@ -311,16 +315,6 @@ export function LiveSessionsWorkspace() {
                       Pausar
                     </Button>
                   )}
-                  {state.session.status === "em_andamento" && (
-                    <Button
-                      disabled={actionMutation.isPending}
-                      onClick={() => actionMutation.mutate("next")}
-                      className="min-h-10 bg-brand-primary px-4 text-white hover:bg-brand-primary-hover"
-                    >
-                      <Send className="size-4" />
-                      Proxima questao
-                    </Button>
-                  )}
                   {ACTIVE_STATUSES.includes(state.session.status) && (
                     <Button
                       disabled={actionMutation.isPending}
@@ -337,6 +331,90 @@ export function LiveSessionsWorkspace() {
               {actionMutation.isError && (
                 <ErrorNotice error={actionMutation.error} />
               )}
+
+              {state.session.status === "aguardando" && (
+                <div className="rounded-system border border-brand-primary/20 bg-brand-primary-soft p-4">
+                  <p className="font-semibold text-text-primary">
+                    Aguardando o início da sessão
+                  </p>
+                  <p className="mt-1 text-sm text-text-secondary">
+                    Os alunos podem entrar agora. Quando estiver tudo pronto,
+                    inicie a sessão para selecionar a primeira questão.
+                  </p>
+                </div>
+              )}
+
+              {state.session.status === "em_andamento" &&
+                (performance?.participants ?? 0) === 0 && (
+                  <div className="rounded-system border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                    Aguardando pelo menos um aluno entrar para liberar a
+                    primeira questão.
+                  </div>
+                )}
+
+              {canSelectQuestion && (
+                <div className="rounded-system border border-brand-primary/20 bg-brand-primary-soft p-5">
+                  <h3 className="font-bold text-text-primary">
+                    {currentQuestion
+                      ? "Selecionar próxima questão"
+                      : "Selecionar primeira questão"}
+                  </h3>
+                  <p className="mt-1 text-sm text-text-secondary">
+                    A questão será enviada aos estudantes imediatamente.
+                  </p>
+                  <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+                    <Select
+                      searchable
+                      className="flex-1"
+                      label="Questão"
+                      value={selectedQuestionId}
+                      onChange={setSelectedQuestionId}
+                      options={questionOptions}
+                      placeholder={
+                        questionsQuery.isPending
+                          ? "Carregando questões..."
+                          : "Selecione uma questão"
+                      }
+                      disabled={
+                        questionsQuery.isPending ||
+                        sendQuestionMutation.isPending ||
+                        questionOptions.length === 0
+                      }
+                      emptyMessage="Nenhuma questão disponível."
+                    />
+                    <Button
+                      disabled={
+                        !selectedQuestionId || sendQuestionMutation.isPending
+                      }
+                      onClick={() => sendQuestionMutation.mutate()}
+                      className="min-h-11 bg-brand-primary px-4 text-white hover:bg-brand-primary-hover"
+                    >
+                      <Send className="size-4" />
+                      Enviar questão
+                    </Button>
+                  </div>
+                  {questionOptions.length === 0 &&
+                    !questionsQuery.isPending && (
+                      <p className="mt-3 text-sm text-text-secondary">
+                        Todas as questões disponíveis já foram utilizadas.
+                      </p>
+                    )}
+                  {sendQuestionMutation.isError && (
+                    <div className="mt-3">
+                      <ErrorNotice error={sendQuestionMutation.error} />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {state.session.status === "em_andamento" &&
+                currentQuestion &&
+                (performance?.currentQuestion.pending ?? 0) > 0 && (
+                  <div className="rounded-system border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                    Aguardando {performance?.currentQuestion.pending ?? 0}{" "}
+                    aluno(s) responder(em) antes da próxima questão.
+                  </div>
+                )}
 
               <div className="grid gap-4 sm:grid-cols-4">
                 <MetricCard
@@ -394,8 +472,8 @@ export function LiveSessionsWorkspace() {
                 )}
               </div>
 
-              <div className="overflow-hidden rounded-system border border-slate-200">
-                <div className="grid grid-cols-[64px_1fr_100px_100px_100px] bg-slate-50 px-4 py-3 text-sm font-bold text-text-secondary">
+              <div className="overflow-x-auto rounded-system border border-slate-200">
+                <div className="grid min-w-[580px] grid-cols-[64px_1fr_100px_100px_100px] bg-slate-50 px-4 py-3 text-sm font-bold text-text-secondary">
                   <span>#</span>
                   <span>Aluno</span>
                   <span>Respostas</span>
@@ -405,7 +483,7 @@ export function LiveSessionsWorkspace() {
                 {performance?.ranking.map((item) => (
                   <div
                     key={item.aluno.id}
-                    className="grid grid-cols-[64px_1fr_100px_100px_100px] border-slate-200 border-t px-4 py-3 text-sm"
+                    className="grid min-w-[580px] grid-cols-[64px_1fr_100px_100px_100px] border-slate-200 border-t px-4 py-3 text-sm"
                   >
                     <span className="font-bold">{item.position}</span>
                     <span className="font-semibold">{item.aluno.name}</span>

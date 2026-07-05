@@ -60,6 +60,7 @@ function renderStats(
   isLoading: boolean,
   professorTurmas?: {
     count?: number;
+    isError: boolean;
     isLoading: boolean;
   },
 ) {
@@ -124,11 +125,8 @@ function renderStats(
       <>
         <StatCard
           label="Minhas turmas"
-          value={professorTurmas?.count ?? data.minhas_turmas}
-          isLoading={
-            isLoading ||
-            (professorTurmas?.isLoading && professorTurmas.count === undefined)
-          }
+          value={professorTurmas?.isError ? "—" : professorTurmas?.count}
+          isLoading={Boolean(professorTurmas?.isLoading)}
           icon={School}
         />
         <StatCard
@@ -222,9 +220,27 @@ export function DashboardHome() {
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {renderStats(dashboardQuery.data, dashboardQuery.isPending, {
           count: professorTurmasQuery.data?.length,
+          isError: professorTurmasQuery.isError,
           isLoading: professorTurmasQuery.isPending,
         })}
       </section>
+
+      {role === "professor" &&
+        professorTurmasQuery.isSuccess &&
+        professorTurmasQuery.data.length === 0 && (
+          <p className="rounded-system border border-slate-200 bg-white p-4 text-sm text-text-secondary">
+            Nenhuma turma vinculada ao seu usuário.
+          </p>
+        )}
+
+      {role === "professor" && professorTurmasQuery.isError && (
+        <p
+          role="alert"
+          className="rounded-system border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+        >
+          Não foi possível carregar suas turmas.
+        </p>
+      )}
 
       {dashboardQuery.data?.kind === "professor" &&
         dashboardQuery.data.ultimas_questoes.length > 0 && (

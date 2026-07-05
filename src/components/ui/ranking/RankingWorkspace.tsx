@@ -52,34 +52,14 @@ export function RankingWorkspace() {
     queryFn: gamificationApi.professorTurmas,
     enabled: role === "professor",
   });
-  const professorSessionsQuery = useQuery({
-    queryKey: ["professor", "sessoes-ao-vivo"],
-    queryFn: gamificationApi.professorSessoesAoVivo,
-    enabled: role === "professor",
-  });
-  const professorTurmas =
-    meQuery.data && "roles" in meQuery.data ? (meQuery.data.turmas ?? []) : [];
   const turmaOptions = useMemo(() => {
     if (role === "professor") {
-      const turmas = new Map<string, string>();
-
-      for (const turma of professorTurmasQuery.data ?? professorTurmas) {
-        turmas.set(String(turma.id), turma.name);
-      }
-
-      for (const session of professorSessionsQuery.data ?? []) {
-        if (session.turma?.id) {
-          turmas.set(
-            String(session.turma.id),
-            session.turma.name ?? `Turma ${session.turma.id}`,
-          );
-        }
-      }
-
-      return Array.from(turmas.entries()).map(([value, label]) => ({
-        label,
-        value,
-      }));
+      return (
+        professorTurmasQuery.data?.map((turma) => ({
+          label: turma.name,
+          value: String(turma.id),
+        })) ?? []
+      );
     }
 
     const turmas = turmasQuery.data;
@@ -90,13 +70,7 @@ export function RankingWorkspace() {
         value: String(turma.id),
       })) ?? []
     );
-  }, [
-    professorSessionsQuery.data,
-    professorTurmas,
-    professorTurmasQuery.data,
-    role,
-    turmasQuery.data,
-  ]);
+  }, [professorTurmasQuery.data, role, turmasQuery.data]);
 
   useEffect(() => {
     if (
@@ -196,16 +170,12 @@ export function RankingWorkspace() {
               value={selectedTurmaId}
               disabled={
                 (role === "gestor" && turmasQuery.isPending) ||
-                (role === "professor" &&
-                  professorTurmasQuery.isPending &&
-                  professorSessionsQuery.isPending)
+                (role === "professor" && professorTurmasQuery.isPending)
               }
               searchable
               placeholder={
                 (role === "gestor" && turmasQuery.isPending) ||
-                (role === "professor" &&
-                  professorTurmasQuery.isPending &&
-                  professorSessionsQuery.isPending)
+                (role === "professor" && professorTurmasQuery.isPending)
                   ? "Carregando turmas..."
                   : "Selecionar turma"
               }
@@ -230,12 +200,24 @@ export function RankingWorkspace() {
           </div>
         )}
 
-        {role === "professor" && !selectedTurmaId && (
-          <div className="rounded-system border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
-            <Medal className="mx-auto mb-3 size-10 text-brand-primary" />
-            <p className="font-semibold text-text-primary">
-              Nenhuma turma vinculada para consultar
-            </p>
+        {role === "professor" &&
+          !selectedTurmaId &&
+          professorTurmasQuery.isSuccess && (
+            <div className="rounded-system border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+              <Medal className="mx-auto mb-3 size-10 text-brand-primary" />
+              <p className="font-semibold text-text-primary">
+                Nenhuma turma vinculada para consultar
+              </p>
+            </div>
+          )}
+
+        {role === "professor" && professorTurmasQuery.isError && (
+          <div
+            role="alert"
+            className="flex gap-3 rounded-system border border-red-200 bg-red-50 p-4 text-red-700"
+          >
+            <AlertCircle className="mt-0.5 size-5 shrink-0" />
+            <p>{getApiErrorMessage(professorTurmasQuery.error)}</p>
           </div>
         )}
 

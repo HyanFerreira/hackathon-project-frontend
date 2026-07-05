@@ -65,11 +65,8 @@ export const gamificationEndpoints = {
     `/professor/sessoes-ao-vivo/${id}/encerrar`,
   professorProximaSessaoAoVivo: (id: number) =>
     `/professor/sessoes-ao-vivo/${id}/proxima`,
-  professorEnviarQuestaoSessaoAoVivo: (
-    sessionId: number,
-    sessionQuestionId: number,
-  ) =>
-    `/professor/sessoes-ao-vivo/${sessionId}/questoes/${sessionQuestionId}/enviar`,
+  professorEnviarQuestaoSessaoAoVivo: (sessionId: number, questionId: number) =>
+    `/professor/sessoes-ao-vivo/${sessionId}/questoes/${questionId}/enviar`,
   professorDesempenhoSessaoAoVivo: (id: number) =>
     `/professor/sessoes-ao-vivo/${id}/desempenho`,
   professorRankingTurma: (turmaId: number) =>

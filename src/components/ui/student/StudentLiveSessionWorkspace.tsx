@@ -9,7 +9,7 @@ import {
   Trophy,
   XCircle,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/buttons";
 import { Skeleton } from "@/components/loading";
 import { getApiErrorMessage } from "@/services/api/errors/getApiErrorMessage";
@@ -54,7 +54,7 @@ export function StudentLiveSessionWorkspace() {
     },
   });
 
-  const sessionId = enteredSessionId ?? activeQuery.data?.session.id;
+  const sessionId = enteredSessionId;
   const sessionQuery = useQuery({
     queryKey: ["aluno", "sessoes-ao-vivo", sessionId],
     queryFn: () => gamificationApi.sessaoAoVivoAtual(Number(sessionId)),
@@ -62,25 +62,13 @@ export function StudentLiveSessionWorkspace() {
     refetchInterval: 2500,
   });
 
-  const estado = sessionQuery.data ?? activeQuery.data;
+  const estado = sessionQuery.data;
   const currentQuestion = estado?.currentQuestion;
   const answeredByMe = Boolean(estado?.answeredByMe);
   const selectedAlternativeId =
     selectedAnswer && selectedAnswer.questionId === currentQuestion?.id
       ? selectedAnswer.alternativeId
       : undefined;
-
-  useEffect(() => {
-    const activeSessionId = activeQuery.data?.session.id;
-
-    if (
-      activeSessionId &&
-      enteredSessionId !== activeSessionId &&
-      !enterMutation.isPending
-    ) {
-      enterMutation.mutate(activeSessionId);
-    }
-  }, [activeQuery.data?.session.id, enteredSessionId, enterMutation]);
 
   const podium = useMemo(() => estado?.ranking.slice(0, 5) ?? [], [estado]);
 
@@ -118,6 +106,44 @@ export function StudentLiveSessionWorkspace() {
           <Skeleton className="h-14" />
           <Skeleton className="h-14" />
         </div>
+      </section>
+    );
+  }
+
+  if (activeQuery.data && !enteredSessionId) {
+    const session = activeQuery.data.session;
+
+    return (
+      <section className="mx-auto flex min-h-[420px] w-full max-w-3xl flex-col items-center justify-center rounded-[18px] border border-[#d7c9f5] bg-white p-8 text-center shadow-[0_18px_50px_rgba(72,35,137,0.08)]">
+        <div className="flex size-16 items-center justify-center rounded-full bg-[#f1e8ff]">
+          <Radio className="size-8 text-[#7c35e8]" />
+        </div>
+        <p className="mt-5 text-sm font-black uppercase text-[#7c35e8]">
+          Sessão ao vivo disponível
+        </p>
+        <h1 className="mt-2 text-3xl font-black text-[#101044]">
+          {session.title ?? "Sessão ao vivo"}
+        </h1>
+        <p className="mt-2 font-semibold text-[#5d5a89]">
+          {session.turma?.name ?? "Sua turma"} com{" "}
+          {session.professor?.name ?? "seu professor"}
+        </p>
+        <Button
+          disabled={enterMutation.isPending}
+          onClick={() => enterMutation.mutate(session.id)}
+          className="mt-7 min-h-12 bg-[#7c35e8] px-8 text-white hover:bg-[#6827cf]"
+        >
+          {enterMutation.isPending ? "Entrando..." : "Entrar na sessão"}
+        </Button>
+        {enterMutation.isError && (
+          <div
+            role="alert"
+            className="mt-5 flex gap-3 rounded-[12px] border border-red-200 bg-red-50 p-4 text-left text-red-700"
+          >
+            <AlertCircle className="mt-0.5 size-5 shrink-0" />
+            <p>{getApiErrorMessage(enterMutation.error)}</p>
+          </div>
+        )}
       </section>
     );
   }

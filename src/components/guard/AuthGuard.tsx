@@ -64,7 +64,9 @@ export function AuthGuard({ children }: AuthGuardProps) {
   }, [actor, meQuery.isError, router]);
 
   if (isCheckingStorage || meQuery.isPending || meQuery.isError) {
-    return <AppShellSkeleton />;
+    return (
+      <AppShellSkeleton variant={actor === "aluno" ? "student" : "system"} />
+    );
   }
 
   return children;
