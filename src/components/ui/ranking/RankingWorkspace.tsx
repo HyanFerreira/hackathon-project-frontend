@@ -1,7 +1,17 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { AlertCircle, Medal, Search } from "lucide-react";
+import {
+  AlertCircle,
+  ChevronRight,
+  Crown,
+  Medal,
+  Search,
+  Shield,
+  Star,
+} from "lucide-react";
+import Image from "next/image";
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { Button } from "@/components/buttons";
 import { Input } from "@/components/form/Input";
@@ -11,12 +21,12 @@ import { getApiErrorMessage } from "@/services/api/errors/getApiErrorMessage";
 import { authApi } from "@/services/api/modules/auth";
 import { gamificationApi } from "@/services/api/modules/gamification";
 import { getAuthActor } from "@/services/api/tokenStorage";
-import type { Aluno } from "@/types/aluno";
+import type { Aluno, RankingItem } from "@/types/aluno";
 import type { User } from "@/types/user";
+import { getAvatarImage } from "../student/studentVisualAssets";
 
 export function RankingWorkspace() {
   const actor = getAuthActor();
-  const [studentScope, setStudentScope] = useState<"turma" | "escola">("turma");
   const [gestorScope, setGestorScope] = useState<"escola" | "turma">("escola");
   const [selectedTurmaId, setSelectedTurmaId] = useState("");
   const [professorTurmaId, setProfessorTurmaId] = useState("");
@@ -45,16 +55,13 @@ export function RankingWorkspace() {
       "ranking",
       actor,
       role,
-      studentScope,
       gestorScope,
       selectedTurmaId,
       submittedProfessorTurmaId,
     ],
     queryFn: () => {
       if (actor === "aluno") {
-        return studentScope === "turma"
-          ? gamificationApi.rankingAlunoTurma()
-          : gamificationApi.rankingAlunoEscola();
+        return gamificationApi.rankingAlunoTurma();
       }
 
       if (role === "professor") {
@@ -75,6 +82,18 @@ export function RankingWorkspace() {
       (role === "professor" && Boolean(submittedProfessorTurmaId)),
   });
 
+  if (actor === "aluno") {
+    return (
+      <StudentRankingView
+        error={rankingQuery.error}
+        isError={rankingQuery.isError}
+        isFetching={rankingQuery.isFetching}
+        isSuccess={rankingQuery.isSuccess}
+        items={rankingQuery.data ?? []}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
       <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -84,21 +103,6 @@ export function RankingWorkspace() {
             Classificacao por pontos, XP e nivel.
           </p>
         </div>
-
-        {actor === "aluno" && (
-          <Select
-            className="w-full lg:w-64"
-            label="Visualizar"
-            value={studentScope}
-            options={[
-              { label: "Minha turma", value: "turma" },
-              { label: "Minha escola", value: "escola" },
-            ]}
-            onChange={(value) =>
-              setStudentScope(value === "escola" ? "escola" : "turma")
-            }
-          />
-        )}
 
         {role === "gestor" && (
           <div className="grid gap-3 sm:grid-cols-2 lg:w-[520px]">
@@ -230,4 +234,289 @@ export function RankingWorkspace() {
       </section>
     </div>
   );
+}
+
+type StudentRankingViewProps = {
+  error: unknown;
+  isError: boolean;
+  isFetching: boolean;
+  isSuccess: boolean;
+  items: RankingItem[];
+};
+
+function StudentRankingView({
+  error,
+  isError,
+  isFetching,
+  isSuccess,
+  items,
+}: StudentRankingViewProps) {
+  const podiumSlots = [2, 1, 3].map((position) => ({
+    position,
+    item: items.find((rankingItem) => rankingItem.position === position),
+  }));
+
+  return (
+    <div className="relative px-3 py-4 sm:px-6 lg:px-8">
+      <RankingDecorations />
+
+      <section className="relative z-10">
+        <div>
+          <h1 className="text-5xl font-black tracking-normal text-[#5b2bdc]">
+            Ranking
+          </h1>
+          <p className="mt-2 text-lg font-medium text-[#656099]">
+            Classificacao por pontos, XP e nivel.
+          </p>
+        </div>
+      </section>
+
+      {isFetching && (
+        <section className="relative z-10 mt-10 rounded-[24px] border border-[#e3d9f8] bg-white/90 p-5 shadow-[0_22px_60px_rgba(72,35,137,0.08)]">
+          <TableSkeleton rows={8} columns={5} />
+        </section>
+      )}
+
+      {isError && (
+        <div
+          role="alert"
+          className="relative z-10 mt-8 flex gap-3 rounded-[18px] border border-red-200 bg-red-50 p-4 text-red-700"
+        >
+          <AlertCircle className="mt-0.5 size-5 shrink-0" />
+          <p>{getApiErrorMessage(error)}</p>
+        </div>
+      )}
+
+      {!isFetching && (
+        <>
+          <section className="relative z-10 mx-auto mt-3 grid max-w-[900px] items-end justify-center gap-5 md:grid-cols-3">
+            {podiumSlots.map(({ item, position }) => (
+              <PodiumCard key={position} item={item} position={position} />
+            ))}
+          </section>
+
+          {items.length > 0 && (
+            <section className="relative z-10 mt-6 overflow-hidden rounded-[24px] border border-[#e3d9f8] bg-white/95 p-4 shadow-[0_22px_60px_rgba(72,35,137,0.1)]">
+              <div className="hidden grid-cols-[120px_minmax(240px,1fr)_140px_130px_220px_32px] px-6 py-3 text-sm font-black text-[#5d5a89] lg:grid">
+                <span>Posicao</span>
+                <span>Aluno</span>
+                <span className="inline-flex items-center gap-2">
+                  <Star className="size-5 fill-[#ffb900] text-[#ffb900]" />
+                  Pontos
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  <span className="rounded-full bg-[#7c35e8] px-1.5 py-0.5 text-[10px] font-black text-white">
+                    XP
+                  </span>
+                  XP
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  <Shield className="size-5 fill-[#63bd47] text-[#4aa53c]" />
+                  Nivel
+                </span>
+                <span />
+              </div>
+
+              <div className="space-y-2">
+                {items.map((item) => (
+                  <RankingRow key={item.aluno.id} item={item} />
+                ))}
+              </div>
+            </section>
+          )}
+        </>
+      )}
+
+      {!isFetching && isSuccess && items.length === 0 && (
+        <span className="sr-only">Ranking ainda sem dados</span>
+      )}
+    </div>
+  );
+}
+
+function RankingDecorations() {
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      <Star className="absolute left-[18%] top-[18%] size-5 fill-[#cdb9ff] text-[#cdb9ff] opacity-80" />
+      <Star className="absolute right-[18%] top-[20%] size-5 fill-[#cdb9ff] text-[#cdb9ff] opacity-70" />
+      <Star className="absolute left-[40%] top-[10%] size-4 fill-[#ffd891] text-[#ffd891] opacity-80" />
+      <Star className="absolute right-[31%] top-[13%] size-4 fill-[#ffd891] text-[#ffd891] opacity-70" />
+      <span className="absolute left-[23%] top-[8%] size-3 rotate-45 rounded-[3px] bg-[#cdb9ff]/70" />
+      <span className="absolute right-[23%] top-[9%] size-3 rotate-45 rounded-[3px] bg-[#cdb9ff]/70" />
+      <span className="absolute left-[33%] top-[25%] size-2 rotate-45 rounded-[2px] bg-[#ffd891]/80" />
+      <span className="absolute right-[35%] top-[26%] size-2 rotate-45 rounded-[2px] bg-[#ffd891]/80" />
+    </div>
+  );
+}
+
+function PodiumCard({
+  item,
+  position,
+}: {
+  item?: RankingItem;
+  position: number;
+}) {
+  const isFirst = position === 1;
+  const cardTone =
+    position === 1
+      ? "border-[#ffd77a] bg-[#fffdf7] shadow-[0_20px_60px_rgba(255,185,0,0.18)]"
+      : position === 2
+        ? "border-[#d8d7ea] bg-white shadow-[0_18px_48px_rgba(72,35,137,0.12)]"
+        : "border-[#f0c7ad] bg-white shadow-[0_18px_48px_rgba(197,105,42,0.12)]";
+
+  return (
+    <article
+      className={`relative mx-auto flex w-full max-w-[260px] flex-col items-center rounded-[22px] border p-5 text-center ${cardTone} ${
+        isFirst ? "min-h-[250px] md:order-2" : "min-h-[220px] md:mb-0"
+      } ${position === 2 ? "md:order-1" : ""} ${
+        position === 3 ? "md:order-3" : ""
+      }`}
+    >
+      {isFirst && (
+        <Crown className="-top-12 absolute size-14 fill-[#ffb900] text-[#ff9f1a]" />
+      )}
+      <PositionMedal position={position} />
+      {item ? (
+        <>
+          <Image
+            src={getAvatarImage("lumi_free.svg")}
+            alt=""
+            aria-hidden="true"
+            className={`${isFirst ? "mt-0 size-24" : "mt-1 size-20"} object-contain`}
+          />
+          <h2 className="mt-3 line-clamp-1 text-xl font-black text-[#101044]">
+            {item.aluno.name}
+          </h2>
+          <p className="mt-2 inline-flex items-center gap-2 text-2xl font-black text-[#101044]">
+            {item.points}
+            <Star className="size-6 fill-[#ffb900] text-[#ffb900]" />
+          </p>
+          <div className="mt-4 flex items-center justify-center gap-3">
+            <Pill tone="xp">XP {item.xp}</Pill>
+            <Pill tone="level">Nivel {item.level}</Pill>
+          </div>
+        </>
+      ) : (
+        <div className="flex flex-1 items-center" aria-hidden="true" />
+      )}
+    </article>
+  );
+}
+
+function RankingRow({ item }: { item: RankingItem }) {
+  const highlight =
+    item.position === 1
+      ? "bg-[#fff8e9]"
+      : item.position === 2
+        ? "bg-[#f8faff]"
+        : item.position === 3
+          ? "bg-[#fff3eb]"
+          : "bg-white";
+
+  return (
+    <article
+      className={`grid min-h-[64px] items-center gap-3 rounded-[12px] border border-transparent px-4 py-3 text-[#101044] transition hover:border-[#e3d9f8] hover:shadow-[0_12px_30px_rgba(72,35,137,0.08)] lg:grid-cols-[120px_minmax(240px,1fr)_140px_130px_220px_32px] ${highlight}`}
+    >
+      <div className="flex items-center">
+        <PositionMedal position={item.position} compact />
+      </div>
+
+      <div className="flex min-w-0 items-center gap-4">
+        <Image
+          src={getAvatarImage("lumi_free.svg")}
+          alt=""
+          aria-hidden="true"
+          className="size-11 shrink-0 object-contain"
+        />
+        <p className="truncate text-lg font-black">{item.aluno.name}</p>
+      </div>
+
+      <p className="inline-flex items-center gap-2 font-black lg:justify-start">
+        <span className="lg:hidden">Pontos</span>
+        {item.points}
+        <Star className="size-4 fill-[#ffb900] text-[#ffb900]" />
+      </p>
+
+      <p className="font-black text-[#101044]">
+        <span className="mr-2 lg:hidden">XP</span>
+        {item.xp}
+      </p>
+
+      <div className="grid grid-cols-[44px_1fr] items-center gap-3">
+        <span className="relative flex size-8 items-center justify-center">
+          <Shield className="absolute size-9 fill-[#63bd47] text-[#4aa53c]" />
+          <span className="relative text-sm font-black text-white">
+            {item.level}
+          </span>
+        </span>
+        <div className="h-2.5 overflow-hidden rounded-full bg-[#ececf7]">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-[#7c35e8] to-[#9d56ff]"
+            style={{ width: `${getLevelProgress(item)}%` }}
+          />
+        </div>
+      </div>
+
+      <ChevronRight className="hidden size-6 text-[#1c2370] lg:block" />
+    </article>
+  );
+}
+
+function PositionMedal({
+  compact,
+  position,
+}: {
+  compact?: boolean;
+  position: number;
+}) {
+  if (position > 3) {
+    return (
+      <span className="text-lg font-black text-[#7c35e8]">#{position}</span>
+    );
+  }
+
+  const tone =
+    position === 1
+      ? "from-[#ffcf43] to-[#ff7b2a] text-white"
+      : position === 2
+        ? "from-[#d8dce6] to-[#89909e] text-white"
+        : "from-[#d88a4c] to-[#b75b24] text-white";
+
+  return (
+    <span
+      className={`relative flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${tone} font-black shadow-[0_8px_18px_rgba(0,0,0,0.16)] ${
+        compact ? "size-9 text-base" : "absolute left-4 top-6 size-12 text-xl"
+      }`}
+    >
+      {position}
+    </span>
+  );
+}
+
+function Pill({
+  children,
+  tone,
+}: {
+  children: ReactNode;
+  tone: "level" | "xp";
+}) {
+  return (
+    <span
+      className={`inline-flex min-h-8 items-center rounded-full px-4 text-sm font-black ${
+        tone === "xp"
+          ? "bg-[#efe7ff] text-[#6d2ee8] ring-1 ring-[#d9c6ff]"
+          : "bg-[#e9f8e3] text-[#2f8d2f] ring-1 ring-[#c7edbc]"
+      }`}
+    >
+      {children}
+    </span>
+  );
+}
+
+function getLevelProgress(item: RankingItem) {
+  if (item.xp <= 0) return 0;
+
+  const progress = item.xp % 100;
+
+  return progress === 0 ? 100 : Math.max(18, progress);
 }

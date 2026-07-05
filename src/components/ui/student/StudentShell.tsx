@@ -94,10 +94,10 @@ export function StudentShell({ children }: StudentShellProps) {
               href="/estudantes/ranking"
             />
             <StudentNavItem
-              active={isActive(pathname, "/estudantes/missoes")}
+              active={isActive(pathname, "/estudantes/desafios")}
               icon={Sparkles}
-              label="Missoes"
-              href="/estudantes/missoes"
+              label="Desafios"
+              href="/estudantes/desafios"
             />
             <StudentNavItem
               active={isActive(pathname, "/estudantes/conquistas")}
@@ -160,7 +160,7 @@ export function StudentShell({ children }: StudentShellProps) {
                   Ranking
                 </Link>
                 <Link
-                  href="/estudantes/missoes"
+                  href="/estudantes/desafios"
                   onClick={() => setIsUserMenuOpen(false)}
                   className="flex min-h-11 items-center gap-3 px-4 text-sm font-semibold transition hover:bg-[#f6f0ff]"
                 >
@@ -168,7 +168,7 @@ export function StudentShell({ children }: StudentShellProps) {
                     aria-hidden="true"
                     className="size-4 text-[#7c35e8]"
                   />
-                  Missoes
+                  Desafios
                 </Link>
                 <Link
                   href="/estudantes/conquistas"
@@ -229,7 +229,6 @@ export function StudentShell({ children }: StudentShellProps) {
       </header>
 
       <div className="relative mx-auto max-w-[1740px] px-5 py-6 lg:px-8">
-        <div className="pointer-events-none absolute inset-x-[-12%] bottom-[-120px] h-72 rounded-[50%] bg-[#e6d9ff]" />
         <div className="relative">{children}</div>
       </div>
     </main>
