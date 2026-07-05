@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
   ArrowRight,
@@ -53,6 +54,7 @@ export function LoginScreen({
   initialCodigo,
 }: LoginScreenProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const autoLoginDone = useRef(false);
   const [cpf, setCpf] = useState("");
   const [codigo, setCodigo] = useState((initialCodigo ?? "").toUpperCase());
@@ -116,6 +118,9 @@ export function LoginScreen({
 
         setAuthToken(response.token, false);
         setAuthActor("aluno", false);
+        if (response.perfil) {
+          queryClient.setQueryData(["aluno", "perfil"], response.perfil);
+        }
         if (persistIdentifier) {
           persistRememberedIdentifier(codigoValue);
         }
@@ -138,7 +143,7 @@ export function LoginScreen({
         setIsSubmitting(false);
       }
     },
-    [persistRememberedIdentifier, router],
+    [persistRememberedIdentifier, queryClient, router],
   );
 
   // Auto-login quando o codigo chega pela URL (QR code do cartao de acesso).

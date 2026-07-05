@@ -1149,12 +1149,16 @@ function normalizeSimpleMissao(missao: SimpleMissaoApi): MissaoProgresso {
 }
 
 export const gamificationApi = {
-  async loginAluno(
-    codigo: string,
-  ): Promise<{ aluno: Aluno; token: string; streak?: LoginStreakReward }> {
+  async loginAluno(codigo: string): Promise<{
+    aluno: Aluno;
+    token: string;
+    perfil?: PerfilAluno;
+    streak?: LoginStreakReward;
+  }> {
     const { data } = await api.post<{
       aluno: Resource<AlunoApi> | AlunoApi;
       token: string;
+      perfil?: Resource<PerfilAlunoApi> | PerfilAlunoApi;
       streak?: {
         dias_seguidos: number;
         maior_dias_seguidos: number;
@@ -1168,10 +1172,12 @@ export const gamificationApi = {
     }>(gamificationEndpoints.alunoLogin, { codigo });
 
     const aluno = "data" in data.aluno ? data.aluno.data : data.aluno;
+    const perfil = unwrapResource(data.perfil);
 
     return {
       aluno: normalizeAluno(aluno),
       token: data.token,
+      perfil: perfil ? normalizePerfil(perfil) : undefined,
       streak: data.streak
         ? {
             currentDays: data.streak.dias_seguidos,

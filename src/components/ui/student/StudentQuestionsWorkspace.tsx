@@ -199,7 +199,7 @@ export function StudentQuestionsWorkspace() {
       )}
 
       {currentQuestion && currentIndex < questions.length && (
-        <section className="mx-auto flex w-full max-w-5xl flex-1 items-center">
+        <section className="mx-auto flex w-full max-w-5xl flex-1 items-start pt-10">
           <article className="w-full rounded-system border border-slate-200 bg-white p-5 shadow-[0_10px_30px_rgba(0,0,0,0.08)] sm:p-7">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
@@ -237,7 +237,7 @@ export function StudentQuestionsWorkspace() {
                       if (!alternativeId) return;
                       setSelectedAlternativeId(alternativeId);
                     }}
-                    className={`flex min-h-14 w-full items-center gap-3 rounded-system border px-4 py-3 text-left text-sm font-bold transition ${
+                    className={`flex min-h-14 w-full items-center justify-start gap-3 rounded-system border px-4 py-3 text-left text-sm font-bold transition ${
                       isCorrect
                         ? "border-emerald-300 bg-emerald-50 text-emerald-800"
                         : isWrongSelection
@@ -257,7 +257,7 @@ export function StudentQuestionsWorkspace() {
                     ) : (
                       <Circle aria-hidden="true" className="size-5 shrink-0" />
                     )}
-                    <span>{alternative.text}</span>
+                    <span className="flex-1 text-left">{alternative.text}</span>
                   </Button>
                 );
               })}
