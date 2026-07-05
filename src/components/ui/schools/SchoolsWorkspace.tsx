@@ -1,14 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  AlertCircle,
-  Building2,
-  Pencil,
-  Plus,
-  Trash2,
-  UserPlus,
-} from "lucide-react";
+import { AlertCircle, Building2, Pencil, Plus, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/buttons";
 import { ConfirmDialog } from "@/components/feedback/ConfirmDialog";
@@ -18,14 +11,12 @@ import { managersApi } from "@/services/api/modules/managers";
 import { schoolsApi } from "@/services/api/modules/schools";
 import type { School } from "@/types/school";
 import type { User } from "@/types/user";
-import { ManagerFormModal } from "./ManagerFormModal";
 import { SchoolFormModal } from "./SchoolFormModal";
 
 export function SchoolsWorkspace() {
   const queryClient = useQueryClient();
   const [isSchoolFormOpen, setIsSchoolFormOpen] = useState(false);
   const [editingSchool, setEditingSchool] = useState<School>();
-  const [managerSchool, setManagerSchool] = useState<School>();
   const [schoolToDelete, setSchoolToDelete] = useState<School>();
 
   const schoolsQuery = useQuery({
@@ -76,7 +67,7 @@ export function SchoolsWorkspace() {
         <div>
           <h1 className="text-3xl font-bold text-brand-primary">Escolas</h1>
           <p className="mt-1 text-base text-text-secondary">
-            Cadastre escolas e vincule gestores para iniciar o fluxo admin.
+            Cadastre e acompanhe as escolas do sistema.
           </p>
         </div>
 
@@ -109,7 +100,7 @@ export function SchoolsWorkspace() {
 
         <div className="p-5" aria-live="polite">
           {(schoolsQuery.isPending || managersQuery.isPending) && (
-            <TableSkeleton rows={5} columns={6} />
+            <TableSkeleton rows={5} columns={5} />
           )}
 
           {(schoolsQuery.isError || managersQuery.isError) && (
@@ -195,14 +186,6 @@ export function SchoolsWorkspace() {
                           <div className="flex justify-end gap-2">
                             <Button
                               type="button"
-                              aria-label={`Criar gestor para ${school.name}`}
-                              onClick={() => setManagerSchool(school)}
-                              className="size-9 border border-slate-200 bg-white p-0 text-brand-primary hover:bg-brand-primary-soft"
-                            >
-                              <UserPlus aria-hidden="true" className="size-4" />
-                            </Button>
-                            <Button
-                              type="button"
                               aria-label={`Editar ${school.name}`}
                               onClick={() => openEdit(school)}
                               className="size-9 border border-slate-200 bg-white p-0 text-brand-primary hover:bg-brand-primary-soft"
@@ -233,12 +216,6 @@ export function SchoolsWorkspace() {
         isOpen={isSchoolFormOpen}
         school={editingSchool}
         onClose={() => setIsSchoolFormOpen(false)}
-      />
-
-      <ManagerFormModal
-        isOpen={Boolean(managerSchool)}
-        school={managerSchool}
-        onClose={() => setManagerSchool(undefined)}
       />
 
       <ConfirmDialog

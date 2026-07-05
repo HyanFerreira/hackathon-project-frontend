@@ -8,6 +8,7 @@ import {
   ClipboardList,
   LayoutDashboard,
   Menu,
+  Radio,
   School,
   Trophy,
   UserRound,
@@ -57,12 +58,6 @@ const sidebarItems: SidebarItem[] = [
     href: "/escolas",
   },
   {
-    key: "gestores",
-    label: "Usuários",
-    icon: Users,
-    href: "/gestores",
-  },
-  {
     key: "usuarios",
     label: "Usuarios",
     icon: Users,
@@ -91,6 +86,12 @@ const sidebarItems: SidebarItem[] = [
     label: "Questoes",
     icon: ClipboardList,
     href: "/questoes",
+  },
+  {
+    key: "sessoes-ao-vivo",
+    label: "Ao vivo",
+    icon: Radio,
+    href: "/sessoes-ao-vivo",
   },
   {
     key: "ranking",
@@ -258,8 +259,7 @@ export function AppSidebar({ actor, isOpen, onToggle, role }: AppSidebarProps) {
                   .filter((item) => canShowNavigationItem(item, role, actor))
                   .map((item) => {
                     const isItemActive = isPathActive(pathname, item.href);
-                    const itemLabel =
-                      item.key === "gestores" ? "Gestores" : item.label;
+                    const itemLabel = item.label;
 
                     return (
                       <Link

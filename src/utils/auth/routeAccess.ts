@@ -13,12 +13,12 @@ export type NavigationItem = {
 const ROUTE_ACCESS: Record<string, RouteAccess> = {
   "/dashboard": {},
   "/escolas": { actor: "user", roles: ["admin"] },
-  "/gestores": { actor: "user", roles: ["admin"] },
   "/usuarios": { actor: "user", roles: ["admin"] },
   "/turmas": { actor: "user", roles: ["gestor"] },
   "/professores": { actor: "user", roles: ["gestor"] },
   "/alunos": { actor: "user", roles: ["gestor"] },
   "/questoes": { actor: "user", roles: ["professor"] },
+  "/sessoes-ao-vivo": { actor: "user", roles: ["professor"] },
   "/estudantes": { actor: "aluno" },
   "/ranking": {},
 };

@@ -6,15 +6,12 @@ import {
   ChevronRight,
   Crown,
   Medal,
-  Search,
   Shield,
   Star,
 } from "lucide-react";
 import Image from "next/image";
 import type { ReactNode } from "react";
-import { useState } from "react";
-import { Button } from "@/components/buttons";
-import { Input } from "@/components/form/Input";
+import { useEffect, useMemo, useState } from "react";
 import { Select } from "@/components/form/Select";
 import { TableSkeleton } from "@/components/loading";
 import { getApiErrorMessage } from "@/services/api/errors/getApiErrorMessage";
@@ -23,15 +20,16 @@ import { gamificationApi } from "@/services/api/modules/gamification";
 import { getAuthActor } from "@/services/api/tokenStorage";
 import type { Aluno, RankingItem } from "@/types/aluno";
 import type { User } from "@/types/user";
-import { getAvatarImage } from "../student/studentVisualAssets";
+import {
+  markEquippedCharacter,
+  readStoredEquippedCharacterId,
+  resolveEquippedCharacterId,
+} from "@/utils/student/equippedCharacter";
+import { getAvatarProfileImage } from "../student/studentVisualAssets";
 
 export function RankingWorkspace() {
   const actor = getAuthActor();
-  const [gestorScope, setGestorScope] = useState<"escola" | "turma">("escola");
   const [selectedTurmaId, setSelectedTurmaId] = useState("");
-  const [professorTurmaId, setProfessorTurmaId] = useState("");
-  const [submittedProfessorTurmaId, setSubmittedProfessorTurmaId] =
-    useState("");
 
   const meQuery = useQuery<User | Aluno>({
     queryKey: ["auth", "me", actor],
@@ -49,42 +47,129 @@ export function RankingWorkspace() {
     queryFn: gamificationApi.turmas,
     enabled: role === "gestor",
   });
+  const professorTurmasQuery = useQuery({
+    queryKey: ["professor", "turmas"],
+    queryFn: gamificationApi.professorTurmas,
+    enabled: role === "professor",
+  });
+  const professorSessionsQuery = useQuery({
+    queryKey: ["professor", "sessoes-ao-vivo"],
+    queryFn: gamificationApi.professorSessoesAoVivo,
+    enabled: role === "professor",
+  });
+  const professorTurmas =
+    meQuery.data && "roles" in meQuery.data ? (meQuery.data.turmas ?? []) : [];
+  const turmaOptions = useMemo(() => {
+    if (role === "professor") {
+      const turmas = new Map<string, string>();
+
+      for (const turma of professorTurmasQuery.data ?? professorTurmas) {
+        turmas.set(String(turma.id), turma.name);
+      }
+
+      for (const session of professorSessionsQuery.data ?? []) {
+        if (session.turma?.id) {
+          turmas.set(
+            String(session.turma.id),
+            session.turma.name ?? `Turma ${session.turma.id}`,
+          );
+        }
+      }
+
+      return Array.from(turmas.entries()).map(([value, label]) => ({
+        label,
+        value,
+      }));
+    }
+
+    const turmas = turmasQuery.data;
+
+    return (
+      turmas?.map((turma) => ({
+        label: turma.name,
+        value: String(turma.id),
+      })) ?? []
+    );
+  }, [
+    professorSessionsQuery.data,
+    professorTurmas,
+    professorTurmasQuery.data,
+    role,
+    turmasQuery.data,
+  ]);
+
+  useEffect(() => {
+    if (
+      (role !== "gestor" && role !== "professor") ||
+      selectedTurmaId ||
+      !turmaOptions[0]
+    ) {
+      return;
+    }
+
+    setSelectedTurmaId(turmaOptions[0].value);
+  }, [role, selectedTurmaId, turmaOptions]);
+
+  const selectedTurmaIsAvailable = turmaOptions.some(
+    (option) => option.value === selectedTurmaId,
+  );
+
+  useEffect(() => {
+    if (!selectedTurmaId || selectedTurmaIsAvailable) return;
+
+    setSelectedTurmaId("");
+  }, [selectedTurmaId, selectedTurmaIsAvailable]);
 
   const rankingQuery = useQuery({
-    queryKey: [
-      "ranking",
-      actor,
-      role,
-      gestorScope,
-      selectedTurmaId,
-      submittedProfessorTurmaId,
-    ],
+    queryKey: ["ranking", actor, role, selectedTurmaId],
     queryFn: () => {
       if (actor === "aluno") {
         return gamificationApi.rankingAlunoTurma();
       }
 
-      if (role === "professor") {
-        return gamificationApi.rankingProfessorTurma(
-          Number(submittedProfessorTurmaId),
-        );
+      if (role === "professor" && selectedTurmaId) {
+        return gamificationApi.rankingProfessorTurma(Number(selectedTurmaId));
       }
 
-      if (gestorScope === "turma" && selectedTurmaId) {
+      if (role === "gestor" && selectedTurmaId) {
         return gamificationApi.rankingGestorTurma(Number(selectedTurmaId));
       }
 
-      return gamificationApi.rankingGestorEscola();
+      return Promise.resolve([]);
     },
     enabled:
       actor === "aluno" ||
-      role === "gestor" ||
-      (role === "professor" && Boolean(submittedProfessorTurmaId)),
+      ((role === "gestor" || role === "professor") && Boolean(selectedTurmaId)),
   });
+  const personagensQuery = useQuery({
+    queryKey: ["aluno", "personagens"],
+    queryFn: gamificationApi.personagens,
+    enabled: actor === "aluno",
+  });
+
+  const personagens = markEquippedCharacter(
+    personagensQuery.data,
+    resolveEquippedCharacterId(
+      personagensQuery.data,
+      readStoredEquippedCharacterId(),
+    ),
+  );
+  const equippedCharacter = personagens?.find(
+    (personagem) => personagem.equipped,
+  );
 
   if (actor === "aluno") {
     return (
       <StudentRankingView
+        currentStudentAvatar={
+          meQuery.data && !("roles" in meQuery.data) && equippedCharacter
+            ? {
+                avatar: equippedCharacter.avatar,
+                image: equippedCharacter.image,
+                studentId: meQuery.data.id,
+              }
+            : undefined
+        }
         error={rankingQuery.error}
         isError={rankingQuery.isError}
         isFetching={rankingQuery.isFetching}
@@ -104,62 +189,31 @@ export function RankingWorkspace() {
           </p>
         </div>
 
-        {role === "gestor" && (
-          <div className="grid gap-3 sm:grid-cols-2 lg:w-[520px]">
-            <Select
-              label="Visualizar"
-              value={gestorScope}
-              options={[
-                { label: "Escola", value: "escola" },
-                { label: "Turma", value: "turma" },
-              ]}
-              onChange={(value) =>
-                setGestorScope(value === "turma" ? "turma" : "escola")
-              }
-            />
+        {(role === "gestor" || role === "professor") && (
+          <div className="lg:w-[360px]">
             <Select
               label="Turma"
               value={selectedTurmaId}
-              disabled={gestorScope !== "turma"}
-              searchable
-              placeholder="Selecionar turma"
-              options={
-                turmasQuery.data?.map((turma) => ({
-                  label: turma.name,
-                  value: String(turma.id),
-                })) ?? []
+              disabled={
+                (role === "gestor" && turmasQuery.isPending) ||
+                (role === "professor" &&
+                  professorTurmasQuery.isPending &&
+                  professorSessionsQuery.isPending)
               }
+              searchable
+              placeholder={
+                (role === "gestor" && turmasQuery.isPending) ||
+                (role === "professor" &&
+                  professorTurmasQuery.isPending &&
+                  professorSessionsQuery.isPending)
+                  ? "Carregando turmas..."
+                  : "Selecionar turma"
+              }
+              emptyMessage="Nenhuma turma encontrada."
+              options={turmaOptions}
               onChange={setSelectedTurmaId}
             />
           </div>
-        )}
-
-        {role === "professor" && (
-          <form
-            className="flex w-full items-end gap-3 lg:w-[420px]"
-            onSubmit={(event) => {
-              event.preventDefault();
-              setSubmittedProfessorTurmaId(professorTurmaId);
-            }}
-          >
-            <Input
-              className="flex-1"
-              label="ID da turma"
-              name="turma"
-              type="number"
-              min={1}
-              value={professorTurmaId}
-              onChange={(event) => setProfessorTurmaId(event.target.value)}
-            />
-            <Button
-              type="submit"
-              disabled={!professorTurmaId}
-              className="min-h-11 bg-brand-primary px-4 text-white hover:bg-brand-primary-hover"
-            >
-              <Search aria-hidden="true" className="size-4" />
-              Buscar
-            </Button>
-          </form>
         )}
       </section>
 
@@ -176,11 +230,20 @@ export function RankingWorkspace() {
           </div>
         )}
 
-        {role === "professor" && !submittedProfessorTurmaId && (
+        {role === "professor" && !selectedTurmaId && (
           <div className="rounded-system border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
             <Medal className="mx-auto mb-3 size-10 text-brand-primary" />
             <p className="font-semibold text-text-primary">
-              Informe uma turma para consultar
+              Nenhuma turma vinculada para consultar
+            </p>
+          </div>
+        )}
+
+        {role === "gestor" && !selectedTurmaId && !turmasQuery.isPending && (
+          <div className="rounded-system border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+            <Medal className="mx-auto mb-3 size-10 text-brand-primary" />
+            <p className="font-semibold text-text-primary">
+              Nenhuma turma disponivel para consultar
             </p>
           </div>
         )}
@@ -237,6 +300,11 @@ export function RankingWorkspace() {
 }
 
 type StudentRankingViewProps = {
+  currentStudentAvatar?: {
+    avatar?: string;
+    image?: string;
+    studentId?: number;
+  };
   error: unknown;
   isError: boolean;
   isFetching: boolean;
@@ -245,6 +313,7 @@ type StudentRankingViewProps = {
 };
 
 function StudentRankingView({
+  currentStudentAvatar,
   error,
   isError,
   isFetching,
@@ -291,7 +360,12 @@ function StudentRankingView({
         <>
           <section className="relative z-10 mx-auto mt-3 grid max-w-[900px] items-end justify-center gap-5 md:grid-cols-3">
             {podiumSlots.map(({ item, position }) => (
-              <PodiumCard key={position} item={item} position={position} />
+              <PodiumCard
+                key={position}
+                currentStudentAvatar={currentStudentAvatar}
+                item={item}
+                position={position}
+              />
             ))}
           </section>
 
@@ -319,7 +393,11 @@ function StudentRankingView({
 
               <div className="space-y-2">
                 {items.map((item) => (
-                  <RankingRow key={item.aluno.id} item={item} />
+                  <RankingRow
+                    key={item.aluno.id}
+                    currentStudentAvatar={currentStudentAvatar}
+                    item={item}
+                  />
                 ))}
               </div>
             </section>
@@ -350,9 +428,15 @@ function RankingDecorations() {
 }
 
 function PodiumCard({
+  currentStudentAvatar,
   item,
   position,
 }: {
+  currentStudentAvatar?: {
+    avatar?: string;
+    image?: string;
+    studentId?: number;
+  };
   item?: RankingItem;
   position: number;
 }) {
@@ -378,11 +462,10 @@ function PodiumCard({
       <PositionMedal position={position} />
       {item ? (
         <>
-          <Image
-            src={getAvatarImage("lumi_free.svg")}
-            alt=""
-            aria-hidden="true"
-            className={`${isFirst ? "mt-0 size-24" : "mt-1 size-20"} object-contain`}
+          <AvatarProfile
+            currentStudentAvatar={currentStudentAvatar}
+            item={item}
+            className={isFirst ? "mt-0 size-24" : "mt-1 size-20"}
           />
           <h2 className="mt-3 line-clamp-1 text-xl font-black text-[#101044]">
             {item.aluno.name}
@@ -403,7 +486,17 @@ function PodiumCard({
   );
 }
 
-function RankingRow({ item }: { item: RankingItem }) {
+function RankingRow({
+  currentStudentAvatar,
+  item,
+}: {
+  currentStudentAvatar?: {
+    avatar?: string;
+    image?: string;
+    studentId?: number;
+  };
+  item: RankingItem;
+}) {
   const highlight =
     item.position === 1
       ? "bg-[#fff8e9]"
@@ -422,11 +515,10 @@ function RankingRow({ item }: { item: RankingItem }) {
       </div>
 
       <div className="flex min-w-0 items-center gap-4">
-        <Image
-          src={getAvatarImage("lumi_free.svg")}
-          alt=""
-          aria-hidden="true"
-          className="size-11 shrink-0 object-contain"
+        <AvatarProfile
+          currentStudentAvatar={currentStudentAvatar}
+          item={item}
+          className="size-11 shrink-0"
         />
         <p className="truncate text-lg font-black">{item.aluno.name}</p>
       </div>
@@ -459,6 +551,42 @@ function RankingRow({ item }: { item: RankingItem }) {
 
       <ChevronRight className="hidden size-6 text-[#1c2370] lg:block" />
     </article>
+  );
+}
+
+function AvatarProfile({
+  className,
+  currentStudentAvatar,
+  item,
+}: {
+  className?: string;
+  currentStudentAvatar?: {
+    avatar?: string;
+    image?: string;
+    studentId?: number;
+  };
+  item: RankingItem;
+}) {
+  const avatar =
+    currentStudentAvatar?.studentId === item.aluno.id
+      ? currentStudentAvatar.avatar
+      : item.avatar;
+  const image =
+    currentStudentAvatar?.studentId === item.aluno.id
+      ? currentStudentAvatar.image
+      : item.image;
+
+  return (
+    <span
+      className={`flex items-center justify-center overflow-hidden rounded-full bg-[#f1e8ff] ring-1 ring-[#d9c6ff] ${className ?? ""}`}
+    >
+      <Image
+        src={getAvatarProfileImage(avatar, image)}
+        alt=""
+        aria-hidden="true"
+        className="size-full object-cover"
+      />
+    </span>
   );
 }
 

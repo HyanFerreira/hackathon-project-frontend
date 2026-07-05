@@ -3,6 +3,7 @@ export type Aluno = {
   schoolId: number;
   name: string;
   code: string;
+  turmaId?: number;
 };
 
 export type ColegaAluno = Pick<Aluno, "id" | "name" | "code">;
@@ -24,6 +25,8 @@ export type RankingItem = {
   points: number;
   xp: number;
   level: number;
+  image?: string;
+  avatar?: string;
 };
 
 export type ConquistaProgresso = {
@@ -64,6 +67,7 @@ export type PersonagemLoja = {
   price: number;
   maxLevel: number;
   image: string;
+  avatar?: string;
   owned: boolean;
 };
 
@@ -78,6 +82,7 @@ export type AlunoPersonagem = {
   nextLevelIn?: number | null;
   equipped: boolean;
   image: string;
+  avatar?: string;
 };
 
 export type PersonagemFeedback = {
@@ -86,6 +91,7 @@ export type PersonagemFeedback = {
   level: number;
   leveledUp: boolean;
   image: string;
+  avatar?: string;
 };
 
 export type DisciplinaProgresso = {
@@ -175,3 +181,99 @@ export type DesafioResultado = {
 };
 
 export type DesafioEstado = DesafioQuestaoAtual | DesafioResultado;
+
+export type SessaoAoVivoStatus =
+  | "aguardando"
+  | "em_andamento"
+  | "pausada"
+  | "finalizada"
+  | "cancelada";
+
+export type SessaoAoVivoResumo = {
+  id: number;
+  title?: string | null;
+  status: SessaoAoVivoStatus;
+  turma?: {
+    id?: number | null;
+    name?: string | null;
+    year?: string | null;
+    shift?: string | null;
+  } | null;
+  professor?: {
+    id?: number | null;
+    name?: string | null;
+  } | null;
+  totalQuestions: number;
+  startedAt?: string | null;
+  pausedAt?: string | null;
+  finishedAt?: string | null;
+  teacherOnlineAt?: string | null;
+  endReason?: string | null;
+};
+
+export type SessaoAoVivoQuestao = {
+  id: number;
+  questionId: number;
+  order: number;
+  sentAt?: string | null;
+  closedAt?: string | null;
+  question: {
+    id: number;
+    statement: string;
+    difficulty: "facil" | "media" | "dificil";
+    points: number;
+    alternatives: Array<{
+      id: number;
+      text: string;
+    }>;
+  };
+};
+
+export type SessaoAoVivoRankingItem = {
+  position: number;
+  aluno: Aluno;
+  answers: number;
+  correct: number;
+  points: number;
+  xp: number;
+  totalTimeMs: number;
+  accuracy: number;
+};
+
+export type SessaoAoVivoPerformance = {
+  totalStudents: number;
+  participants: number;
+  totalAnswers: number;
+  currentQuestion: {
+    answered: number;
+    correct: number;
+    pending: number;
+  };
+  ranking: SessaoAoVivoRankingItem[];
+};
+
+export type SessaoAoVivoProfessorEstado = {
+  session: SessaoAoVivoResumo;
+  currentQuestion?: SessaoAoVivoQuestao | null;
+  performance: SessaoAoVivoPerformance;
+};
+
+export type SessaoAoVivoAlunoEstado = {
+  session: SessaoAoVivoResumo;
+  currentQuestion?: SessaoAoVivoQuestao | null;
+  answeredByMe: boolean;
+  myAnswer?: {
+    alternativeId: number;
+    correct: boolean;
+    pointsEarned: number;
+    xpEarned: number;
+    answeredAt?: string | null;
+  } | null;
+  ranking: SessaoAoVivoRankingItem[];
+};
+
+export type CriarSessaoAoVivoPayload = {
+  turmaId: number;
+  title?: string;
+  questionIds: number[];
+};

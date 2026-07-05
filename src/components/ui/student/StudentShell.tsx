@@ -7,6 +7,7 @@ import {
   Home,
   LogOut,
   Medal,
+  Radio,
   Settings,
   ShoppingBag,
   Sparkles,
@@ -23,6 +24,12 @@ import { Button } from "@/components/buttons";
 import { authApi } from "@/services/api/modules/auth";
 import { gamificationApi } from "@/services/api/modules/gamification";
 import { removeAuthToken } from "@/services/api/tokenStorage";
+import {
+  markEquippedCharacter,
+  readStoredEquippedCharacterId,
+  resolveEquippedCharacterId,
+} from "@/utils/student/equippedCharacter";
+import { getAvatarProfileImage } from "./studentVisualAssets";
 
 type StudentShellProps = {
   children: ReactNode;
@@ -53,9 +60,23 @@ export function StudentShell({ children }: StudentShellProps) {
     queryFn: gamificationApi.alunoMe,
     retry: false,
   });
+  const personagensQuery = useQuery({
+    queryKey: ["aluno", "personagens"],
+    queryFn: gamificationApi.personagens,
+  });
 
   const studentName = meQuery.data?.name ?? "Estudante";
   const initials = getInitials(studentName);
+  const personagens = markEquippedCharacter(
+    personagensQuery.data,
+    resolveEquippedCharacterId(
+      personagensQuery.data,
+      readStoredEquippedCharacterId(),
+    ),
+  );
+  const equippedCharacter = personagens?.find(
+    (personagem) => personagem.equipped,
+  );
 
   async function handleLogout() {
     try {
@@ -100,6 +121,12 @@ export function StudentShell({ children }: StudentShellProps) {
               href="/estudantes/desafios"
             />
             <StudentNavItem
+              active={isActive(pathname, "/estudantes/ao-vivo")}
+              icon={Radio}
+              label="Ao vivo"
+              href="/estudantes/ao-vivo"
+            />
+            <StudentNavItem
               active={isActive(pathname, "/estudantes/conquistas")}
               icon={Trophy}
               label="Conquistas"
@@ -128,7 +155,18 @@ export function StudentShell({ children }: StudentShellProps) {
               className="h-12 min-w-[184px] justify-start rounded-system border border-white/50 bg-white px-3 text-[#101044] shadow-sm hover:bg-[#fbf8ff]"
             >
               <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#f1e8ff] text-sm font-black text-[#7c35e8] ring-1 ring-[#d9c6ff]">
-                {initials}
+                {equippedCharacter ? (
+                  <Image
+                    src={getAvatarProfileImage(
+                      equippedCharacter.avatar,
+                      equippedCharacter.image,
+                    )}
+                    alt={`Avatar ${equippedCharacter.name}`}
+                    className="size-9 rounded-full object-cover"
+                  />
+                ) : (
+                  initials
+                )}
               </span>
               <span className="hidden min-w-0 flex-1 truncate text-sm font-bold sm:block">
                 {studentName}
@@ -169,6 +207,14 @@ export function StudentShell({ children }: StudentShellProps) {
                     className="size-4 text-[#7c35e8]"
                   />
                   Desafios
+                </Link>
+                <Link
+                  href="/estudantes/ao-vivo"
+                  onClick={() => setIsUserMenuOpen(false)}
+                  className="flex min-h-11 items-center gap-3 px-4 text-sm font-semibold transition hover:bg-[#f6f0ff]"
+                >
+                  <Radio aria-hidden="true" className="size-4 text-[#7c35e8]" />
+                  Ao vivo
                 </Link>
                 <Link
                   href="/estudantes/conquistas"

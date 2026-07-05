@@ -55,7 +55,14 @@ function getDashboardQuery(role?: string) {
   return gamificationApi.adminDashboard;
 }
 
-function renderStats(data: DashboardSummary | undefined, isLoading: boolean) {
+function renderStats(
+  data: DashboardSummary | undefined,
+  isLoading: boolean,
+  professorTurmas?: {
+    count?: number;
+    isLoading: boolean;
+  },
+) {
   if (!data || data.kind === "admin") {
     return (
       <>
@@ -117,8 +124,11 @@ function renderStats(data: DashboardSummary | undefined, isLoading: boolean) {
       <>
         <StatCard
           label="Minhas turmas"
-          value={data.minhas_turmas}
-          isLoading={isLoading}
+          value={professorTurmas?.count ?? data.minhas_turmas}
+          isLoading={
+            isLoading ||
+            (professorTurmas?.isLoading && professorTurmas.count === undefined)
+          }
           icon={School}
         />
         <StatCard
@@ -185,6 +195,11 @@ export function DashboardHome() {
     queryFn: getDashboardQuery(role),
     enabled: actor === "aluno" || Boolean(role),
   });
+  const professorTurmasQuery = useQuery({
+    queryKey: ["professor", "turmas"],
+    queryFn: gamificationApi.professorTurmas,
+    enabled: role === "professor",
+  });
 
   const title =
     actor === "aluno"
@@ -205,7 +220,10 @@ export function DashboardHome() {
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {renderStats(dashboardQuery.data, dashboardQuery.isPending)}
+        {renderStats(dashboardQuery.data, dashboardQuery.isPending, {
+          count: professorTurmasQuery.data?.length,
+          isLoading: professorTurmasQuery.isPending,
+        })}
       </section>
 
       {dashboardQuery.data?.kind === "professor" &&

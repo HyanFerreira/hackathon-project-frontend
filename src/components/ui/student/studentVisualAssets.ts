@@ -1,5 +1,4 @@
 import type { StaticImageData } from "next/image";
-import avatarDemo from "@/assets/images/avatar-demo.png";
 import drakoLevel1 from "@/assets/images/avatares/drako_level_1.svg";
 import drakoLevel2 from "@/assets/images/avatares/drako_level_2.svg";
 import drakoLevel3 from "@/assets/images/avatares/drako_level_3.svg";
@@ -21,7 +20,7 @@ import leafyLevel3 from "@/assets/images/avatares/leafy_level_3.svg";
 import leoLevel1 from "@/assets/images/avatares/leo_level_1.svg";
 import leoLevel2 from "@/assets/images/avatares/leo_level_2.svg";
 import leoLevel3 from "@/assets/images/avatares/leo_level_3.svg";
-import lumiFree from "@/assets/images/avatares/lumi_free.svg";
+import lumiLevel1 from "@/assets/images/avatares/lumi_level_1.svg";
 import lunaLevel1 from "@/assets/images/avatares/luna_level_1.svg";
 import lunaLevel2 from "@/assets/images/avatares/luna_level_2.svg";
 import lunaLevel3 from "@/assets/images/avatares/luna_level_3.svg";
@@ -31,6 +30,17 @@ import noxLevel3 from "@/assets/images/avatares/nox_level_3.svg";
 import pipLevel1 from "@/assets/images/avatares/pip_chibi_v2_level_1.svg";
 import pipLevel2 from "@/assets/images/avatares/pip_chibi_v2_level_2.svg";
 import pipLevel3 from "@/assets/images/avatares/pip_chibi_v2_level_3.svg";
+import drakoProfile from "@/assets/images/avatares_perfis/drako_perfil.svg";
+import elyraProfile from "@/assets/images/avatares_perfis/elyra_perfil.svg";
+import fenroProfile from "@/assets/images/avatares_perfis/fenro_perfil.svg";
+import gruntProfile from "@/assets/images/avatares_perfis/grunt_chibi_perfil.svg";
+import kitsuneProfile from "@/assets/images/avatares_perfis/kitsune_perfil.svg";
+import leafyProfile from "@/assets/images/avatares_perfis/leafy_perfil.svg";
+import leoProfile from "@/assets/images/avatares_perfis/leo_perfil.svg";
+import lumiProfile from "@/assets/images/avatares_perfis/lumi_perfil.svg";
+import lunaProfile from "@/assets/images/avatares_perfis/luna_perfil.svg";
+import noxProfile from "@/assets/images/avatares_perfis/nox_perfil.svg";
+import pipProfile from "@/assets/images/avatares_perfis/pip_chibi_v2_perfil.svg";
 import achievement01 from "@/assets/images/conquistas/ac01.svg";
 import achievement02 from "@/assets/images/conquistas/ac02.svg";
 import achievement03 from "@/assets/images/conquistas/ac03.svg";
@@ -46,6 +56,7 @@ import achievement12 from "@/assets/images/conquistas/ac12.svg";
 import achievement13 from "@/assets/images/conquistas/ac13.svg";
 
 const avatarImages: Record<string, StaticImageData> = {};
+const avatarProfileImages: Record<string, StaticImageData> = {};
 
 function registerAvatar(
   key: string,
@@ -55,6 +66,17 @@ function registerAvatar(
   for (const avatarKey of [key, ...aliases]) {
     avatarImages[`${avatarKey}.svg`] = image;
     avatarImages[`${avatarKey}.png`] = image;
+  }
+}
+
+function registerAvatarProfile(
+  key: string,
+  image: StaticImageData,
+  aliases: string[] = [],
+) {
+  for (const avatarKey of [key, ...aliases]) {
+    avatarProfileImages[`${avatarKey}_perfil.svg`] = image;
+    avatarProfileImages[`${avatarKey}_perfil.png`] = image;
   }
 }
 
@@ -79,9 +101,9 @@ registerAvatar("leafy_level_3", leafyLevel3);
 registerAvatar("leo_level_1", leoLevel1, ["leo_juv_level_1"]);
 registerAvatar("leo_level_2", leoLevel2, ["leo_juv_level_2"]);
 registerAvatar("leo_level_3", leoLevel3, ["leo_juv_level_3"]);
-registerAvatar("lumi_free", lumiFree, [
+registerAvatar("lumi_level_1", lumiLevel1, [
+  "lumi_free",
   "lumi",
-  "lumi_level_1",
   "lumi_level_2",
   "lumi_level_3",
   "lumi_juv_level_1",
@@ -97,6 +119,18 @@ registerAvatar("nox_level_3", noxLevel3);
 registerAvatar("pip_chibi_v2_level_1", pipLevel1);
 registerAvatar("pip_chibi_v2_level_2", pipLevel2);
 registerAvatar("pip_chibi_v2_level_3", pipLevel3);
+
+registerAvatarProfile("drako", drakoProfile);
+registerAvatarProfile("elyra", elyraProfile);
+registerAvatarProfile("fenro", fenroProfile);
+registerAvatarProfile("grunt_chibi", gruntProfile);
+registerAvatarProfile("kitsune", kitsuneProfile);
+registerAvatarProfile("leafy", leafyProfile);
+registerAvatarProfile("leo", leoProfile, ["leo_juv"]);
+registerAvatarProfile("lumi", lumiProfile, ["lumi_juv"]);
+registerAvatarProfile("luna", lunaProfile, ["luna_juv"]);
+registerAvatarProfile("nox", noxProfile);
+registerAvatarProfile("pip_chibi_v2", pipProfile, ["pip"]);
 
 const achievementImages: Record<string, StaticImageData> = {
   "primeiros-passos.svg": achievement01,
@@ -115,13 +149,42 @@ const achievementImages: Record<string, StaticImageData> = {
 };
 
 export function getAvatarImage(image?: string) {
-  if (!image) return avatarDemo;
+  if (!image) return lumiLevel1;
 
   const fileName = image.split(/[\\/]/).at(-1)?.split("?")[0]?.toLowerCase();
 
-  if (!fileName) return avatarDemo;
+  if (!fileName) return lumiLevel1;
 
-  return avatarImages[fileName] ?? avatarDemo;
+  return avatarImages[fileName] ?? lumiLevel1;
+}
+
+export function getAvatarProfileImage(avatar?: string, fallbackImage?: string) {
+  const fileName = avatar?.split(/[\\/]/).at(-1)?.split("?")[0]?.toLowerCase();
+
+  if (fileName && avatarProfileImages[fileName]) {
+    return avatarProfileImages[fileName];
+  }
+
+  if (fallbackImage) {
+    const fallbackFileName = fallbackImage
+      .split(/[\\/]/)
+      .at(-1)
+      ?.split("?")[0]
+      ?.toLowerCase();
+    const fallbackProfileFileName = fallbackFileName?.replace(
+      /_level_\d+\.(svg|png)$/,
+      "_perfil.$1",
+    );
+
+    if (
+      fallbackProfileFileName &&
+      avatarProfileImages[fallbackProfileFileName]
+    ) {
+      return avatarProfileImages[fallbackProfileFileName];
+    }
+  }
+
+  return lumiProfile;
 }
 
 export function getAchievementImage(icon?: string) {

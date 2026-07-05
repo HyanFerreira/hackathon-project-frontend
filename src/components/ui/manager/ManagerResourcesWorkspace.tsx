@@ -1,8 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, Pencil, Plus, Trash2 } from "lucide-react";
-import Link from "next/link";
+import { AlertCircle, Eye, Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/buttons";
 import { ConfirmDialog } from "@/components/feedback/ConfirmDialog";
@@ -16,7 +15,7 @@ import type { Aluno } from "@/types/aluno";
 import type { Turma } from "@/types/turma";
 import type { User } from "@/types/user";
 import { DEFAULT_USER_PASSWORD } from "@/utils/auth/defaultUserPassword";
-import { onlyCpfDigits } from "@/utils/cpf/cpf";
+import { formatCpf, onlyCpfDigits } from "@/utils/cpf/cpf";
 
 type ResourceKind = "turmas" | "professores" | "alunos";
 type ResourceItem = Turma | User | Aluno;
@@ -29,6 +28,8 @@ type FormState = {
   name: string;
   cpf: string;
   email: string;
+  classIds: string[];
+  classId: string;
   year: string;
   shift: string;
   status: string;
@@ -38,6 +39,8 @@ const EMPTY_FORM: FormState = {
   name: "",
   cpf: "",
   email: "",
+  classIds: [],
+  classId: "",
   year: "",
   shift: "",
   status: "ativa",
@@ -88,12 +91,42 @@ function getItemId(item: ResourceItem) {
   return item.id;
 }
 
+function getTeacherClasses(teacher: User, turmas: Turma[] = []) {
+  const teacherTurmas =
+    teacher.turmas && teacher.turmas.length > 0
+      ? teacher.turmas
+      : turmas.filter((turma) =>
+          turma.teachers?.some(
+            (linkedTeacher) => linkedTeacher.id === teacher.id,
+          ),
+        );
+
+  return teacherTurmas;
+}
+
+function getTeacherClassNames(teacher: User, turmas: Turma[] = []) {
+  return getTeacherClasses(teacher, turmas)
+    .map((turma) => turma.name)
+    .filter(Boolean);
+}
+
+function getStudentClass(aluno: Aluno, turmas: Turma[] = []) {
+  if (aluno.turmaId) {
+    return turmas.find((turma) => turma.id === aluno.turmaId);
+  }
+
+  return turmas.find((turma) =>
+    turma.students?.some((student) => student.id === aluno.id),
+  );
+}
+
 export function ManagerResourcesWorkspace({ kind }: Props) {
   const config = CONFIG[kind];
   const queryClient = useQueryClient();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ResourceItem>();
   const [itemToDelete, setItemToDelete] = useState<ResourceItem>();
+  const [teacherToView, setTeacherToView] = useState<User>();
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [error, setError] = useState<string>();
 
@@ -101,6 +134,17 @@ export function ManagerResourcesWorkspace({ kind }: Props) {
     queryKey: config.queryKey,
     queryFn: () => config.list() as Promise<ResourceItem[]>,
   });
+  const classesQuery = useQuery({
+    queryKey: ["gestor", "turmas"],
+    queryFn: gamificationApi.turmas,
+    enabled: kind === "professores" || kind === "alunos",
+  });
+
+  const classOptions =
+    classesQuery.data?.map((turma) => ({
+      label: turma.name,
+      value: String(turma.id),
+    })) ?? [];
 
   useEffect(() => {
     if (!isFormOpen) return;
@@ -117,14 +161,24 @@ export function ManagerResourcesWorkspace({ kind }: Props) {
       name: turma?.name ?? user?.name ?? aluno?.name ?? "",
       cpf: user?.cpf ?? "",
       email: user?.email ?? "",
+      classIds:
+        user && kind === "professores"
+          ? getTeacherClasses(user, classesQuery.data).map((turma) =>
+              String(turma.id),
+            )
+          : [],
+      classId:
+        aluno && kind === "alunos"
+          ? String(getStudentClass(aluno, classesQuery.data)?.id ?? "")
+          : "",
       year: turma?.year ?? "",
       shift: turma?.shift ?? "",
       status: turma?.status ?? "ativa",
     });
-  }, [editingItem, isFormOpen, kind]);
+  }, [classesQuery.data, editingItem, isFormOpen, kind]);
 
   const saveMutation = useMutation<ResourceItem>({
-    mutationFn: () => {
+    mutationFn: async () => {
       if (kind === "turmas") {
         return gamificationApi.saveTurma(
           {
@@ -138,7 +192,7 @@ export function ManagerResourcesWorkspace({ kind }: Props) {
       }
 
       if (kind === "professores") {
-        return gamificationApi.saveProfessor(
+        const savedTeacher = await gamificationApi.saveProfessor(
           {
             name: form.name,
             cpf: onlyCpfDigits(form.cpf),
@@ -147,12 +201,60 @@ export function ManagerResourcesWorkspace({ kind }: Props) {
           },
           editingItem?.id,
         );
+        const currentClassIds = new Set(
+          editingItem
+            ? getTeacherClasses(editingItem as User, classesQuery.data).map(
+                (turma) => turma.id,
+              )
+            : [],
+        );
+        const selectedClassIds = new Set(
+          form.classIds.map((classId) => Number(classId)),
+        );
+
+        await Promise.all([
+          ...[...selectedClassIds]
+            .filter((classId) => !currentClassIds.has(classId))
+            .map((classId) =>
+              gamificationApi.vincularProfessor(classId, savedTeacher.id),
+            ),
+          ...[...currentClassIds]
+            .filter((classId) => !selectedClassIds.has(classId))
+            .map((classId) =>
+              gamificationApi.desvincularProfessor(classId, savedTeacher.id),
+            ),
+        ]);
+
+        return savedTeacher;
       }
 
-      return gamificationApi.saveAluno({ nome: form.name }, editingItem?.id);
+      const savedStudent = await gamificationApi.saveAluno(
+        { nome: form.name },
+        editingItem?.id,
+      );
+      const currentClass = editingItem
+        ? getStudentClass(editingItem as Aluno, classesQuery.data)
+        : undefined;
+      const selectedClassId = form.classId ? Number(form.classId) : undefined;
+
+      if (currentClass && currentClass.id !== selectedClassId) {
+        await gamificationApi.desvincularAluno(
+          currentClass.id,
+          savedStudent.id,
+        );
+      }
+
+      if (selectedClassId && currentClass?.id !== selectedClassId) {
+        await gamificationApi.vincularAluno(selectedClassId, savedStudent.id);
+      }
+
+      return savedStudent;
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: config.queryKey });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: config.queryKey }),
+        queryClient.invalidateQueries({ queryKey: ["gestor", "turmas"] }),
+      ]);
       setIsFormOpen(false);
     },
     onError: (requestError) => setError(getApiErrorMessage(requestError)),
@@ -206,64 +308,146 @@ export function ManagerResourcesWorkspace({ kind }: Props) {
 
           {listQuery.data && listQuery.data.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[720px] border-collapse text-left text-sm">
+              <table className="w-full min-w-[820px] border-collapse text-left text-sm">
                 <thead>
-                  <tr className="border-slate-200 border-b text-xs font-bold uppercase tracking-wide text-text-secondary">
-                    <th className="px-3 py-3">Nome</th>
-                    <th className="px-3 py-3">Detalhes</th>
-                    <th className="px-3 py-3 text-right">Acoes</th>
-                  </tr>
+                  {kind === "professores" ? (
+                    <tr className="border-slate-200 border-b text-xs font-bold uppercase tracking-wide text-text-secondary">
+                      <th className="px-3 py-3">Nome</th>
+                      <th className="px-3 py-3">CPF</th>
+                      <th className="px-3 py-3">E-mail</th>
+                      <th className="px-3 py-3">Turmas</th>
+                      <th className="px-3 py-3 text-right">Acoes</th>
+                    </tr>
+                  ) : kind === "alunos" ? (
+                    <tr className="border-slate-200 border-b text-xs font-bold uppercase tracking-wide text-text-secondary">
+                      <th className="px-3 py-3">Nome</th>
+                      <th className="px-3 py-3">Codigo</th>
+                      <th className="px-3 py-3">Turma</th>
+                      <th className="px-3 py-3 text-right">Acoes</th>
+                    </tr>
+                  ) : (
+                    <tr className="border-slate-200 border-b text-xs font-bold uppercase tracking-wide text-text-secondary">
+                      <th className="px-3 py-3">Nome</th>
+                      <th className="px-3 py-3">Detalhes</th>
+                      <th className="px-3 py-3 text-right">Acoes</th>
+                    </tr>
+                  )}
                 </thead>
                 <tbody>
-                  {(listQuery.data as ResourceItem[]).map((item) => (
-                    <tr
-                      key={item.id}
-                      className="border-slate-100 border-b last:border-0 hover:bg-slate-50"
-                    >
-                      <td className="px-3 py-3 font-semibold text-text-primary">
-                        {getItemName(item)}
-                      </td>
-                      <td className="px-3 py-3 text-text-secondary">
-                        {kind === "turmas" &&
-                          `${(item as Turma).year ?? "-"} - ${
-                            (item as Turma).shift ?? "turno nao informado"
-                          }`}
-                        {kind === "professores" && (item as User).email}
-                        {kind === "alunos" && `Codigo: ${(item as Aluno).code}`}
-                      </td>
-                      <td className="px-3 py-3">
-                        <div className="flex justify-end gap-2">
-                          {kind === "turmas" && (
-                            <Link
-                              href={`/turmas/${item.id}`}
-                              className="inline-flex h-9 items-center justify-center rounded-system border border-slate-200 bg-white px-3 text-xs font-semibold text-brand-primary transition hover:bg-brand-primary-soft"
+                  {(listQuery.data as ResourceItem[]).map((item) => {
+                    const teacher =
+                      kind === "professores" ? (item as User) : undefined;
+                    const aluno =
+                      kind === "alunos" ? (item as Aluno) : undefined;
+                    const teacherClasses = teacher
+                      ? getTeacherClassNames(teacher, classesQuery.data)
+                      : [];
+                    const visibleTeacherClasses = teacherClasses.slice(0, 2);
+                    const hiddenTeacherClassesCount =
+                      teacherClasses.length - visibleTeacherClasses.length;
+
+                    return (
+                      <tr
+                        key={item.id}
+                        className="border-slate-100 border-b last:border-0 hover:bg-slate-50"
+                      >
+                        <td className="px-3 py-3 font-semibold text-text-primary">
+                          {getItemName(item)}
+                        </td>
+
+                        {teacher ? (
+                          <>
+                            <td className="px-3 py-3 text-text-secondary">
+                              {teacher.cpf ? formatCpf(teacher.cpf) : "-"}
+                            </td>
+                            <td
+                              className="max-w-[220px] px-3 py-3 text-text-secondary"
+                              title={teacher.email}
                             >
-                              Vinculos
-                            </Link>
-                          )}
-                          <Button
-                            type="button"
-                            aria-label={`Editar ${getItemName(item)}`}
-                            onClick={() => {
-                              setEditingItem(item);
-                              setIsFormOpen(true);
-                            }}
-                            className="size-9 border border-slate-200 bg-white p-0 text-brand-primary hover:bg-brand-primary-soft"
-                          >
-                            <Pencil aria-hidden="true" className="size-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            aria-label={`Excluir ${getItemName(item)}`}
-                            onClick={() => setItemToDelete(item)}
-                            className="size-9 border border-red-200 bg-white p-0 text-red-600 hover:bg-red-50"
-                          >
-                            <Trash2 aria-hidden="true" className="size-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                              <span className="block truncate">
+                                {teacher.email}
+                              </span>
+                            </td>
+                            <td className="px-3 py-3 text-text-secondary">
+                              {teacherClasses.length > 0 ? (
+                                <div
+                                  className="flex max-w-[260px] flex-wrap gap-1.5"
+                                  title={teacherClasses.join(", ")}
+                                >
+                                  {visibleTeacherClasses.map((className) => (
+                                    <span
+                                      key={className}
+                                      className="max-w-[110px] truncate rounded-full bg-brand-primary-soft px-2.5 py-0.5 text-xs font-semibold text-brand-primary"
+                                    >
+                                      {className}
+                                    </span>
+                                  ))}
+                                  {hiddenTeacherClassesCount > 0 && (
+                                    <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-text-secondary">
+                                      +{hiddenTeacherClassesCount}
+                                    </span>
+                                  )}
+                                </div>
+                              ) : (
+                                "-"
+                              )}
+                            </td>
+                          </>
+                        ) : aluno ? (
+                          <>
+                            <td className="px-3 py-3 font-semibold text-brand-primary">
+                              {aluno.code}
+                            </td>
+                            <td className="px-3 py-3 text-text-secondary">
+                              {getStudentClass(aluno, classesQuery.data)
+                                ?.name ?? "-"}
+                            </td>
+                          </>
+                        ) : (
+                          <td className="px-3 py-3 text-text-secondary">
+                            {kind === "turmas" &&
+                              `${(item as Turma).year ?? "-"} - ${
+                                (item as Turma).shift ?? "turno nao informado"
+                              }`}
+                          </td>
+                        )}
+
+                        <td className="px-3 py-3">
+                          <div className="flex justify-end gap-2">
+                            {teacher && (
+                              <Button
+                                type="button"
+                                aria-label={`Visualizar ${teacher.name}`}
+                                onClick={() => setTeacherToView(teacher)}
+                                className="size-9 border border-slate-200 bg-white p-0 text-brand-primary hover:bg-brand-primary-soft"
+                              >
+                                <Eye aria-hidden="true" className="size-4" />
+                              </Button>
+                            )}
+                            <Button
+                              type="button"
+                              aria-label={`Editar ${getItemName(item)}`}
+                              onClick={() => {
+                                setEditingItem(item);
+                                setIsFormOpen(true);
+                              }}
+                              className="size-9 border border-slate-200 bg-white p-0 text-brand-primary hover:bg-brand-primary-soft"
+                            >
+                              <Pencil aria-hidden="true" className="size-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              aria-label={`Excluir ${getItemName(item)}`}
+                              onClick={() => setItemToDelete(item)}
+                              className="size-9 border border-red-200 bg-white p-0 text-red-600 hover:bg-red-50"
+                            >
+                              <Trash2 aria-hidden="true" className="size-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -379,7 +563,45 @@ export function ManagerResourcesWorkspace({ kind }: Props) {
                   }))
                 }
               />
+              <Select
+                label="Turmas"
+                name="classIds"
+                multiple
+                searchable
+                value={form.classIds}
+                options={classOptions}
+                placeholder={
+                  classesQuery.isPending
+                    ? "Carregando turmas..."
+                    : "Selecione as turmas"
+                }
+                disabled={classesQuery.isPending}
+                emptyMessage="Nenhuma turma encontrada."
+                onChange={(value) =>
+                  setForm((current) => ({ ...current, classIds: value }))
+                }
+              />
             </>
+          )}
+
+          {kind === "alunos" && (
+            <Select
+              label="Turma"
+              name="classId"
+              searchable
+              value={form.classId}
+              options={classOptions}
+              placeholder={
+                classesQuery.isPending
+                  ? "Carregando turmas..."
+                  : "Selecione a turma"
+              }
+              disabled={classesQuery.isPending}
+              emptyMessage="Nenhuma turma encontrada."
+              onChange={(value) =>
+                setForm((current) => ({ ...current, classId: value }))
+              }
+            />
           )}
 
           {error && (
@@ -391,6 +613,76 @@ export function ManagerResourcesWorkspace({ kind }: Props) {
             </div>
           )}
         </form>
+      </Modal>
+
+      <Modal
+        isOpen={Boolean(teacherToView)}
+        onClose={() => setTeacherToView(undefined)}
+        title="Detalhes do professor"
+      >
+        {teacherToView && (
+          <div className="space-y-5">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-text-secondary">
+                Nome
+              </p>
+              <p className="mt-1 font-semibold text-text-primary">
+                {teacherToView.name}
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-text-secondary">
+                  CPF
+                </p>
+                <p className="mt-1 text-text-primary">
+                  {teacherToView.cpf ? formatCpf(teacherToView.cpf) : "-"}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-text-secondary">
+                  E-mail
+                </p>
+                <p className="mt-1 break-all text-text-primary">
+                  {teacherToView.email}
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-text-secondary">
+                Turmas vinculadas
+              </p>
+              {getTeacherClasses(teacherToView, classesQuery.data).length >
+              0 ? (
+                <div className="mt-2 grid gap-2">
+                  {getTeacherClasses(teacherToView, classesQuery.data).map(
+                    (turma) => (
+                      <div
+                        key={turma.id}
+                        className="rounded-system border border-slate-200 px-3 py-2"
+                      >
+                        <p className="font-semibold text-text-primary">
+                          {turma.name}
+                        </p>
+                        <p className="text-sm text-text-secondary">
+                          {[turma.year, turma.shift, turma.status]
+                            .filter(Boolean)
+                            .join(" - ") || "Sem detalhes adicionais"}
+                        </p>
+                      </div>
+                    ),
+                  )}
+                </div>
+              ) : (
+                <p className="mt-1 text-text-secondary">
+                  Nenhuma turma vinculada.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
       </Modal>
 
       <ConfirmDialog

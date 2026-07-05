@@ -19,6 +19,14 @@ type UserApi = {
   }>;
   escola_id?: number;
   school_id?: number;
+  turmas?: Array<{
+    id: number;
+    escola_id: number;
+    nome: string;
+    ano?: string;
+    turno?: string;
+    status?: string;
+  }>;
 };
 
 type LoginResponseApi = {
@@ -38,6 +46,14 @@ function normalizeUser(user: UserApi): User {
     email: user.email,
     cpf: user.cpf,
     schoolId: user.escola_id ?? user.school_id,
+    turmas: user.turmas?.map((turma) => ({
+      id: turma.id,
+      schoolId: turma.escola_id,
+      name: turma.nome,
+      year: turma.ano,
+      shift: turma.turno,
+      status: turma.status,
+    })),
     roles: user.roles?.map((role) => ({
       id: role.id,
       name: role.name,

@@ -16,6 +16,7 @@ import {
   type LucideIcon,
   Medal,
   MoreVertical,
+  Radio,
   Shuffle,
   Sparkles,
   Target,
@@ -33,7 +34,11 @@ import {
   readStoredEquippedCharacterId,
   resolveEquippedCharacterId,
 } from "@/utils/student/equippedCharacter";
-import { getAchievementImage, getAvatarImage } from "./studentVisualAssets";
+import {
+  getAchievementImage,
+  getAvatarImage,
+  getAvatarProfileImage,
+} from "./studentVisualAssets";
 
 const subjectColor = "bg-[#7c35e8]";
 const subjectSkeletonKeys = [
@@ -165,6 +170,11 @@ export function StudentLobby() {
     queryKey: ["aluno", "personagens"],
     queryFn: gamificationApi.personagens,
   });
+  const liveSessionQuery = useQuery({
+    queryKey: ["aluno", "sessoes-ao-vivo", "ativa"],
+    queryFn: gamificationApi.sessaoAoVivoAtiva,
+    refetchInterval: 5000,
+  });
 
   const studentName =
     dashboardQuery.data?.kind === "aluno"
@@ -242,9 +252,47 @@ export function StudentLobby() {
       })
       .slice(0, 3) ?? [];
   const topRanking = rankingQuery.data?.slice(0, 5) ?? [];
+  const currentStudentAvatar = equippedCharacter
+    ? {
+        avatar: equippedCharacter.avatar,
+        image: equippedCharacter.image,
+        studentId: meQuery.data?.id,
+      }
+    : undefined;
 
   return (
     <div className="grid gap-5">
+      {liveSessionQuery.data &&
+        liveSessionQuery.data.session.status !== "finalizada" && (
+          <section className="flex flex-col gap-4 rounded-[18px] border border-[#cdb8ff] bg-[#f7f2ff] p-5 shadow-[0_18px_50px_rgba(72,35,137,0.08)] sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4">
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#7c35e8] text-white">
+                <Radio aria-hidden="true" className="size-6" />
+              </span>
+              <div>
+                <p className="text-sm font-black uppercase text-[#7c35e8]">
+                  Sessao ao vivo disponivel
+                </p>
+                <h2 className="text-xl font-black text-[#101044]">
+                  {liveSessionQuery.data.session.title ??
+                    "Atividade com o professor"}
+                </h2>
+                <p className="text-sm font-semibold text-[#5d5a89]">
+                  {liveSessionQuery.data.session.turma?.name ?? "Sua turma"}{" "}
+                  esta respondendo em tempo real.
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/estudantes/ao-vivo"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[8px] bg-[#7c35e8] px-5 font-black text-white shadow-[0_14px_24px_rgba(124,53,232,0.25)]"
+            >
+              Entrar
+              <ChevronRight aria-hidden="true" className="size-5" />
+            </Link>
+          </section>
+        )}
+
       <section className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
         <div className="rounded-[18px] border border-[#e3d9f8] bg-white p-6 shadow-[0_18px_50px_rgba(72,35,137,0.08)]">
           <div className="grid gap-5 sm:grid-cols-[210px_1fr]">
@@ -463,7 +511,11 @@ export function StudentLobby() {
                 )}
 
               {topRanking.map((item) => (
-                <RankingTopRow key={item.aluno.id} item={item} />
+                <RankingTopRow
+                  key={item.aluno.id}
+                  currentStudentAvatar={currentStudentAvatar}
+                  item={item}
+                />
               ))}
             </div>
           </div>
@@ -635,7 +687,26 @@ function AchievementRow({ achievement }: { achievement: ConquistaProgresso }) {
   );
 }
 
-function RankingTopRow({ item }: { item: RankingItem }) {
+function RankingTopRow({
+  currentStudentAvatar,
+  item,
+}: {
+  currentStudentAvatar?: {
+    avatar?: string;
+    image?: string;
+    studentId?: number;
+  };
+  item: RankingItem;
+}) {
+  const avatar =
+    currentStudentAvatar?.studentId === item.aluno.id
+      ? currentStudentAvatar.avatar
+      : item.avatar;
+  const image =
+    currentStudentAvatar?.studentId === item.aluno.id
+      ? currentStudentAvatar.image
+      : item.image;
+
   return (
     <Link
       href="/estudantes/ranking"
@@ -654,12 +725,14 @@ function RankingTopRow({ item }: { item: RankingItem }) {
       >
         {item.position}
       </span>
-      <Image
-        src={getAvatarImage("lumi_free.svg")}
-        alt=""
-        aria-hidden="true"
-        className="size-11 object-contain"
-      />
+      <span className="flex size-11 items-center justify-center overflow-hidden rounded-full bg-[#f1e8ff] ring-1 ring-[#d9c6ff]">
+        <Image
+          src={getAvatarProfileImage(avatar, image)}
+          alt=""
+          aria-hidden="true"
+          className="size-full object-cover"
+        />
+      </span>
       <div className="min-w-0">
         <p className="truncate font-black text-[#101044]">{item.aluno.name}</p>
         <p className="truncate text-sm font-semibold text-[#5d5a89]">

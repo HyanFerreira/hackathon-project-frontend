@@ -21,6 +21,12 @@ export const gamificationEndpoints = {
   alunoComprarPersonagem: (id: number) => `/aluno/loja/${id}/comprar`,
   alunoPersonagens: "/aluno/personagens",
   alunoEquiparPersonagem: (id: number) => `/aluno/personagens/${id}/equipar`,
+  alunoSessaoAoVivoAtiva: "/aluno/sessoes-ao-vivo/ativa",
+  alunoEntrarSessaoAoVivo: (id: number) =>
+    `/aluno/sessoes-ao-vivo/${id}/entrar`,
+  alunoSessaoAoVivoAtual: (id: number) => `/aluno/sessoes-ao-vivo/${id}/atual`,
+  alunoResponderSessaoAoVivo: (id: number) =>
+    `/aluno/sessoes-ao-vivo/${id}/responder`,
 
   adminDashboard: "/admin/dashboard",
   gestorDashboard: "/gestor/dashboard",
@@ -42,8 +48,30 @@ export const gamificationEndpoints = {
 
   disciplinas: "/disciplinas",
   habilidades: "/habilidades",
+  professorTurmas: "/professor/turmas",
   professorQuestoes: "/professor/questoes",
   professorQuestao: (id: number) => `/professor/questoes/${id}`,
+  professorSessoesAoVivo: "/professor/sessoes-ao-vivo",
+  professorSessaoAoVivo: (id: number) => `/professor/sessoes-ao-vivo/${id}`,
+  professorIniciarSessaoAoVivo: (id: number) =>
+    `/professor/sessoes-ao-vivo/${id}/iniciar`,
+  professorPausarSessaoAoVivo: (id: number) =>
+    `/professor/sessoes-ao-vivo/${id}/pausar`,
+  professorRetomarSessaoAoVivo: (id: number) =>
+    `/professor/sessoes-ao-vivo/${id}/retomar`,
+  professorHeartbeatSessaoAoVivo: (id: number) =>
+    `/professor/sessoes-ao-vivo/${id}/heartbeat`,
+  professorEncerrarSessaoAoVivo: (id: number) =>
+    `/professor/sessoes-ao-vivo/${id}/encerrar`,
+  professorProximaSessaoAoVivo: (id: number) =>
+    `/professor/sessoes-ao-vivo/${id}/proxima`,
+  professorEnviarQuestaoSessaoAoVivo: (
+    sessionId: number,
+    sessionQuestionId: number,
+  ) =>
+    `/professor/sessoes-ao-vivo/${sessionId}/questoes/${sessionQuestionId}/enviar`,
+  professorDesempenhoSessaoAoVivo: (id: number) =>
+    `/professor/sessoes-ao-vivo/${id}/desempenho`,
   professorRankingTurma: (turmaId: number) =>
     `/professor/ranking/turmas/${turmaId}`,
   gestorRankingEscola: "/gestor/ranking/escola",

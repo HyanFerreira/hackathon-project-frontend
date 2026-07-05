@@ -2,10 +2,11 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, LoaderCircle, Save } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/buttons";
 import { CpfInput } from "@/components/form/CpfInput";
 import { Input } from "@/components/form/Input";
+import { Select } from "@/components/form/Select";
 import { Skeleton } from "@/components/loading";
 import { Modal } from "@/components/modal";
 import {
@@ -13,6 +14,7 @@ import {
   getApiValidationErrors,
 } from "@/services/api/errors/getApiErrorMessage";
 import { rolesApi } from "@/services/api/modules/roles";
+import { schoolsApi } from "@/services/api/modules/schools";
 import { usersApi } from "@/services/api/modules/users";
 import type { User } from "@/types/user";
 import { DEFAULT_USER_PASSWORD } from "@/utils/auth/defaultUserPassword";
@@ -30,20 +32,24 @@ type UserFieldErrors = {
   email?: string;
   password?: string;
   roles?: string;
+  school_id?: string;
+  escola_id?: string;
 };
 
 type FormState = {
   name: string;
   cpf: string;
   email: string;
-  roles: string[];
+  role: string;
+  schoolId: string;
 };
 
 const EMPTY_FORM: FormState = {
   name: "",
   cpf: "",
   email: "",
-  roles: [],
+  role: "",
+  schoolId: "",
 };
 
 export function UserFormModal({ isOpen, user, onClose }: UserFormModalProps) {
@@ -59,6 +65,29 @@ export function UserFormModal({ isOpen, user, onClose }: UserFormModalProps) {
     queryFn: rolesApi.list,
     enabled: isOpen,
   });
+  const schoolsQuery = useQuery({
+    queryKey: ["schools"],
+    queryFn: schoolsApi.list,
+    enabled: isOpen && form.role === "gestor",
+  });
+
+  const roleOptions = useMemo(
+    () =>
+      rolesQuery.data?.map((role) => ({
+        label: role.name,
+        value: role.name,
+      })) ?? [],
+    [rolesQuery.data],
+  );
+  const schoolOptions = useMemo(
+    () =>
+      schoolsQuery.data?.map((school) => ({
+        label: school.name,
+        value: String(school.id),
+      })) ?? [],
+    [schoolsQuery.data],
+  );
+  const isManager = form.role === "gestor";
 
   useEffect(() => {
     if (!isOpen) return;
@@ -69,7 +98,8 @@ export function UserFormModal({ isOpen, user, onClose }: UserFormModalProps) {
       name: user?.name ?? "",
       cpf: user?.cpf ?? "",
       email: user?.email ?? "",
-      roles: user?.roles?.map((role) => role.name) ?? [],
+      role: user?.roles?.[0]?.name ?? "",
+      schoolId: user?.schoolId ? String(user.schoolId) : "",
     });
   }, [isOpen, user]);
 
@@ -82,7 +112,9 @@ export function UserFormModal({ isOpen, user, onClose }: UserFormModalProps) {
           name: form.name,
           cpf: cpfDigits,
           email: form.email,
-          roles: form.roles,
+          roles: form.role ? [form.role] : [],
+          school_id:
+            isManager && form.schoolId ? Number(form.schoolId) : undefined,
         });
       }
 
@@ -91,7 +123,9 @@ export function UserFormModal({ isOpen, user, onClose }: UserFormModalProps) {
         cpf: cpfDigits,
         email: form.email,
         password: DEFAULT_USER_PASSWORD,
-        roles: form.roles,
+        roles: form.role ? [form.role] : [],
+        school_id:
+          isManager && form.schoolId ? Number(form.schoolId) : undefined,
       });
     },
     onSuccess: async () => {
@@ -114,15 +148,6 @@ export function UserFormModal({ isOpen, user, onClose }: UserFormModalProps) {
     setError(undefined);
     setFieldErrors({});
     mutation.mutate();
-  };
-
-  const toggleRole = (roleName: string) => {
-    setForm((current) => ({
-      ...current,
-      roles: current.roles.includes(roleName)
-        ? current.roles.filter((name) => name !== roleName)
-        : [...current.roles, roleName],
-    }));
   };
 
   return (
@@ -202,7 +227,7 @@ export function UserFormModal({ isOpen, user, onClose }: UserFormModalProps) {
 
         <fieldset className="space-y-2">
           <legend className="text-sm font-semibold text-text-primary">
-            Perfis
+            Perfil
           </legend>
 
           {rolesQuery.isPending && (
@@ -225,30 +250,48 @@ export function UserFormModal({ isOpen, user, onClose }: UserFormModalProps) {
           )}
 
           {rolesQuery.data && rolesQuery.data.length > 0 && (
-            <div className="grid gap-2 sm:grid-cols-2">
-              {rolesQuery.data.map((role) => (
-                <label
-                  key={role.id}
-                  className="flex cursor-pointer items-center gap-2 rounded-system border border-slate-200 px-3 py-2 text-sm text-text-primary transition hover:bg-slate-50"
-                >
-                  <input
-                    type="checkbox"
-                    className="size-4"
-                    checked={form.roles.includes(role.name)}
-                    onChange={() => toggleRole(role.name)}
-                  />
-                  {role.name}
-                </label>
-              ))}
-            </div>
-          )}
-
-          {fieldErrors.roles && (
-            <p className="text-sm font-medium text-red-600">
-              {fieldErrors.roles}
-            </p>
+            <Select
+              name="role"
+              value={form.role}
+              error={fieldErrors.roles}
+              options={roleOptions}
+              onChange={(value) =>
+                setForm((current) => ({
+                  ...current,
+                  role: value,
+                  schoolId: value === "gestor" ? current.schoolId : "",
+                }))
+              }
+            />
           )}
         </fieldset>
+
+        {isManager && (
+          <>
+            {schoolsQuery.isPending && <Skeleton className="h-11" />}
+
+            {schoolsQuery.isError && (
+              <p className="text-sm text-red-600">
+                NÃ£o foi possÃ­vel carregar as escolas.
+              </p>
+            )}
+
+            {schoolsQuery.data && (
+              <Select
+                label="Escola"
+                name="school_id"
+                value={form.schoolId}
+                error={fieldErrors.school_id ?? fieldErrors.escola_id}
+                options={schoolOptions}
+                placeholder="Selecione a escola"
+                searchable
+                onChange={(value) =>
+                  setForm((current) => ({ ...current, schoolId: value }))
+                }
+              />
+            )}
+          </>
+        )}
 
         {(fieldErrors.password || error) && (
           <div

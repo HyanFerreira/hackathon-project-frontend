@@ -4,6 +4,7 @@ import type {
   ColegaAluno,
   ConquistaProgresso,
   CriarDesafioPayload,
+  CriarSessaoAoVivoPayload,
   Desafio,
   DesafioEstado,
   DesafioParticipante,
@@ -13,6 +14,13 @@ import type {
   PersonagemFeedback,
   PersonagemLoja,
   RankingItem,
+  SessaoAoVivoAlunoEstado,
+  SessaoAoVivoPerformance,
+  SessaoAoVivoProfessorEstado,
+  SessaoAoVivoQuestao,
+  SessaoAoVivoRankingItem,
+  SessaoAoVivoResumo,
+  SessaoAoVivoStatus,
 } from "@/types/aluno";
 import type {
   Disciplina,
@@ -32,7 +40,8 @@ type Resource<T> = { data: T };
 
 type AlunoApi = {
   id: number;
-  escola_id: number;
+  escola_id?: number;
+  turma_id?: number;
   nome: string;
   codigo: string;
 };
@@ -104,6 +113,12 @@ type RankingItemApi = {
   pontos: number;
   xp: number;
   nivel: number;
+  imagem?: string;
+  avatar?: string;
+  personagem?: {
+    imagem?: string;
+    avatar?: string;
+  } | null;
 };
 
 type RespostaAlunoApi = {
@@ -190,6 +205,7 @@ type PersonagemLojaApi = {
   preco: number;
   nivel_maximo: number;
   imagem: string;
+  avatar?: string;
   ja_possui: boolean;
 };
 
@@ -204,6 +220,7 @@ type AlunoPersonagemApi = {
   proximo_nivel_em?: number | null;
   equipado: boolean;
   imagem: string;
+  avatar?: string;
 };
 
 type PersonagemFeedbackApi = {
@@ -212,6 +229,90 @@ type PersonagemFeedbackApi = {
   nivel: number;
   subiu_nivel: boolean;
   imagem: string;
+  avatar?: string;
+};
+
+type SessaoAoVivoResumoApi = {
+  id: number;
+  titulo?: string | null;
+  status: SessaoAoVivoStatus;
+  turma?: {
+    id?: number | null;
+    nome?: string | null;
+    ano?: string | null;
+    turno?: string | null;
+  } | null;
+  professor?: {
+    id?: number | null;
+    nome?: string | null;
+  } | null;
+  questoes_total?: number;
+  iniciada_em?: string | null;
+  pausada_em?: string | null;
+  finalizada_em?: string | null;
+  professor_online_em?: string | null;
+  motivo_encerramento?: string | null;
+};
+
+type SessaoAoVivoQuestaoApi = {
+  id: number;
+  questao_id: number;
+  ordem: number;
+  enviada_em?: string | null;
+  encerrada_em?: string | null;
+  questao: {
+    id: number;
+    enunciado: string;
+    dificuldade: "facil" | "media" | "dificil";
+    pontos: number;
+    alternativas: Array<{
+      id: number;
+      texto: string;
+    }>;
+  };
+};
+
+type SessaoAoVivoRankingItemApi = {
+  posicao: number;
+  aluno: AlunoApi;
+  respostas: number;
+  acertos: number;
+  pontos: number;
+  xp: number;
+  tempo_total_ms: number;
+  percentual_acerto: number;
+};
+
+type SessaoAoVivoPerformanceApi = {
+  alunos_total: number;
+  participantes: number;
+  respostas_total: number;
+  questao_atual: {
+    respondidas: number;
+    corretas: number;
+    pendentes: number;
+  };
+  ranking: SessaoAoVivoRankingItemApi[];
+};
+
+type SessaoAoVivoProfessorEstadoApi = {
+  sessao: SessaoAoVivoResumoApi;
+  questao_atual?: SessaoAoVivoQuestaoApi | null;
+  desempenho: SessaoAoVivoPerformanceApi;
+};
+
+type SessaoAoVivoAlunoEstadoApi = {
+  sessao: SessaoAoVivoResumoApi;
+  questao_atual?: SessaoAoVivoQuestaoApi | null;
+  eu_respondi: boolean;
+  minha_resposta?: {
+    alternativa_id: number;
+    correta: boolean;
+    pontos_ganhos: number;
+    xp_ganho: number;
+    respondido_em?: string | null;
+  } | null;
+  ranking: SessaoAoVivoRankingItemApi[];
 };
 
 type DesafioParticipanteApi = {
@@ -363,9 +464,10 @@ export type CreateQuestaoPayload = {
 export function normalizeAluno(aluno: AlunoApi): Aluno {
   return {
     id: aluno.id,
-    schoolId: aluno.escola_id,
+    schoolId: aluno.escola_id ?? 0,
     name: aluno.nome,
     code: aluno.codigo,
+    turmaId: aluno.turma_id,
   };
 }
 
@@ -465,6 +567,8 @@ function normalizeRankingItem(item: RankingItemApi): RankingItem {
     points: item.pontos,
     xp: item.xp,
     level: item.nivel,
+    image: item.imagem ?? item.personagem?.imagem,
+    avatar: item.avatar ?? item.personagem?.avatar,
   };
 }
 
@@ -545,6 +649,7 @@ function normalizeLojaPersonagem(
     price: personagem.preco,
     maxLevel: personagem.nivel_maximo,
     image: personagem.imagem,
+    avatar: personagem.avatar,
     owned: personagem.ja_possui,
   };
 }
@@ -563,6 +668,7 @@ function normalizeAlunoPersonagem(
     nextLevelIn: personagem.proximo_nivel_em,
     equipped: personagem.equipado,
     image: personagem.imagem,
+    avatar: personagem.avatar,
   };
 }
 
@@ -575,6 +681,122 @@ function normalizePersonagemFeedback(
     level: personagem.nivel,
     leveledUp: personagem.subiu_nivel,
     image: personagem.imagem,
+    avatar: personagem.avatar,
+  };
+}
+
+function normalizeSessaoResumo(
+  sessao: SessaoAoVivoResumoApi,
+): SessaoAoVivoResumo {
+  return {
+    id: sessao.id,
+    title: sessao.titulo,
+    status: sessao.status,
+    turma: sessao.turma
+      ? {
+          id: sessao.turma.id,
+          name: sessao.turma.nome,
+          year: sessao.turma.ano,
+          shift: sessao.turma.turno,
+        }
+      : null,
+    professor: sessao.professor
+      ? {
+          id: sessao.professor.id,
+          name: sessao.professor.nome,
+        }
+      : null,
+    totalQuestions: sessao.questoes_total ?? 0,
+    startedAt: sessao.iniciada_em,
+    pausedAt: sessao.pausada_em,
+    finishedAt: sessao.finalizada_em,
+    teacherOnlineAt: sessao.professor_online_em,
+    endReason: sessao.motivo_encerramento,
+  };
+}
+
+function normalizeSessaoQuestao(
+  questao?: SessaoAoVivoQuestaoApi | null,
+): SessaoAoVivoQuestao | null {
+  if (!questao) return null;
+
+  return {
+    id: questao.id,
+    questionId: questao.questao_id,
+    order: questao.ordem,
+    sentAt: questao.enviada_em,
+    closedAt: questao.encerrada_em,
+    question: {
+      id: questao.questao.id,
+      statement: questao.questao.enunciado,
+      difficulty: questao.questao.dificuldade,
+      points: questao.questao.pontos,
+      alternatives: questao.questao.alternativas.map((alternativa) => ({
+        id: alternativa.id,
+        text: alternativa.texto,
+      })),
+    },
+  };
+}
+
+function normalizeSessaoRankingItem(
+  item: SessaoAoVivoRankingItemApi,
+): SessaoAoVivoRankingItem {
+  return {
+    position: item.posicao,
+    aluno: normalizeAluno(item.aluno),
+    answers: item.respostas,
+    correct: item.acertos,
+    points: item.pontos,
+    xp: item.xp,
+    totalTimeMs: item.tempo_total_ms,
+    accuracy: item.percentual_acerto,
+  };
+}
+
+function normalizeSessaoPerformance(
+  desempenho: SessaoAoVivoPerformanceApi,
+): SessaoAoVivoPerformance {
+  return {
+    totalStudents: desempenho.alunos_total,
+    participants: desempenho.participantes,
+    totalAnswers: desempenho.respostas_total,
+    currentQuestion: {
+      answered: desempenho.questao_atual.respondidas,
+      correct: desempenho.questao_atual.corretas,
+      pending: desempenho.questao_atual.pendentes,
+    },
+    ranking: desempenho.ranking.map(normalizeSessaoRankingItem),
+  };
+}
+
+function normalizeSessaoProfessorEstado(
+  estado: SessaoAoVivoProfessorEstadoApi,
+): SessaoAoVivoProfessorEstado {
+  return {
+    session: normalizeSessaoResumo(estado.sessao),
+    currentQuestion: normalizeSessaoQuestao(estado.questao_atual),
+    performance: normalizeSessaoPerformance(estado.desempenho),
+  };
+}
+
+function normalizeSessaoAlunoEstado(
+  estado: SessaoAoVivoAlunoEstadoApi,
+): SessaoAoVivoAlunoEstado {
+  return {
+    session: normalizeSessaoResumo(estado.sessao),
+    currentQuestion: normalizeSessaoQuestao(estado.questao_atual),
+    answeredByMe: estado.eu_respondi,
+    myAnswer: estado.minha_resposta
+      ? {
+          alternativeId: estado.minha_resposta.alternativa_id,
+          correct: estado.minha_resposta.correta,
+          pointsEarned: estado.minha_resposta.pontos_ganhos,
+          xpEarned: estado.minha_resposta.xp_ganho,
+          answeredAt: estado.minha_resposta.respondido_em,
+        }
+      : null,
+    ranking: estado.ranking.map(normalizeSessaoRankingItem),
   };
 }
 
@@ -725,6 +947,14 @@ export const gamificationApi = {
     );
 
     return { kind: "professor", ...data } as DashboardSummary;
+  },
+
+  async professorTurmas(): Promise<Turma[]> {
+    const { data } = await api.get<Collection<TurmaApi>>(
+      gamificationEndpoints.professorTurmas,
+    );
+
+    return data.data.map(normalizeTurma);
   },
 
   async alunoDashboard(): Promise<DashboardSummary> {
@@ -901,6 +1131,105 @@ export const gamificationApi = {
 
   async removeQuestao(id: number): Promise<void> {
     await api.delete(gamificationEndpoints.professorQuestao(id));
+  },
+
+  async professorSessoesAoVivo(): Promise<SessaoAoVivoResumo[]> {
+    const { data } = await api.get<Collection<SessaoAoVivoResumoApi>>(
+      gamificationEndpoints.professorSessoesAoVivo,
+    );
+
+    return data.data.map(normalizeSessaoResumo);
+  },
+
+  async criarSessaoAoVivo(
+    payload: CriarSessaoAoVivoPayload,
+  ): Promise<SessaoAoVivoProfessorEstado> {
+    const { data } = await api.post<SessaoAoVivoProfessorEstadoApi>(
+      gamificationEndpoints.professorSessoesAoVivo,
+      {
+        turma_id: payload.turmaId,
+        titulo: payload.title,
+        questoes: payload.questionIds,
+      },
+    );
+
+    return normalizeSessaoProfessorEstado(data);
+  },
+
+  async professorSessaoAoVivo(
+    id: number,
+  ): Promise<SessaoAoVivoProfessorEstado> {
+    const { data } = await api.get<SessaoAoVivoProfessorEstadoApi>(
+      gamificationEndpoints.professorSessaoAoVivo(id),
+    );
+
+    return normalizeSessaoProfessorEstado(data);
+  },
+
+  async iniciarSessaoAoVivo(id: number): Promise<SessaoAoVivoProfessorEstado> {
+    const { data } = await api.post<SessaoAoVivoProfessorEstadoApi>(
+      gamificationEndpoints.professorIniciarSessaoAoVivo(id),
+    );
+
+    return normalizeSessaoProfessorEstado(data);
+  },
+
+  async pausarSessaoAoVivo(id: number): Promise<SessaoAoVivoProfessorEstado> {
+    const { data } = await api.post<SessaoAoVivoProfessorEstadoApi>(
+      gamificationEndpoints.professorPausarSessaoAoVivo(id),
+    );
+
+    return normalizeSessaoProfessorEstado(data);
+  },
+
+  async retomarSessaoAoVivo(id: number): Promise<SessaoAoVivoProfessorEstado> {
+    const { data } = await api.post<SessaoAoVivoProfessorEstadoApi>(
+      gamificationEndpoints.professorRetomarSessaoAoVivo(id),
+    );
+
+    return normalizeSessaoProfessorEstado(data);
+  },
+
+  async heartbeatSessaoAoVivo(
+    id: number,
+  ): Promise<SessaoAoVivoProfessorEstado> {
+    const { data } = await api.post<SessaoAoVivoProfessorEstadoApi>(
+      gamificationEndpoints.professorHeartbeatSessaoAoVivo(id),
+    );
+
+    return normalizeSessaoProfessorEstado(data);
+  },
+
+  async encerrarSessaoAoVivo(id: number): Promise<SessaoAoVivoProfessorEstado> {
+    const { data } = await api.post<SessaoAoVivoProfessorEstadoApi>(
+      gamificationEndpoints.professorEncerrarSessaoAoVivo(id),
+    );
+
+    return normalizeSessaoProfessorEstado(data);
+  },
+
+  async proximaQuestaoSessaoAoVivo(
+    id: number,
+  ): Promise<SessaoAoVivoProfessorEstado> {
+    const { data } = await api.post<SessaoAoVivoProfessorEstadoApi>(
+      gamificationEndpoints.professorProximaSessaoAoVivo(id),
+    );
+
+    return normalizeSessaoProfessorEstado(data);
+  },
+
+  async enviarQuestaoSessaoAoVivo(
+    sessionId: number,
+    sessionQuestionId: number,
+  ): Promise<SessaoAoVivoProfessorEstado> {
+    const { data } = await api.post<SessaoAoVivoProfessorEstadoApi>(
+      gamificationEndpoints.professorEnviarQuestaoSessaoAoVivo(
+        sessionId,
+        sessionQuestionId,
+      ),
+    );
+
+    return normalizeSessaoProfessorEstado(data);
   },
 
   async alunoPerfil(): Promise<PerfilAluno> {
@@ -1185,6 +1514,56 @@ export const gamificationApi = {
     return {
       message: data.message,
       inventario: data.inventario.data.map(normalizeAlunoPersonagem),
+    };
+  },
+
+  async sessaoAoVivoAtiva(): Promise<SessaoAoVivoAlunoEstado | null> {
+    const { data } = await api.get<{
+      data: SessaoAoVivoAlunoEstadoApi | null;
+    }>(gamificationEndpoints.alunoSessaoAoVivoAtiva);
+
+    return data.data ? normalizeSessaoAlunoEstado(data.data) : null;
+  },
+
+  async entrarSessaoAoVivo(id: number): Promise<SessaoAoVivoAlunoEstado> {
+    const { data } = await api.post<SessaoAoVivoAlunoEstadoApi>(
+      gamificationEndpoints.alunoEntrarSessaoAoVivo(id),
+    );
+
+    return normalizeSessaoAlunoEstado(data);
+  },
+
+  async sessaoAoVivoAtual(id: number): Promise<SessaoAoVivoAlunoEstado> {
+    const { data } = await api.get<SessaoAoVivoAlunoEstadoApi>(
+      gamificationEndpoints.alunoSessaoAoVivoAtual(id),
+    );
+
+    return normalizeSessaoAlunoEstado(data);
+  },
+
+  async responderSessaoAoVivo(
+    id: number,
+    alternativaId: number,
+  ): Promise<{
+    correta: boolean;
+    pontos_ganhos: number;
+    xp_ganho: number;
+    estado: SessaoAoVivoAlunoEstado;
+  }> {
+    const { data } = await api.post<{
+      correta: boolean;
+      pontos_ganhos: number;
+      xp_ganho: number;
+      estado: SessaoAoVivoAlunoEstadoApi;
+    }>(gamificationEndpoints.alunoResponderSessaoAoVivo(id), {
+      alternativa_id: alternativaId,
+    });
+
+    return {
+      correta: data.correta,
+      pontos_ganhos: data.pontos_ganhos,
+      xp_ganho: data.xp_ganho,
+      estado: normalizeSessaoAlunoEstado(data.estado),
     };
   },
 };

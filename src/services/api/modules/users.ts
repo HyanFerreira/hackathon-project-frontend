@@ -10,6 +10,15 @@ type RoleApi = {
   guard_name: string;
 };
 
+type UserTurmaApi = {
+  id: number;
+  escola_id: number;
+  nome: string;
+  ano?: string;
+  turno?: string;
+  status?: string;
+};
+
 export type UserApi = {
   id: number;
   name: string;
@@ -25,6 +34,7 @@ export type UserApi = {
     status?: string;
   };
   school_id?: number;
+  turmas?: UserTurmaApi[];
 };
 
 type UserResponse = {
@@ -62,6 +72,14 @@ export function normalizeUser(user: UserApi): User {
     roles: user.roles?.map(normalizeRole),
     school: user.school ? normalizeSchool(user.school) : undefined,
     schoolId: user.escola_id ?? user.school_id ?? user.school?.id,
+    turmas: user.turmas?.map((turma) => ({
+      id: turma.id,
+      schoolId: turma.escola_id,
+      name: turma.nome,
+      year: turma.ano,
+      shift: turma.turno,
+      status: turma.status,
+    })),
   };
 }
 
