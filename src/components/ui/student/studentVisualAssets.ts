@@ -155,14 +155,23 @@ export function getAvatarImage(image?: string) {
 
   if (!fileName) return lumiLevel1;
 
-  return avatarImages[fileName] ?? lumiLevel1;
+  return (
+    avatarImages[fileName] ??
+    avatarImages[`${fileName}.svg`] ??
+    avatarImages[`${fileName}_level_1.svg`] ??
+    lumiLevel1
+  );
 }
 
 export function getAvatarProfileImage(avatar?: string, fallbackImage?: string) {
   const fileName = avatar?.split(/[\\/]/).at(-1)?.split("?")[0]?.toLowerCase();
 
-  if (fileName && avatarProfileImages[fileName]) {
-    return avatarProfileImages[fileName];
+  if (fileName) {
+    const avatarImage =
+      avatarProfileImages[fileName] ??
+      avatarProfileImages[`${fileName}_perfil.svg`];
+
+    if (avatarImage) return avatarImage;
   }
 
   if (fallbackImage) {
@@ -175,12 +184,20 @@ export function getAvatarProfileImage(avatar?: string, fallbackImage?: string) {
       /_level_\d+\.(svg|png)$/,
       "_perfil.$1",
     );
+    const fallbackProfileKey = fallbackFileName?.replace(/_level_\d+$/, "");
 
     if (
       fallbackProfileFileName &&
       avatarProfileImages[fallbackProfileFileName]
     ) {
       return avatarProfileImages[fallbackProfileFileName];
+    }
+
+    if (
+      fallbackProfileKey &&
+      avatarProfileImages[`${fallbackProfileKey}_perfil.svg`]
+    ) {
+      return avatarProfileImages[`${fallbackProfileKey}_perfil.svg`];
     }
   }
 

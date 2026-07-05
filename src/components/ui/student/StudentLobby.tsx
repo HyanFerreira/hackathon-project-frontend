@@ -19,6 +19,7 @@ import {
   Radio,
   Shuffle,
   Sparkles,
+  Star,
   Target,
   Trophy,
   Type,
@@ -28,10 +29,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import mascotEstudante from "@/assets/images/mascot-estudante.png";
+import mascotPaideia from "@/assets/images/mascote/mascote_feliz.svg";
 import { Toast } from "@/components/feedback";
 import { gamificationApi } from "@/services/api/modules/gamification";
 import type {
   ConquistaProgresso,
+  DisciplinaProgresso,
   LoginStreakReward,
   RankingItem,
 } from "@/types/aluno";
@@ -61,6 +64,11 @@ const rankingSkeletonKeys = [
   "ranking-skeleton-3",
   "ranking-skeleton-4",
   "ranking-skeleton-5",
+];
+const paideiaTips = [
+  "Pratique um pouco todos os dias e evolua sempre!",
+  "Revise as disciplinas com mais questoes disponiveis primeiro.",
+  "Mantenha sua sequencia para chegar mais rapido no proximo bonus.",
 ];
 
 function ProgressBar({
@@ -141,9 +149,32 @@ function getSubjectIcon(name: string, acronym?: string) {
   return BookOpen;
 }
 
+function getDisciplineProgressPercent(disciplina: DisciplinaProgresso) {
+  if (disciplina.total <= 0) return 0;
+
+  return Math.round((disciplina.answered / disciplina.total) * 100);
+}
+
+function getDisciplineProgressText(disciplina: DisciplinaProgresso) {
+  if (disciplina.total <= 0) return "Sem questoes";
+
+  return `${disciplina.answered} / ${disciplina.total}`;
+}
+
+function getDisciplineProgressWidth(disciplina: DisciplinaProgresso) {
+  return `${getDisciplineProgressPercent(disciplina)}%`;
+}
+
+function getAchievementPercent(achievement: ConquistaProgresso) {
+  if (achievement.goal <= 0) return 0;
+
+  return Math.min(Math.round((achievement.current / achievement.goal) * 100), 100);
+}
+
 export function StudentLobby() {
   const [loginStreakReward, setLoginStreakReward] =
     useState<LoginStreakReward>();
+  const [activeTipIndex, setActiveTipIndex] = useState(0);
 
   useEffect(() => {
     const storedReward = window.sessionStorage.getItem(
@@ -159,6 +190,15 @@ export function StudentLobby() {
       setLoginStreakReward(undefined);
     }
   }, []);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setActiveTipIndex((current) => (current + 1) % paideiaTips.length);
+    }, 5000);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
   const meQuery = useQuery({
     queryKey: ["auth", "me", "aluno"],
     queryFn: gamificationApi.alunoMe,
@@ -261,25 +301,30 @@ export function StudentLobby() {
     ? `/estudantes/responder?disciplina=${challengeDiscipline.id}`
     : "/estudantes/responder";
   const challengeProgress = challengeDiscipline
-    ? `${challengeDiscipline.answered} / ${challengeDiscipline.total}`
-    : "0 / 0";
+    ? getDisciplineProgressText(challengeDiscipline)
+    : "Sem questoes";
   const challengeProgressPercent = challengeDiscipline
-    ? Math.round(
-        (challengeDiscipline.answered /
-          Math.max(challengeDiscipline.total, 1)) *
-          100,
-      )
+    ? getDisciplineProgressPercent(challengeDiscipline)
     : 0;
   const recentAchievements =
     conquistasQuery.data
-      ?.filter((conquista) => conquista.unlocked)
+      ?.filter(isAchievementCompleted)
       .sort((a, b) => {
         const dateA = a.unlockedAt ? new Date(a.unlockedAt).getTime() : 0;
         const dateB = b.unlockedAt ? new Date(b.unlockedAt).getTime() : 0;
 
-        return dateB - dateA;
+        return dateB - dateA || b.id - a.id;
       })
       .slice(0, 3) ?? [];
+  const achievementsInProgress =
+    conquistasQuery.data
+      ?.filter((achievement) => !isAchievementCompleted(achievement))
+      .sort(
+        (a, b) =>
+          getAchievementPercent(b) - getAchievementPercent(a) || b.id - a.id,
+      )
+      .slice(0, 3) ?? [];
+  const currentTip = paideiaTips[activeTipIndex];
   const topRanking = rankingQuery.data?.slice(0, 5) ?? [];
   const currentStudentAvatar = equippedCharacter
     ? {
@@ -395,12 +440,12 @@ export function StudentLobby() {
               value={`${energy} / ${maxEnergy}`}
             />
             <StudentMetric
-              icon={<Trophy className="size-9 fill-[#ff6b12]" />}
+              icon={<Star className="size-9 fill-[#ffb000] text-[#ffb000]" />}
               label="Pontuacao"
               value={totalPoints.toLocaleString("pt-BR")}
             />
             <StudentMetric
-              icon={<Medal className="size-9" />}
+              icon={<Medal className="size-9 fill-[#7c35e8] text-[#7c35e8]" />}
               label="Ranking"
               value={rank ? `Top ${rank}` : "—"}
             />
@@ -416,8 +461,8 @@ export function StudentLobby() {
           </p>
         </div>
 
-        <div className="relative overflow-hidden rounded-[18px] border border-[#e3d9f8] bg-white p-6 shadow-[0_18px_50px_rgba(72,35,137,0.08)]">
-          <div className="z-10 max-w-[58%] xl:mt-5">
+        <div className="relative overflow-hidden rounded-[18px] border border-[#e3d9f8] bg-white p-6 shadow-[0_18px_50px_rgba(72,35,137,0.08)] md:min-h-[375px] md:pb-[108px]">
+          <div className="flex min-w-0 flex-col md:max-w-[calc(100%-280px)] xl:mt-5 xl:max-w-[58%]">
             <div className="flex items-center gap-4">
               <BookOpen className="size-8 text-[#7c35e8]" />
               <h2 className="text-lg font-black">Continue praticando</h2>
@@ -442,18 +487,20 @@ export function StudentLobby() {
             </div>
             <Link
               href={challengeHref}
-              className="mt-5 inline-flex min-h-12 w-full max-w-[285px] items-center justify-center gap-8 rounded-[8px] bg-gradient-to-r from-[#7c35e8] to-[#833af0] text-lg font-black text-white shadow-[0_14px_24px_rgba(124,53,232,0.25)] xl:absolute xl:bottom-11 xl:left-6 xl:mt-0"
+              className="mt-5 inline-flex min-h-12 w-full max-w-[285px] items-center justify-center gap-8 rounded-[8px] bg-gradient-to-r from-[#7c35e8] to-[#833af0] text-lg font-black text-white shadow-[0_14px_24px_rgba(124,53,232,0.25)] md:absolute md:bottom-11 md:left-6 md:mt-0"
             >
               Continuar
               <ChevronRight aria-hidden="true" className="size-7" />
             </Link>
           </div>
-          <Image
-            src={mascotEstudante}
-            alt="Mascote Edu lendo"
-            className="absolute bottom-11 right-6 h-[220px] w-auto object-contain"
-            priority
-          />
+          <div className="hidden md:block">
+            <Image
+              src={mascotEstudante}
+              alt="Mascote Edu lendo"
+              className="absolute bottom-11 right-6 h-[180px] w-auto object-contain xl:h-[220px]"
+              priority
+            />
+          </div>
         </div>
       </section>
 
@@ -481,13 +528,13 @@ export function StudentLobby() {
         </div>
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[1.15fr_0.9fr] xl:items-start">
-        <div className="rounded-[18px] border border-[#e3d9f8] bg-white p-7 shadow-[0_18px_50px_rgba(72,35,137,0.08)]">
+      <section className="grid gap-5 xl:grid-cols-[1.15fr_0.9fr] xl:items-stretch">
+        <div className="flex h-full flex-col rounded-[18px] border border-[#e3d9f8] bg-white p-7 shadow-[0_18px_50px_rgba(72,35,137,0.08)]">
           <div className="flex items-center gap-3">
             <BookOpen className="size-7 text-[#7c35e8]" />
             <h2 className="text-xl font-black">Disciplinas</h2>
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          <div className="mt-4 grid flex-1 grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {isDisciplinesPending &&
               subjectSkeletonKeys.map((key) => (
                 <div
@@ -513,120 +560,155 @@ export function StudentLobby() {
                   icon={getSubjectIcon(disciplina.name, disciplina.acronym)}
                   name={disciplina.name}
                   detail={disciplina.area ?? disciplina.acronym}
-                  progress={`${disciplina.answered} / ${disciplina.total}`}
-                  width={`${Math.round(
-                    (disciplina.answered / Math.max(disciplina.total, 1)) * 100,
-                  )}%`}
+                  progress={getDisciplineProgressText(disciplina)}
+                  width={getDisciplineProgressWidth(disciplina)}
                 />
               );
             })}
           </div>
         </div>
 
-        <div className="space-y-5">
-          <div className="rounded-[18px] border border-[#e3d9f8] bg-white p-7 shadow-[0_18px_50px_rgba(72,35,137,0.08)]">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <Medal className="size-7 text-[#7c35e8]" />
-                <h2 className="text-xl font-black">Top 5 da turma</h2>
-              </div>
-              <Link
-                href="/estudantes/ranking"
-                className="text-sm font-black text-[#7c35e8] underline"
-              >
-                Ver ranking
-              </Link>
+        <div className="flex h-full flex-col rounded-[18px] border border-[#e3d9f8] bg-white p-7 shadow-[0_18px_50px_rgba(72,35,137,0.08)]">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Medal className="size-7 text-[#7c35e8]" />
+              <h2 className="text-xl font-black">Top 5 da turma</h2>
             </div>
-            <div className="mt-4 overflow-hidden rounded-[12px] border border-[#e3d9f8]">
-              {rankingQuery.isPending &&
-                rankingSkeletonKeys.map((key) => (
-                  <div
-                    key={key}
-                    className="h-[64px] animate-pulse border-[#e3d9f8] border-b bg-[#f7f2ff] last:border-b-0"
-                  />
-                ))}
+            <Link
+              href="/estudantes/ranking"
+              className="text-sm font-black text-[#7c35e8] underline"
+            >
+              Ver ranking
+            </Link>
+          </div>
+          <div className="mt-4 flex-1 overflow-hidden rounded-[12px] border border-[#e3d9f8]">
+            {rankingQuery.isPending &&
+              rankingSkeletonKeys.map((key) => (
+                <div
+                  key={key}
+                  className="h-[64px] animate-pulse border-[#e3d9f8] border-b bg-[#f7f2ff] last:border-b-0"
+                />
+              ))}
 
-              {rankingQuery.isError && (
-                <div className="flex min-h-[96px] items-center gap-3 px-4 text-sm font-semibold text-red-700">
-                  <AlertCircle aria-hidden="true" className="size-5" />
-                  Nao foi possivel carregar o ranking.
+            {rankingQuery.isError && (
+              <div className="flex min-h-[96px] items-center gap-3 px-4 text-sm font-semibold text-red-700">
+                <AlertCircle aria-hidden="true" className="size-5" />
+                Nao foi possivel carregar o ranking.
+              </div>
+            )}
+
+            {!rankingQuery.isPending &&
+              !rankingQuery.isError &&
+              topRanking.length === 0 && (
+                <div className="px-4 py-6 text-sm font-semibold text-[#5d5a89]">
+                  O ranking da turma aparece aqui.
                 </div>
               )}
 
-              {!rankingQuery.isPending &&
-                !rankingQuery.isError &&
-                topRanking.length === 0 && (
-                  <div className="px-4 py-6 text-sm font-semibold text-[#5d5a89]">
-                    O ranking da turma aparece aqui.
-                  </div>
-                )}
-
-              {topRanking.map((item) => (
-                <RankingTopRow
-                  key={item.aluno.id}
-                  currentStudentAvatar={currentStudentAvatar}
-                  item={item}
-                />
-              ))}
-            </div>
+            {topRanking.map((item) => (
+              <RankingTopRow
+                key={item.aluno.id}
+                currentStudentAvatar={currentStudentAvatar}
+                item={item}
+              />
+            ))}
           </div>
+        </div>
+      </section>
 
-          <div className="rounded-[18px] border border-[#e3d9f8] bg-white p-7 shadow-[0_18px_50px_rgba(72,35,137,0.08)]">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <Trophy className="size-7 text-[#7c35e8]" />
-                <h2 className="text-xl font-black">Conquistas recentes</h2>
-              </div>
-              <Link
-                href="/estudantes/conquistas"
-                className="text-sm font-black text-[#7c35e8] underline"
-              >
-                Ver todas
-              </Link>
+      <section className="grid gap-5 xl:grid-cols-2">
+        <div className="rounded-[18px] border border-[#e3d9f8] bg-white p-7 shadow-[0_18px_50px_rgba(72,35,137,0.08)]">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Trophy className="size-7 text-[#7c35e8]" />
+              <h2 className="text-xl font-black">Conquistas recentes</h2>
             </div>
-            <div className="mt-4 overflow-hidden rounded-[12px] border border-[#e3d9f8]">
-              {conquistasQuery.isPending &&
-                [1, 2, 3].map((item) => (
-                  <div
-                    key={`achievement-skeleton-${item}`}
-                    className="h-[74px] animate-pulse border-[#e3d9f8] border-b bg-[#f7f2ff] last:border-b-0"
-                  />
-                ))}
-
-              {!conquistasQuery.isPending &&
-                recentAchievements.length === 0 && (
-                  <div className="px-4 py-6 text-sm font-semibold text-[#5d5a89]">
-                    Suas conquistas desbloqueadas aparecem aqui.
-                  </div>
-                )}
-
-              {recentAchievements.map((achievement) => (
-                <AchievementRow
-                  key={achievement.id}
-                  achievement={achievement}
+            <Link
+              href="/estudantes/conquistas"
+              className="text-sm font-black text-[#7c35e8] underline"
+            >
+              Ver todas
+            </Link>
+          </div>
+          <div className="mt-4 overflow-hidden rounded-[12px] border border-[#e3d9f8]">
+            {conquistasQuery.isPending &&
+              [1, 2, 3].map((item) => (
+                <div
+                  key={`achievement-skeleton-${item}`}
+                  className="h-[74px] animate-pulse border-[#e3d9f8] border-b bg-[#f7f2ff] last:border-b-0"
                 />
               ))}
+
+            {!conquistasQuery.isPending && recentAchievements.length === 0 && (
+              <div className="px-4 py-6 text-sm font-semibold text-[#5d5a89]">
+                Suas conquistas desbloqueadas aparecem aqui.
+              </div>
+            )}
+
+            {recentAchievements.map((achievement) => (
+              <AchievementRow key={achievement.id} achievement={achievement} />
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-[18px] border border-[#e3d9f8] bg-white p-7 shadow-[0_18px_50px_rgba(72,35,137,0.08)]">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Trophy className="size-7 text-[#7c35e8]" />
+              <h2 className="text-xl font-black">Conquistas em progresso</h2>
             </div>
+            <Link
+              href="/estudantes/conquistas"
+              className="text-sm font-black text-[#7c35e8] underline"
+            >
+              Ver todas
+            </Link>
+          </div>
+          <div className="mt-4 overflow-hidden rounded-[12px] border border-[#e3d9f8]">
+            {conquistasQuery.isPending &&
+              [1, 2, 3].map((item) => (
+                <div
+                  key={`achievement-progress-skeleton-${item}`}
+                  className="h-[74px] animate-pulse border-[#e3d9f8] border-b bg-[#f7f2ff] last:border-b-0"
+                />
+              ))}
+
+            {!conquistasQuery.isPending &&
+              achievementsInProgress.length === 0 && (
+                <div className="px-4 py-6 text-sm font-semibold text-[#5d5a89]">
+                  Conquistas em andamento aparecem aqui.
+                </div>
+              )}
+
+            {achievementsInProgress.map((achievement) => (
+              <AchievementProgressRow
+                key={achievement.id}
+                achievement={achievement}
+              />
+            ))}
           </div>
         </div>
       </section>
 
       <section className="relative flex min-h-16 items-center gap-5 overflow-hidden rounded-[18px] border border-[#e3d9f8] bg-white px-7 shadow-[0_18px_50px_rgba(72,35,137,0.08)]">
         <Image
-          src={mascotEstudante}
+          src={mascotPaideia}
           alt=""
-          className="h-14 w-14 rounded-full object-cover"
+          className="h-14 w-14 object-contain"
         />
         <div>
-          <p className="text-lg font-black text-[#7c35e8]">Dica do Edu</p>
-          <p className="font-medium">
-            Pratique um pouco todos os dias e evolua sempre!
-          </p>
+          <p className="text-lg font-black text-[#7c35e8]">Dica do Paideia</p>
+          <p className="font-medium">{currentTip}</p>
         </div>
         <div className="ml-auto hidden items-center gap-2 sm:flex">
-          <span className="size-3 rounded-full bg-[#d1c1f4]" />
-          <span className="size-3 rounded-full bg-[#7c35e8]" />
-          <span className="size-3 rounded-full bg-[#d1c1f4]" />
+          {paideiaTips.map((tip, index) => (
+            <span
+              key={tip}
+              className={`size-3 rounded-full ${
+                index === activeTipIndex ? "bg-[#7c35e8]" : "bg-[#d1c1f4]"
+              }`}
+            />
+          ))}
         </div>
       </section>
     </div>
@@ -687,10 +769,10 @@ function ChallengeCard({
   return (
     <Link
       href={href}
-      className={`grid min-h-[100px] grid-cols-[72px_1fr_48px] items-center gap-5 rounded-[12px] border px-6 transition hover:shadow-[0_14px_28px_rgba(72,35,137,0.1)] ${color}`}
+      className={`grid min-h-[100px] grid-cols-[56px_1fr] items-center gap-4 rounded-[12px] border px-4 py-4 transition hover:shadow-[0_14px_28px_rgba(72,35,137,0.1)] sm:grid-cols-[72px_1fr_48px] sm:gap-5 sm:px-6 ${color}`}
     >
       <span
-        className={`flex size-16 items-center justify-center rounded-[10px] text-white ${fill}`}
+        className={`flex size-14 items-center justify-center rounded-[10px] text-white sm:size-16 ${fill}`}
       >
         {icon}
       </span>
@@ -701,7 +783,7 @@ function ChallengeCard({
         </span>
       </span>
       <span
-        className={`flex size-12 items-center justify-center rounded-[8px] text-white ${fill}`}
+        className={`hidden size-12 items-center justify-center rounded-[8px] text-white sm:flex ${fill}`}
       >
         <ChevronRight aria-hidden="true" className="size-7" />
       </span>
@@ -736,6 +818,50 @@ function AchievementRow({ achievement }: { achievement: ConquistaProgresso }) {
       </span>
     </div>
   );
+}
+
+function AchievementProgressRow({
+  achievement,
+}: {
+  achievement: ConquistaProgresso;
+}) {
+  const achievementImage = getAchievementImage(achievement.icon);
+  const percent = getAchievementPercent(achievement);
+
+  return (
+    <div className="grid grid-cols-[48px_1fr_auto] items-center gap-4 border-[#e3d9f8] border-b px-4 py-3 last:border-b-0">
+      <span className="flex size-11 items-center justify-center rounded-[8px] bg-[#f1e8ff] text-sm font-black text-[#7c35e8]">
+        {achievementImage ? (
+          <Image
+            src={achievementImage}
+            alt=""
+            className="size-10 object-contain opacity-80"
+          />
+        ) : (
+          achievement.name.slice(0, 2).toUpperCase()
+        )}
+      </span>
+      <div className="min-w-0">
+        <p className="truncate font-black">{achievement.name}</p>
+        <div className="mt-2 grid grid-cols-[minmax(0,1fr)_max-content] items-center gap-3">
+          <ProgressBar
+            style={{ width: `${percent}%` }}
+            valueClassName="bg-[#7c35e8]"
+          />
+          <span className="text-xs font-black text-[#5d5a89]">
+            {achievement.current} / {achievement.goal}
+          </span>
+        </div>
+      </div>
+      <span className="whitespace-nowrap text-sm font-black text-[#7c35e8]">
+        {percent}%
+      </span>
+    </div>
+  );
+}
+
+function isAchievementCompleted(achievement: ConquistaProgresso) {
+  return achievement.unlocked || achievement.current >= achievement.goal;
 }
 
 function RankingTopRow({

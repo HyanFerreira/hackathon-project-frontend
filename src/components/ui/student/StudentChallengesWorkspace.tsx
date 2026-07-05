@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/buttons";
+import { Toast } from "@/components/feedback";
 import { Skeleton } from "@/components/loading";
 import { getApiErrorMessage } from "@/services/api/errors/getApiErrorMessage";
 import { gamificationApi } from "@/services/api/modules/gamification";
@@ -67,6 +68,7 @@ export function StudentChallengesWorkspace() {
   const [totalQuestions, setTotalQuestions] = useState(5);
   const [activeChallengeId, setActiveChallengeId] = useState<number>();
   const [selectedAlternativeId, setSelectedAlternativeId] = useState<number>();
+  const [successNotice, setSuccessNotice] = useState<string>();
 
   const meQuery = useQuery({
     queryKey: ["auth", "me", "aluno"],
@@ -125,8 +127,13 @@ export function StudentChallengesWorkspace() {
         totalQuestions,
       });
     },
-    onSuccess: async () => {
+    onSuccess: async (challenge) => {
       setSelectedColegaId(undefined);
+      setSuccessNotice(
+        challenge.status === "em_andamento"
+          ? "Desafio iniciado. Boa partida!"
+          : "Convite de desafio enviado.",
+      );
       await queryClient.invalidateQueries({ queryKey: ["aluno", "desafios"] });
     },
   });
@@ -134,6 +141,7 @@ export function StudentChallengesWorkspace() {
     mutationFn: gamificationApi.aceitarDesafio,
     onSuccess: async (challenge) => {
       setActiveChallengeId(challenge.id);
+      setSuccessNotice("Desafio iniciado. Responda antes do tempo acabar.");
       await queryClient.invalidateQueries({ queryKey: ["aluno", "desafios"] });
     },
   });
@@ -207,6 +215,15 @@ export function StudentChallengesWorkspace() {
         </div>
       </section>
 
+      {successNotice && (
+        <Toast
+          variant="success"
+          title="Desafio atualizado"
+          message={successNotice}
+          onClose={() => setSuccessNotice(undefined)}
+        />
+      )}
+
       {error && (
         <div
           role="alert"
@@ -256,7 +273,7 @@ export function StudentChallengesWorkspace() {
               }
               options={(colegasQuery.data ?? []).map((colega) => ({
                 value: colega.id,
-                label: `${colega.name} (${colega.code})`,
+                label: colega.name,
               }))}
               placeholder={
                 colegasQuery.isPending

@@ -15,7 +15,7 @@ import type { FormEvent, ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import loginBorda from "@/assets/images/login-borda.png";
 import loginMascot from "@/assets/images/login-mascot-v2.png";
-import paideiaLogoPurple from "@/assets/images/logotipo/paideia-roxo.svg";
+import paideiaLogoPurple from "@/assets/images/logotipo/paideia_roxo.svg";
 import { Button } from "@/components/buttons";
 import { CpfInput } from "@/components/form/CpfInput";
 import { Input } from "@/components/form/Input";

@@ -639,13 +639,13 @@ function AchievementsDashboard({
   const [layout, setLayout] = useState<"grid" | "list">("grid");
   const [sort, setSort] = useState<AchievementSort>("default");
   const total = items.length;
-  const completed = items.filter((item) => item.unlocked).length;
+  const completed = items.filter(isAchievementCompleted).length;
   const inProgress = items.filter(isAchievementInProgress).length;
   const conqueredPoints = items
-    .filter((item) => item.unlocked)
+    .filter(isAchievementCompleted)
     .reduce((sum, item) => sum + item.rewardPoints, 0);
   const earnedXp = items
-    .filter((item) => item.unlocked)
+    .filter(isAchievementCompleted)
     .reduce((sum, item) => sum + item.rewardXp, 0);
   const completionPercent = getProgressPercent(completed, total);
   const visibleItems = sortAchievements(
@@ -750,9 +750,9 @@ function AchievementsDashboard({
           </AchievementFilterButton>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Select
-            className="w-64"
+            className="w-full sm:w-64"
             label=""
             value={sort}
             options={[
@@ -914,7 +914,7 @@ function AchievementTemplateCard({
   const status = getAchievementStatus(conquista);
 
   return (
-    <article className="grid min-h-[158px] grid-cols-[112px_1fr] gap-4 rounded-[18px] border border-[#e3d9f8] bg-white p-4 shadow-[0_18px_50px_rgba(72,35,137,0.08)]">
+    <article className="grid min-h-[158px] gap-4 rounded-[18px] border border-[#e3d9f8] bg-white p-4 shadow-[0_18px_50px_rgba(72,35,137,0.08)] sm:grid-cols-[112px_1fr]">
       <div className="flex items-center justify-center">
         {achievementImage ? (
           <Image
@@ -933,12 +933,12 @@ function AchievementTemplateCard({
       </div>
 
       <div className="min-w-0">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <p className="text-xs font-black uppercase tracking-wide text-[#7c35e8]">
               {formatAchievementType(conquista.type)}
             </p>
-            <h2 className="mt-1 truncate text-2xl font-black text-[#101044]">
+            <h2 className="mt-1 text-xl font-black text-[#101044] sm:truncate sm:text-2xl">
               {conquista.name}
             </h2>
             <p className="mt-1 line-clamp-2 text-base font-medium text-[#5d5a89]">
@@ -998,21 +998,25 @@ function AchievementStatusPill({
 }
 
 function getAchievementStatus(conquista: ConquistaProgresso) {
-  if (conquista.unlocked) return "completed";
+  if (isAchievementCompleted(conquista)) return "completed";
   if (isAchievementInProgress(conquista)) return "progress";
 
   return "locked";
 }
 
+function isAchievementCompleted(conquista: ConquistaProgresso) {
+  return conquista.unlocked || conquista.current >= conquista.goal;
+}
+
 function isAchievementInProgress(conquista: ConquistaProgresso) {
-  return !conquista.unlocked && conquista.current > 0;
+  return !isAchievementCompleted(conquista) && conquista.current > 0;
 }
 
 function matchesAchievementFilter(
   conquista: ConquistaProgresso,
   filter: AchievementFilter,
 ) {
-  if (filter === "completed") return conquista.unlocked;
+  if (filter === "completed") return isAchievementCompleted(conquista);
   if (filter === "progress") return isAchievementInProgress(conquista);
   if (filter === "locked") return getAchievementStatus(conquista) === "locked";
 

@@ -4,13 +4,11 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Bell,
   type BookOpen,
-  ChevronDown,
   Home,
   LogOut,
   Medal,
   Menu,
   Radio,
-  Settings,
   ShoppingBag,
   Sparkles,
   Trophy,
@@ -21,7 +19,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import paideiaLogoWhite from "@/assets/images/logotipo/paideia-branco.svg";
+import paideiaLogoWhite from "@/assets/images/logotipo/paideia_branco.svg";
 import { Button } from "@/components/buttons";
 import { authApi } from "@/services/api/modules/auth";
 import { gamificationApi } from "@/services/api/modules/gamification";
@@ -55,7 +53,6 @@ export function StudentShell({ children }: StudentShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   const meQuery = useQuery({
@@ -91,6 +88,12 @@ export function StudentShell({ children }: StudentShellProps) {
       challenge.challenged?.id === meQuery.data?.id,
   );
   const newestChallenge = pendingChallenges[0];
+  const activeChallenge = (desafiosQuery.data ?? []).find(
+    (challenge) =>
+      challenge.status === "em_andamento" &&
+      (challenge.challenger?.id === meQuery.data?.id ||
+        challenge.challenged?.id === meQuery.data?.id),
+  );
 
   async function handleLogout() {
     try {
@@ -105,7 +108,7 @@ export function StudentShell({ children }: StudentShellProps) {
   return (
     <main className="min-h-screen overflow-hidden bg-[#fbf7ff] text-[#101044]">
       <header className="sticky top-0 z-30 bg-gradient-to-r from-[#6d2ee8] via-[#8738f2] to-[#7029dc] text-white shadow-[0_10px_35px_rgba(110,46,232,0.25)]">
-        <div className="mx-auto flex h-[72px] max-w-[1740px] items-center justify-between gap-2 px-4 sm:px-5 lg:h-[86px] lg:px-8">
+        <div className="mx-auto flex h-[72px] max-w-[1740px] items-center justify-between gap-2 px-4 sm:px-5 lg:grid lg:h-[86px] lg:grid-cols-[220px_minmax(0,1fr)_auto] lg:px-8">
           <Button
             aria-label="Abrir navegação"
             className="size-11 shrink-0 border border-white/20 bg-white/10 p-0 text-white hover:bg-white/20 lg:hidden"
@@ -118,12 +121,12 @@ export function StudentShell({ children }: StudentShellProps) {
             <Image
               src={paideiaLogoWhite}
               alt="Paideia"
-              className="h-9 w-auto max-w-[130px] object-contain sm:h-11 sm:max-w-[180px] lg:h-12"
+              className="h-8 w-auto max-w-[112px] object-contain sm:h-10 sm:max-w-[156px] lg:h-12 lg:max-w-[180px]"
               priority
             />
           </Link>
 
-          <nav className="hidden items-center gap-2 lg:flex xl:gap-3">
+          <nav className="hidden min-w-0 items-center justify-center gap-2 justify-self-center lg:flex xl:gap-3">
             <StudentNavItem
               active={isActive(pathname, "/estudantes")}
               icon={Home}
@@ -168,14 +171,34 @@ export function StudentShell({ children }: StudentShellProps) {
             />
           </nav>
 
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-2 lg:ml-0 lg:justify-self-end">
+            <div className="flex h-11 min-w-0 items-center gap-2 px-1.5 text-white sm:h-12">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#f1e8ff] text-sm font-black text-[#7c35e8] ring-1 ring-white/40">
+                {equippedCharacter ? (
+                  <Image
+                    src={getAvatarProfileImage(
+                      equippedCharacter.avatar,
+                      equippedCharacter.image,
+                    )}
+                    alt={`Avatar ${equippedCharacter.name}`}
+                    className="size-9 rounded-full object-cover"
+                  />
+                ) : (
+                  initials
+                )}
+              </span>
+              <span className="hidden min-w-0 flex-1 truncate text-sm font-bold sm:block">
+                {studentName}
+              </span>
+            </div>
+
             <Link
               aria-label={
                 pendingChallenges.length > 0
                   ? `${pendingChallenges.length} convite(s) de desafio`
                   : "Nenhum convite de desafio"
               }
-              className="relative flex size-11 shrink-0 items-center justify-center rounded-system border border-white/25 bg-white/10 text-white transition hover:bg-white/20"
+              className="relative flex size-11 shrink-0 items-center justify-center rounded-full text-white transition hover:bg-white/10 sm:size-12"
               href="/estudantes/desafios"
             >
               <Bell aria-hidden="true" className="size-5" />
@@ -187,140 +210,16 @@ export function StudentShell({ children }: StudentShellProps) {
                 </span>
               )}
             </Link>
-            <div className="relative">
-              <Button
-                type="button"
-                onClick={() => setIsUserMenuOpen((current) => !current)}
-                aria-expanded={isUserMenuOpen}
-                aria-haspopup="menu"
-                className="h-11 min-w-0 justify-start rounded-system border border-white/50 bg-white px-2 text-[#101044] shadow-sm hover:bg-[#fbf8ff] sm:h-12 sm:min-w-[184px] sm:px-3"
-              >
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#f1e8ff] text-sm font-black text-[#7c35e8] ring-1 ring-[#d9c6ff]">
-                  {equippedCharacter ? (
-                    <Image
-                      src={getAvatarProfileImage(
-                        equippedCharacter.avatar,
-                        equippedCharacter.image,
-                      )}
-                      alt={`Avatar ${equippedCharacter.name}`}
-                      className="size-9 rounded-full object-cover"
-                    />
-                  ) : (
-                    initials
-                  )}
-                </span>
-                <span className="hidden min-w-0 flex-1 truncate text-sm font-bold sm:block">
-                  {studentName}
-                </span>
-                <ChevronDown
-                  aria-hidden="true"
-                  className={`hidden size-4 shrink-0 text-[#7c35e8] transition sm:block ${
-                    isUserMenuOpen ? "rotate-180" : ""
-                  }`}
-                />
-              </Button>
 
-              {isUserMenuOpen && (
-                <div className="absolute right-0 top-[calc(100%+12px)] z-40 w-56 overflow-hidden rounded-system border border-[#e3d9f8] bg-white py-2 text-[#101044] shadow-[0_18px_45px_rgba(37,19,83,0.18)]">
-                  <Link
-                    href="/estudantes"
-                    onClick={() => setIsUserMenuOpen(false)}
-                    className="flex min-h-11 items-center gap-3 px-4 text-sm font-semibold transition hover:bg-[#f6f0ff]"
-                  >
-                    <Home
-                      aria-hidden="true"
-                      className="size-4 text-[#7c35e8]"
-                    />
-                    Inicio
-                  </Link>
-                  <Link
-                    href="/estudantes/ranking"
-                    onClick={() => setIsUserMenuOpen(false)}
-                    className="flex min-h-11 items-center gap-3 px-4 text-sm font-semibold transition hover:bg-[#f6f0ff]"
-                  >
-                    <Medal
-                      aria-hidden="true"
-                      className="size-4 text-[#7c35e8]"
-                    />
-                    Ranking
-                  </Link>
-                  <Link
-                    href="/estudantes/desafios"
-                    onClick={() => setIsUserMenuOpen(false)}
-                    className="flex min-h-11 items-center gap-3 px-4 text-sm font-semibold transition hover:bg-[#f6f0ff]"
-                  >
-                    <Sparkles
-                      aria-hidden="true"
-                      className="size-4 text-[#7c35e8]"
-                    />
-                    Desafios
-                  </Link>
-                  <Link
-                    href="/estudantes/ao-vivo"
-                    onClick={() => setIsUserMenuOpen(false)}
-                    className="flex min-h-11 items-center gap-3 px-4 text-sm font-semibold transition hover:bg-[#f6f0ff]"
-                  >
-                    <Radio
-                      aria-hidden="true"
-                      className="size-4 text-[#7c35e8]"
-                    />
-                    Ao vivo
-                  </Link>
-                  <Link
-                    href="/estudantes/conquistas"
-                    onClick={() => setIsUserMenuOpen(false)}
-                    className="flex min-h-11 items-center gap-3 px-4 text-sm font-semibold transition hover:bg-[#f6f0ff]"
-                  >
-                    <Trophy
-                      aria-hidden="true"
-                      className="size-4 text-[#7c35e8]"
-                    />
-                    Conquistas
-                  </Link>
-                  <Link
-                    href="/estudantes/personagens"
-                    onClick={() => setIsUserMenuOpen(false)}
-                    className="flex min-h-11 items-center gap-3 px-4 text-sm font-semibold transition hover:bg-[#f6f0ff]"
-                  >
-                    <UserRound
-                      aria-hidden="true"
-                      className="size-4 text-[#7c35e8]"
-                    />
-                    Personagens
-                  </Link>
-                  <Link
-                    href="/estudantes/loja"
-                    onClick={() => setIsUserMenuOpen(false)}
-                    className="flex min-h-11 items-center gap-3 px-4 text-sm font-semibold transition hover:bg-[#f6f0ff]"
-                  >
-                    <ShoppingBag
-                      aria-hidden="true"
-                      className="size-4 text-[#7c35e8]"
-                    />
-                    Loja
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => setIsUserMenuOpen(false)}
-                    className="flex min-h-11 w-full items-center gap-3 px-4 text-left text-sm font-semibold transition hover:bg-[#f6f0ff]"
-                  >
-                    <Settings
-                      aria-hidden="true"
-                      className="size-4 text-[#7c35e8]"
-                    />
-                    Configurações
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="flex min-h-11 w-full items-center gap-3 border-[#efe7ff] border-t px-4 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50"
-                  >
-                    <LogOut aria-hidden="true" className="size-4" />
-                    Sair
-                  </button>
-                </div>
-              )}
-            </div>
+            <Button
+              type="button"
+              onClick={handleLogout}
+              aria-label="Sair"
+              title="Sair"
+              className="size-11 shrink-0 rounded-full bg-transparent p-0 text-white hover:bg-white/10 sm:size-12"
+            >
+              <LogOut aria-hidden="true" className="size-5" />
+            </Button>
           </div>
         </div>
 
@@ -373,28 +272,54 @@ export function StudentShell({ children }: StudentShellProps) {
       </header>
 
       <div className="relative mx-auto max-w-[1740px] px-4 py-5 sm:px-5 lg:px-8 lg:py-6">
-        {newestChallenge && pathname !== "/estudantes/desafios" && (
+        {activeChallenge && pathname !== "/estudantes/desafios" && (
           <aside className="mb-5 flex flex-col gap-3 rounded-[16px] border border-[#d7c3ff] bg-white p-4 shadow-[0_12px_32px_rgba(72,35,137,0.12)] sm:flex-row sm:items-center">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#f0e7ff] text-[#6d2ee8]">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#fff4d6] text-[#8f5c00]">
               <Sparkles aria-hidden="true" className="size-5" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="font-black text-[#101044]">
-                Você recebeu um desafio!
-              </p>
+              <p className="font-black text-[#101044]">Desafio iniciado!</p>
               <p className="truncate text-sm font-medium text-[#5d5a89]">
-                {newestChallenge.challenger?.name ?? "Um colega"} chamou você
-                para jogar.
+                Sua partida com{" "}
+                {activeChallenge.challenger?.id === meQuery.data?.id
+                  ? (activeChallenge.challenged?.name ?? "um colega")
+                  : (activeChallenge.challenger?.name ?? "um colega")}{" "}
+                esta em andamento.
               </p>
             </div>
             <Link
               className="inline-flex min-h-11 items-center justify-center rounded-[12px] bg-[#6d2ee8] px-5 text-sm font-black text-white transition hover:bg-[#5b22ca]"
               href="/estudantes/desafios"
             >
-              Ver convite
+              Entrar
             </Link>
           </aside>
         )}
+
+        {!activeChallenge &&
+          newestChallenge &&
+          pathname !== "/estudantes/desafios" && (
+            <aside className="mb-5 flex flex-col gap-3 rounded-[16px] border border-[#d7c3ff] bg-white p-4 shadow-[0_12px_32px_rgba(72,35,137,0.12)] sm:flex-row sm:items-center">
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#f0e7ff] text-[#6d2ee8]">
+                <Sparkles aria-hidden="true" className="size-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="font-black text-[#101044]">
+                  Você recebeu um desafio!
+                </p>
+                <p className="truncate text-sm font-medium text-[#5d5a89]">
+                  {newestChallenge.challenger?.name ?? "Um colega"} chamou você
+                  para jogar.
+                </p>
+              </div>
+              <Link
+                className="inline-flex min-h-11 items-center justify-center rounded-[12px] bg-[#6d2ee8] px-5 text-sm font-black text-white transition hover:bg-[#5b22ca]"
+                href="/estudantes/desafios"
+              >
+                Ver convite
+              </Link>
+            </aside>
+          )}
         <div className="relative">{children}</div>
       </div>
     </main>

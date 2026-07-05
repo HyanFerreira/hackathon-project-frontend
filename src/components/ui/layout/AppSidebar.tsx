@@ -33,7 +33,7 @@ import {
   useState,
 } from "react";
 import { twMerge } from "tailwind-merge";
-import paideiaLogoWhite from "@/assets/images/logotipo/paideia-branco.svg";
+import paideiaLogoWhite from "@/assets/images/logotipo/paideia_branco.svg";
 import { Button } from "@/components/buttons";
 import { Skeleton } from "@/components/loading";
 import { authApi } from "@/services/api/modules/auth";

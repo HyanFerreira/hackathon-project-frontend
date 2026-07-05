@@ -45,6 +45,24 @@ type AlunoApi = {
   turma_id?: number;
   nome: string;
   codigo: string;
+  personagem?: RankingCharacterApi | Resource<RankingCharacterApi> | null;
+  personagem_atual?: RankingCharacterApi | Resource<RankingCharacterApi> | null;
+  personagem_equipado?:
+    | RankingCharacterApi
+    | Resource<RankingCharacterApi>
+    | null;
+  personagemEquipado?:
+    | RankingCharacterApi
+    | Resource<RankingCharacterApi>
+    | null;
+};
+
+type RankingCharacterApi = {
+  avatar?: string;
+  chave?: string;
+  imagem?: string;
+  key?: string;
+  personagem?: RankingCharacterApi | Resource<RankingCharacterApi> | null;
 };
 
 type TurmaApi = {
@@ -122,10 +140,16 @@ type RankingItemApi = {
   nivel: number;
   imagem?: string;
   avatar?: string;
-  personagem?: {
-    imagem?: string;
-    avatar?: string;
-  } | null;
+  personagem?: RankingCharacterApi | Resource<RankingCharacterApi> | null;
+  personagem_atual?: RankingCharacterApi | Resource<RankingCharacterApi> | null;
+  personagem_equipado?:
+    | RankingCharacterApi
+    | Resource<RankingCharacterApi>
+    | null;
+  personagemEquipado?:
+    | RankingCharacterApi
+    | Resource<RankingCharacterApi>
+    | null;
 };
 
 type RespostaAlunoApi = {
@@ -657,15 +681,56 @@ export function normalizePerfil(perfil: PerfilAlunoApi): PerfilAluno {
 }
 
 function normalizeRankingItem(item: RankingItemApi): RankingItem {
+  const personagem = getRankingCharacter(item);
+
   return {
     position: item.posicao,
     aluno: normalizeAluno(item.aluno),
     points: item.pontos,
     xp: item.xp,
     level: item.nivel,
-    image: item.imagem ?? item.personagem?.imagem,
-    avatar: item.avatar ?? item.personagem?.avatar,
+    image:
+      item.imagem ?? personagem?.imagem ?? personagem?.chave ?? personagem?.key,
+    avatar:
+      item.avatar ?? personagem?.avatar ?? personagem?.chave ?? personagem?.key,
   };
+}
+
+function getRankingCharacter(item: RankingItemApi) {
+  const candidates = [
+    item.personagem,
+    item.personagem_atual,
+    item.personagem_equipado,
+    item.personagemEquipado,
+    item.aluno.personagem,
+    item.aluno.personagem_atual,
+    item.aluno.personagem_equipado,
+    item.aluno.personagemEquipado,
+  ];
+
+  for (const candidate of candidates) {
+    const character = unwrapRankingCharacter(candidate);
+
+    if (
+      character?.avatar ||
+      character?.imagem ||
+      character?.chave ||
+      character?.key
+    ) {
+      return character;
+    }
+  }
+
+  return undefined;
+}
+
+function unwrapRankingCharacter(
+  value?: RankingCharacterApi | Resource<RankingCharacterApi> | null,
+): RankingCharacterApi | undefined {
+  const character = unwrapResource(value ?? undefined);
+  const nestedCharacter = unwrapResource(character?.personagem ?? undefined);
+
+  return nestedCharacter ?? character;
 }
 
 function normalizeResposta(resposta: RespostaAlunoApi): RespostaAluno {
@@ -701,6 +766,8 @@ function unwrapResource<T>(value?: Resource<T> | T): T | undefined {
 function normalizeConquista(
   conquista: ConquistaProgressoApi,
 ): ConquistaProgresso {
+  const unlocked = conquista.desbloqueada || conquista.atual >= conquista.meta;
+
   return {
     id: conquista.id,
     name: conquista.nome,
@@ -709,7 +776,7 @@ function normalizeConquista(
     type: conquista.tipo,
     goal: conquista.meta,
     current: conquista.atual,
-    unlocked: conquista.desbloqueada,
+    unlocked,
     unlockedAt: conquista.desbloqueada_em,
     rewardPoints: conquista.recompensa_pontos,
     rewardXp: conquista.recompensa_xp,
