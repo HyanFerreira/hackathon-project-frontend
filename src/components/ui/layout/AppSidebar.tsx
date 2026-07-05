@@ -25,7 +25,7 @@ import {
   useState,
 } from "react";
 import { twMerge } from "tailwind-merge";
-import paideiaLogoIconWhite from "@/assets/images/paideiaLogoIconWhite.svg";
+import paideiaLogoWhite from "@/assets/images/logotipo/paideia-branco.svg";
 import { Button } from "@/components/buttons";
 import { canShowNavigationItem } from "@/utils/auth/routeAccess";
 
@@ -273,7 +273,7 @@ export function AppSidebar({
                 alt="Paideia"
                 className="h-9 w-auto max-w-[140px] object-contain"
                 priority
-                src={paideiaLogoIconWhite}
+                src={paideiaLogoWhite}
               />
             </span>
           </div>

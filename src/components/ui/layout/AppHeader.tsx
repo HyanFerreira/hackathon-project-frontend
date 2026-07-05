@@ -12,7 +12,7 @@ import {
   useRef,
   useState,
 } from "react";
-import paideiaLogoIcon from "@/assets/images/paideiaLogoIcon.svg";
+import paideiaLogoPurple from "@/assets/images/logotipo/paideia-roxo.svg";
 import { Button } from "@/components/buttons";
 import { Skeleton } from "@/components/loading";
 import { authApi } from "@/services/api/modules/auth";
@@ -164,7 +164,7 @@ export function AppHeader({
         alt="Paideia"
         className="ml-3 h-8 w-auto max-w-[130px] object-contain sm:h-9 lg:ml-0 lg:h-10 lg:max-w-[180px]"
         priority
-        src={paideiaLogoIcon}
+        src={paideiaLogoPurple}
       />
 
       <div className="ml-auto" ref={userDropdownRef}>

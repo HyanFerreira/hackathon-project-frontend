@@ -21,7 +21,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import paideiaLogoIconWhite from "@/assets/images/paideiaLogoIconWhite.svg";
+import paideiaLogoWhite from "@/assets/images/logotipo/paideia-branco.svg";
 import { Button } from "@/components/buttons";
 import { authApi } from "@/services/api/modules/auth";
 import { gamificationApi } from "@/services/api/modules/gamification";
@@ -116,7 +116,7 @@ export function StudentShell({ children }: StudentShellProps) {
           </Button>
           <Link href="/estudantes" className="flex items-center gap-3">
             <Image
-              src={paideiaLogoIconWhite}
+              src={paideiaLogoWhite}
               alt="Paideia"
               className="h-9 w-auto max-w-[130px] object-contain sm:h-11 sm:max-w-[180px] lg:h-12"
               priority

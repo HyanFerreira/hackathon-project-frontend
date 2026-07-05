@@ -15,7 +15,7 @@ import type { FormEvent, ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import loginBorda from "@/assets/images/login-borda.png";
 import loginMascot from "@/assets/images/login-mascot-v2.png";
-import paideiaLogoIcon from "@/assets/images/paideiaLogoIcon.svg";
+import paideiaLogoPurple from "@/assets/images/logotipo/paideia-roxo.svg";
 import { Button } from "@/components/buttons";
 import { CpfInput } from "@/components/form/CpfInput";
 import { Input } from "@/components/form/Input";
@@ -250,7 +250,7 @@ export function LoginScreen({
                 alt="Paideia"
                 className="mx-auto mb-7 h-12 w-auto max-w-[220px] object-contain sm:h-14"
                 priority
-                src={paideiaLogoIcon}
+                src={paideiaLogoPurple}
               />
               <h1 className="text-3xl font-black tracking-normal text-slate-950 sm:text-4xl">
                 Bem-vindo de volta!
