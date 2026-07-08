@@ -1,14 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import {
-  AlertCircle,
-  ChevronRight,
-  Crown,
-  Medal,
-  Shield,
-  Star,
-} from "lucide-react";
+import { AlertCircle, Crown, Medal, Shield, Star } from "lucide-react";
 import Image from "next/image";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
@@ -321,8 +314,6 @@ function StudentRankingView({
 
   return (
     <div className="relative space-y-6">
-      <RankingDecorations />
-
       <section className="relative z-10">
         <div>
           <h1 className="text-4xl font-bold tracking-normal text-[#4b18dc]">
@@ -365,7 +356,7 @@ function StudentRankingView({
 
           {items.length > 0 && (
             <section className="relative z-10 overflow-hidden rounded-[24px] border border-[#e3d9f8] bg-white/95 p-4 shadow-[0_22px_60px_rgba(72,35,137,0.1)]">
-              <div className="hidden grid-cols-[120px_minmax(240px,1fr)_140px_130px_220px_32px] px-6 py-3 text-sm font-bold text-[#5d5a89] lg:grid">
+              <div className="hidden grid-cols-[120px_minmax(240px,1fr)_140px_130px_220px] px-6 py-3 text-sm font-bold text-[#5d5a89] lg:grid">
                 <span>Posição</span>
                 <span>Aluno</span>
                 <span className="inline-flex items-center gap-2">
@@ -382,7 +373,6 @@ function StudentRankingView({
                   <Shield className="size-5 fill-[#63bd47] text-[#4aa53c]" />
                   Nível
                 </span>
-                <span />
               </div>
 
               <div className="space-y-2">
@@ -402,21 +392,6 @@ function StudentRankingView({
       {!isFetching && isSuccess && items.length === 0 && (
         <span className="sr-only">Ranking ainda sem dados</span>
       )}
-    </div>
-  );
-}
-
-function RankingDecorations() {
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      <Star className="absolute left-[18%] top-[18%] size-5 fill-[#cdb9ff] text-[#cdb9ff] opacity-80" />
-      <Star className="absolute right-[18%] top-[20%] size-5 fill-[#cdb9ff] text-[#cdb9ff] opacity-70" />
-      <Star className="absolute left-[40%] top-[10%] size-4 fill-[#ffd891] text-[#ffd891] opacity-80" />
-      <Star className="absolute right-[31%] top-[13%] size-4 fill-[#ffd891] text-[#ffd891] opacity-70" />
-      <span className="absolute left-[23%] top-[8%] size-3 rotate-45 rounded-[3px] bg-[#cdb9ff]/70" />
-      <span className="absolute right-[23%] top-[9%] size-3 rotate-45 rounded-[3px] bg-[#cdb9ff]/70" />
-      <span className="absolute left-[33%] top-[25%] size-2 rotate-45 rounded-[2px] bg-[#ffd891]/80" />
-      <span className="absolute right-[35%] top-[26%] size-2 rotate-45 rounded-[2px] bg-[#ffd891]/80" />
     </div>
   );
 }
@@ -502,7 +477,7 @@ function RankingRow({
 
   return (
     <article
-      className={`grid min-h-[64px] items-center gap-3 rounded-[12px] border border-transparent px-4 py-3 text-[#101044] transition hover:border-[#e3d9f8] hover:shadow-[0_12px_30px_rgba(72,35,137,0.08)] lg:grid-cols-[120px_minmax(240px,1fr)_140px_130px_220px_32px] ${highlight}`}
+      className={`grid min-h-[64px] items-center gap-3 rounded-[12px] border border-transparent px-4 py-3 text-[#101044] transition hover:border-[#e3d9f8] hover:shadow-[0_12px_30px_rgba(72,35,137,0.08)] lg:grid-cols-[120px_minmax(240px,1fr)_140px_130px_220px] ${highlight}`}
     >
       <div className="flex items-center">
         <PositionMedal position={item.position} compact />
@@ -542,8 +517,6 @@ function RankingRow({
           />
         </div>
       </div>
-
-      <ChevronRight className="hidden size-6 text-[#1c2370] lg:block" />
     </article>
   );
 }

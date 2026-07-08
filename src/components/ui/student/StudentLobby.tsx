@@ -514,12 +514,15 @@ export function StudentLobby() {
               href={challengeHref}
               className={buttonVariants({
                 className:
-                  "mt-5 w-full max-w-[285px] md:absolute md:bottom-11 md:left-6 md:mt-0",
+                  "relative mt-5 w-full max-w-[285px] md:absolute md:bottom-11 md:left-6 md:mt-0",
                 variant: "primary",
               })}
             >
               Continuar
-              <ChevronRight aria-hidden="true" className="size-5" />
+              <ChevronRight
+                aria-hidden="true"
+                className="absolute right-5 size-5"
+              />
             </Link>
           </div>
           <div className="hidden md:block">

@@ -363,18 +363,19 @@ export function LoginScreen({
                 type="submit"
                 disabled={isSubmitting}
                 variant="primary"
-                className="w-full justify-between"
+                className="relative w-full"
               >
-                <span className="flex-1 text-center">
-                  {isSubmitting ? "Entrando..." : "Entrar"}
-                </span>
+                <span>{isSubmitting ? "Entrando..." : "Entrar"}</span>
                 {isSubmitting ? (
                   <LoaderCircle
                     aria-hidden="true"
-                    className="size-5 animate-spin"
+                    className="absolute right-5 size-5 animate-spin"
                   />
                 ) : (
-                  <ArrowRight aria-hidden="true" className="size-5" />
+                  <ArrowRight
+                    aria-hidden="true"
+                    className="absolute right-5 size-5"
+                  />
                 )}
               </Button>
             </form>
