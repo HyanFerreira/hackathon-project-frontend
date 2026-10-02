@@ -1,10 +1,13 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { AlertCircle, Crown, Medal, Shield, Star } from "lucide-react";
-import Image from "next/image";
+import { AlertCircle, Medal, Shield, Star } from "lucide-react";
+import Image, { type StaticImageData } from "next/image";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
+import trophy1 from "@/assets/images/trofeus/trofeu_1.svg";
+import trophy2 from "@/assets/images/trofeus/trofeu_2.svg";
+import trophy3 from "@/assets/images/trofeus/trofeu_3.svg";
 import { Select } from "@/components/form/Select";
 import { TableSkeleton } from "@/components/loading";
 import { useMinimumVisibleLoading } from "@/hooks/useMinimumVisibleLoading";
@@ -21,6 +24,12 @@ import {
 } from "@/utils/student/equippedCharacter";
 import { StudentRankingSkeleton } from "../student/StudentWorkspaceSkeletons";
 import { getAvatarProfileImage } from "../student/studentVisualAssets";
+
+const podiumTrophies: Record<number, StaticImageData> = {
+  1: trophy1,
+  2: trophy2,
+  3: trophy3,
+};
 
 export function RankingWorkspace() {
   const actor = getAuthActor();
@@ -412,29 +421,35 @@ function PodiumCard({
   const isFirst = position === 1;
   const cardTone =
     position === 1
-      ? "border-[#ffd77a] bg-[#fffdf7] shadow-[0_20px_60px_rgba(255,185,0,0.18)]"
+      ? "border-[#ffd77a] bg-[#fffdf7] shadow-[0_24px_70px_rgba(255,185,0,0.2)]"
       : position === 2
-        ? "border-[#d8d7ea] bg-white shadow-[0_18px_48px_rgba(72,35,137,0.12)]"
-        : "border-[#f0c7ad] bg-white shadow-[0_18px_48px_rgba(197,105,42,0.12)]";
+        ? "border-[#d8d7ea] bg-white shadow-[0_18px_50px_rgba(72,35,137,0.12)]"
+        : "border-[#f0c7ad] bg-white shadow-[0_18px_50px_rgba(197,105,42,0.12)]";
+  const topGlow =
+    position === 1
+      ? "from-[#fff3c2]"
+      : position === 2
+        ? "from-[#eef0f7]"
+        : "from-[#ffe2ce]";
 
   return (
     <article
-      className={`relative mx-auto flex w-full max-w-[260px] flex-col items-center rounded-[22px] border p-5 text-center ${cardTone} ${
-        isFirst ? "min-h-[250px] md:order-2" : "min-h-[220px] md:mb-0"
+      className={`relative mx-auto flex w-full max-w-[260px] flex-col items-center overflow-hidden rounded-[22px] border px-5 pb-6 pt-7 text-center ${cardTone} ${
+        isFirst ? "min-h-[286px] md:order-2" : "min-h-[258px] md:mb-0"
       } ${position === 2 ? "md:order-1" : ""} ${
         position === 3 ? "md:order-3" : ""
       }`}
     >
-      {isFirst && (
-        <Crown className="-top-12 absolute size-14 fill-[#ffb900] text-[#ff9f1a]" />
-      )}
-      <PositionMedal position={position} />
+      <span
+        className={`pointer-events-none absolute inset-x-8 top-0 h-20 rounded-b-full bg-gradient-to-b ${topGlow} to-transparent opacity-70`}
+        aria-hidden="true"
+      />
       {item ? (
         <>
           <AvatarProfile
             currentStudentAvatar={currentStudentAvatar}
             item={item}
-            className={isFirst ? "mt-0 size-24" : "mt-1 size-20"}
+            className={`relative ${isFirst ? "size-24" : "size-20"}`}
           />
           <h2 className="mt-3 line-clamp-1 text-xl font-bold text-[#101044]">
             {item.aluno.name}
@@ -447,6 +462,7 @@ function PodiumCard({
             <Pill tone="xp">XP {item.xp}</Pill>
             <Pill tone="level">Nível {item.level}</Pill>
           </div>
+          <PodiumTrophy position={position} />
         </>
       ) : (
         <div className="flex flex-1 items-center" aria-hidden="true" />
@@ -570,21 +586,37 @@ function PositionMedal({
     );
   }
 
-  const tone =
-    position === 1
-      ? "from-[#ffcf43] to-[#ff7b2a] text-white"
-      : position === 2
-        ? "from-[#d8dce6] to-[#89909e] text-white"
-        : "from-[#d88a4c] to-[#b75b24] text-white";
+  const trophy = podiumTrophies[position];
 
   return (
     <span
-      className={`relative flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${tone} font-bold shadow-[0_8px_18px_rgba(0,0,0,0.16)] ${
-        compact ? "size-9 text-base" : "absolute left-4 top-6 size-12 text-xl"
+      className={`relative flex shrink-0 items-center justify-center ${
+        compact ? "size-11" : "size-16"
       }`}
+      title={`${position}º lugar`}
     >
-      {position}
+      <Image
+        src={trophy}
+        alt={`${position}º lugar`}
+        className="size-full object-contain drop-shadow-[0_8px_12px_rgba(0,0,0,0.14)]"
+      />
     </span>
+  );
+}
+
+function PodiumTrophy({ position }: { position: number }) {
+  const trophy = podiumTrophies[position];
+
+  if (!trophy) return null;
+
+  return (
+    <div className="mt-5 flex w-full items-center justify-center border-[#eee7fb] border-t pt-4">
+      <Image
+        src={trophy}
+        alt={`${position}º lugar`}
+        className="h-14 w-auto object-contain drop-shadow-[0_10px_14px_rgba(0,0,0,0.16)]"
+      />
+    </div>
   );
 }
 
